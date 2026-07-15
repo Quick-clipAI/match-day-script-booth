@@ -1,0 +1,9 @@
+{
+  "name": "match-day-script-booth",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Match Day Script Booth — static frontend + Vercel serverless API routes that proxy Gemini and API-Football so keys never sit in the browser.",
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
