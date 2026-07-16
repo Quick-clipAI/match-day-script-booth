@@ -16,7 +16,7 @@ version couldn't:
 | Before | Now |
 |---|---|
 | Browser called `generativelanguage.googleapis.com` directly, using a key typed into Settings | Browser calls `/api/gemini`, which calls Google using `GEMINI_API_KEY` from Vercel |
-| Browser called `api-football-v1.p.rapidapi.com` directly, using a key typed into Settings | Browser calls `/api/football/...`, which calls RapidAPI using `RAPIDAPI_KEY` from Vercel |
+| Browser called `api-football-v1.p.rapidapi.com` directly, using a key typed into Settings | Browser calls `/api/football/...`, which calls API-Football directly (`v3.football.api-sports.io`) using `API_SPORTS_KEY` from Vercel — no RapidAPI involved |
 | — (new) | Browser calls `/api/football-data/...`, which calls football-data.org using `FOOTBALL_DATA_API_KEY` from Vercel — powers the new "📡 Live Matches Today" picker in Card 0, giving exact hard scores for the 12 major competitions without relying on Gemini's web search |
 | Settings panel had two password fields | Settings panel just has a "Check server APIs" status button (now checks both football providers) |
 | Voiceover (Edge Read Aloud / Puter.js / browser fallback) | **Unchanged** — still runs entirely in the browser, no key needed |
@@ -36,7 +36,7 @@ when it sat alone on its own line; it now strips it wherever it appears.
 3. **Add your keys** before or right after the first deploy: Project →
    Settings → Environment Variables →
    - `GEMINI_API_KEY` = your key from aistudio.google.com/apikey
-   - `RAPIDAPI_KEY` = your key from your RapidAPI "API-Football" app
+   - `API_SPORTS_KEY` = your free key from dashboard.api-football.com (Account → My Access)
    - `FOOTBALL_DATA_API_KEY` = your free key from football-data.org/client/register
      (optional — only the "Live Matches Today" picker needs it; everything else
      still works without it)

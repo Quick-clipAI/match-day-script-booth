@@ -1,14 +1,14 @@
 // /api/football/[...path].js
-// Server-side proxy for API-Football (via RapidAPI).
+// Server-side proxy for API-Football, called directly (api-sports.io),
+// NOT through the RapidAPI marketplace.
 // Solves two problems at once:
-//   1. CORS — API-Football's docs don't promise browser CORS headers on most
-//      endpoints, but a same-origin call to our own /api route never hits CORS.
-//   2. Key exposure — the RapidAPI key stays in a Vercel env var (RAPIDAPI_KEY),
+//   1. CORS — a same-origin call to our own /api route never hits CORS.
+//   2. Key exposure — the key stays in a Vercel env var (API_SPORTS_KEY),
 //      never sent to or stored in the browser.
 //
 // Usage from the frontend:
-//   /api/football/status                -> https://api-football-v1.p.rapidapi.com/v3/status
-//   /api/football/fixtures?live=all     -> https://api-football-v1.p.rapidapi.com/v3/fixtures?live=all
+//   /api/football/status                -> https://v3.football.api-sports.io/status
+//   /api/football/fixtures?live=all     -> https://v3.football.api-sports.io/fixtures?live=all
 // Any path/query after /api/football/ is forwarded through untouched.
 
 export default async function handler(req, res) {
@@ -17,10 +17,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const key = process.env.RAPIDAPI_KEY;
+  const key = process.env.API_SPORTS_KEY;
   if (!key) {
     return res.status(500).json({
-      error: 'Server is missing RAPIDAPI_KEY. Add it in Vercel → Project → Settings → Environment Variables, then redeploy.'
+      error: 'Server is missing API_SPORTS_KEY. Add it in Vercel → Project → Settings → Environment Variables, then redeploy.'
     });
   }
 
@@ -32,13 +32,12 @@ export default async function handler(req, res) {
   params.delete('path');
   const qs = params.toString();
 
-  const url = `https://api-football-v1.p.rapidapi.com/v3/${upstreamPath}${qs ? '?' + qs : ''}`;
+  const url = `https://v3.football.api-sports.io/${upstreamPath}${qs ? '?' + qs : ''}`;
 
   try {
     const upstream = await fetch(url, {
       headers: {
-        'x-rapidapi-key': key,
-        'x-rapidapi-host': 'api-football-v1.p.rapidapi.com'
+        'x-apisports-key': key
       }
     });
     const data = await upstream.json().catch(() => ({}));

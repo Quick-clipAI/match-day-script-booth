@@ -51,4 +51,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(502).json({ error: 'Could not reach football-data.org: ' + (err && err.message) });
   }
-      }
+}
