@@ -168,10 +168,10 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
     </div>
     <div class="card-body">
       <div class="msg-note">
-        Search a real match before drafting — this pulls facts from the live web via Gemini's search grounding,
-        with source links so you can double-check anything before it goes near a script. For foul/penalty/card
-        questions, it also looks up the actual IFAB Law of the Game that applies. Skip this and the host
-        can only work off whatever you type manually.
+        Search a real match before drafting. If you set a date, this pulls the score, scorers, cards, subs,
+        team stats, and formations as hard data straight from API-Football — plus a live web search (with
+        source links) for anything hard data can't cover, like VAR detail, IFAB Law of the Game text, or
+        transfer news. Skip this and the host can only work off whatever you type manually.
       </div>
       <div class="field">
         <label>Search a match, player, or incident</label>
@@ -756,6 +756,107 @@ function lookupHardScore(dateStr, queryText){
     .catch(function(){ return null; });
 }
 
+// Pulls REAL hard data (score, scorers, cards, subs, full team stats, formations)
+// for a match on a given date, straight from API-Football (api-sports.io) —
+// not a guess from a web search. Costs ~4 requests against the 100/day free quota
+// per successful match found (1 to locate the fixture, 3 to pull its detail).
+// Silent fallback to null on any miss/error — Gemini's web search still runs regardless.
+function lookupApiFootballFacts(dateStr, queryText){
+  if(!dateStr) return Promise.resolve(null);
+  return fetch('/api/football/fixtures?date='+dateStr)
+    .then(function(res){ return res.ok ? res.json() : null; })
+    .then(function(data){
+      var fixtures = (data && data.response) || [];
+      if(!fixtures.length) return null;
+      var q = queryText.toLowerCase();
+      var hit = fixtures.find(function(f){
+        var home = ((f.teams && f.teams.home && f.teams.home.name) || '').toLowerCase();
+        var away = ((f.teams && f.teams.away && f.teams.away.name) || '').toLowerCase();
+        return (home && q.indexOf(home) >= 0) || (away && q.indexOf(away) >= 0);
+      });
+      var fixtureId = hit && hit.fixture && hit.fixture.id;
+      if(!fixtureId) return null;
+
+      var statsCall = fetch('/api/football/fixtures/statistics?fixture='+fixtureId)
+        .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+      var eventsCall = fetch('/api/football/fixtures/events?fixture='+fixtureId)
+        .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+      var lineupsCall = fetch('/api/football/fixtures/lineups?fixture='+fixtureId)
+        .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+
+      return Promise.all([statsCall, eventsCall, lineupsCall]).then(function(results){
+        var statsData = results[0], eventsData = results[1], lineupsData = results[2];
+        var home = hit.teams.home.name, away = hit.teams.away.name;
+        var goalsHome = hit.goals && hit.goals.home, goalsAway = hit.goals && hit.goals.away;
+        var comp = (hit.league && hit.league.name) || '';
+        var statusShort = (hit.fixture && hit.fixture.status && hit.fixture.status.short) || '';
+
+        var lines = [];
+        lines.push('=== HARD DATA from API-Football (fixture #'+fixtureId+') ===');
+        lines.push('Competition & date: '+comp+', '+dateStr);
+        lines.push('Status: '+statusShort);
+        if(goalsHome != null && goalsAway != null){
+          lines.push('Final/current score (hard data, API-Football): '+home+' '+goalsHome+' - '+goalsAway+' '+away);
+        }
+
+        var events = (eventsData && eventsData.response) || [];
+        function minuteOf(e){
+          var t = e.time || {};
+          return t.elapsed + (t.extra ? ('+'+t.extra) : '');
+        }
+        if(events.length){
+          var goals = events.filter(function(e){ return e.type === 'Goal'; });
+          var cards = events.filter(function(e){ return e.type === 'Card'; });
+          var subs = events.filter(function(e){ return e.type === 'subst'; });
+
+          if(goals.length){
+            lines.push('Scorers (hard data): ' + goals.map(function(e){
+              return (e.player && e.player.name || '?') + ' (' + (e.team && e.team.name) + ", " + minuteOf(e) + "')" + (e.detail ? ' ['+e.detail+']' : '');
+            }).join('; '));
+          }
+          if(cards.length){
+            lines.push('Cards / bookings (hard data): ' + cards.map(function(e){
+              return (e.player && e.player.name || '?') + ' (' + (e.team && e.team.name) + ", " + minuteOf(e) + "', " + (e.detail || 'Card') + ')';
+            }).join('; '));
+          } else {
+            lines.push('Cards / bookings (hard data): none recorded.');
+          }
+          if(subs.length){
+            lines.push('Substitutions (hard data): ' + subs.map(function(e){
+              var onName = e.assist && e.assist.name;
+              var offName = e.player && e.player.name;
+              return (e.team && e.team.name) + ' ' + minuteOf(e) + "': " + (onName ? onName+' ON' : '') + (offName ? (onName ? ', ' : '') + offName+' OFF' : '');
+            }).join('; '));
+          }
+        }
+
+        var statsArr = (statsData && statsData.response) || [];
+        var wantedStats = ['Ball Possession','Total passes','Passes accurate','Shots on Goal','Shots off Goal','Total Shots','Corner Kicks','Fouls','Offsides','Yellow Cards','Red Cards'];
+        if(statsArr.length){
+          statsArr.forEach(function(teamStat){
+            var teamName = (teamStat.team && teamStat.team.name) || '';
+            var s = teamStat.statistics || [];
+            var picked = s.filter(function(st){ return wantedStats.indexOf(st.type) >= 0 && st.value != null; });
+            if(picked.length){
+              lines.push(teamName+' stats (hard data): '+picked.map(function(st){ return st.type+': '+st.value; }).join(', '));
+            }
+          });
+        }
+
+        var lineupsArr = (lineupsData && lineupsData.response) || [];
+        if(lineupsArr.length){
+          lineupsArr.forEach(function(teamLineup){
+            var teamName = (teamLineup.team && teamLineup.team.name) || '';
+            if(teamLineup.formation) lines.push(teamName+' formation (hard data): '+teamLineup.formation);
+          });
+        }
+
+        return lines.join('\n');
+      });
+    })
+    .catch(function(){ return null; });
+}
+
 matchSearchBtn.addEventListener('click', function(){
   clearMatchSearchError();
   var q = matchQuery.value.trim();
@@ -766,6 +867,7 @@ matchSearchBtn.addEventListener('click', function(){
   matchSearchBtn.innerHTML = '<span class="spinner" style="border-color:rgba(166,255,46,.3);border-top-color:var(--neon)"></span>';
 
   var hardScoreLookup = lookupHardScore(dateStr, q);
+  var apiFootballLookup = lookupApiFootballFacts(dateStr, q);
 
   var prompt = "Search the web for real, current facts about: \""+q+"\".\n\n" +
 "If this query is about a player transfer, move, or contract negotiation, return ONLY a plain-text factual report with these fields (omit any you genuinely cannot find — never invent a value):\n" +
@@ -797,24 +899,37 @@ matchSearchBtn.addEventListener('click', function(){
     return res.json();
   });
 
-  Promise.all([geminiSearch, hardScoreLookup]).then(function(results){
-    var data = results[0], hardScoreText = results[1];
+  Promise.all([geminiSearch, hardScoreLookup, apiFootballLookup]).then(function(results){
+    var data = results[0], hardScoreText = results[1], apiFootballText = results[2];
     var cand = data && data.candidates && data.candidates[0];
     var parts = cand && cand.content && cand.content.parts;
     var text = parts ? parts.map(function(p){ return p.text||''; }).join('') : '';
-    if(!text.trim() && !hardScoreText) throw new Error('No results came back for that search.');
-    verifiedFacts.value = (hardScoreText ? hardScoreText+'\n\n' : '') + text.trim();
+    if(!text.trim() && !hardScoreText && !apiFootballText) throw new Error('No results came back for that search.');
+
+    // API-Football's structured data (score, scorers, cards, subs, stats, formations) is the
+    // most reliable, so it goes first. football-data.org's score is a backup only if API-Football
+    // missed the fixture (e.g. quota hit, or a competition it doesn't cover for this key/plan).
+    // Gemini's web search fills in anything neither hard source has (VAR detail, IFAB law text,
+    // narrative context, transfer news) and is labeled as needing manual verification.
+    var hardBlocks = [];
+    if(apiFootballText) hardBlocks.push(apiFootballText);
+    else if(hardScoreText) hardBlocks.push(hardScoreText);
+    verifiedFacts.value = (hardBlocks.length ? hardBlocks.join('\n\n')+'\n\n' : '') +
+      (text.trim() ? '=== From web search (verify before using) ===\n'+text.trim() : '');
 
     var chunks = (cand && cand.groundingMetadata && cand.groundingMetadata.groundingChunks) || [];
+    var sourceNote = apiFootballText
+      ? 'Score, cards, subs, and stats verified via API-Football. '
+      : (hardScoreText ? 'Score verified via football-data.org. ' : '');
     if(chunks.length){
       var links = chunks.map(function(c){
         var w = c.web || {};
         return '<a href="'+(w.uri||'#')+'" target="_blank" rel="noopener" style="color:var(--neon)">'+(w.title||w.uri||'source')+'</a>';
       });
-      matchSources.innerHTML = (hardScoreText ? 'Score verified via football-data.org. ' : '') + 'Sources: '+links.join(' &middot; ');
+      matchSources.innerHTML = sourceNote + 'Sources: '+links.join(' &middot; ');
     } else {
-      matchSources.innerHTML = hardScoreText
-        ? 'Score verified via football-data.org. No additional source links came back from the web search — verify scorers/cards/stats manually.'
+      matchSources.innerHTML = sourceNote
+        ? sourceNote + (text.trim() ? 'No additional source links came back from the web search.' : '')
         : 'No source links were returned — treat this summary with extra caution and verify manually.';
     }
     matchResults.style.display = 'block';
@@ -918,6 +1033,11 @@ var CHAT_SYSTEM_PROMPT =
 "possession %, passes completed/attempted (pass completion %), chances created, big chances created, " +
 "shots on target, shots off target, interceptions, and total touches.\n\n" +
 "Rules:\n" +
+"- You have NO web search or API access in this chat window — you cannot look anything up yourself. NEVER say " +
+"things like 'I'll search for that', 'let me look that up', or 'I will find these details using web searches' — " +
+"you can't do that from here, and saying so just stalls the user. If a fact is missing, say plainly that it's " +
+"missing and tell the user to run it through the search box in the 'Find Real Match Data' card above (or the " +
+"Live Matches Today button), then hit 'Use These Facts' so it lands here as Verified Match Facts context.\n" +
 "- If the user gives you one or more screenshots, read the exact numbers as shown in each image and read them " +
 "back to the user to confirm you read them correctly — never assume or estimate a number you can't actually see.\n" +
 "- If the user uploads spreadsheet/CSV data, treat the rows and columns as authoritative source data and " +
