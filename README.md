@@ -1,8 +1,8 @@
 # Match Day Script Booth — Vercel version
 
 Same app as before (draft scripts, research chat, live match search, voiceover),
-but the Gemini, API-Football, and football-data.org calls now go through a
-small backend (`/api/gemini`, `/api/football/*`, `/api/football-data/*`)
+but the Gemini and API-Football calls now go through a
+small backend (`/api/gemini`, `/api/football/*`)
 instead of straight from the browser. That fixes two things the GitHub Pages
 version couldn't:
 
@@ -17,8 +17,8 @@ version couldn't:
 |---|---|
 | Browser called `generativelanguage.googleapis.com` directly, using a key typed into Settings | Browser calls `/api/gemini`, which calls Google using `GEMINI_API_KEY` from Vercel |
 | Browser called `api-football-v1.p.rapidapi.com` directly, using a key typed into Settings | Browser calls `/api/football/...`, which calls API-Football directly (`v3.football.api-sports.io`) using `API_SPORTS_KEY` from Vercel — no RapidAPI involved |
-| — (new) | Browser calls `/api/football-data/...`, which calls football-data.org using `FOOTBALL_DATA_API_KEY` from Vercel — powers the new "📡 Live Matches Today" picker in Card 0, giving exact hard scores for the 12 major competitions without relying on Gemini's web search |
-| Settings panel had two password fields | Settings panel just has a "Check server APIs" status button (now checks both football providers) |
+| Match search only pulled the score (via football-data.org, 12 leagues) | Match search and "📡 Live Matches Today" now pull full hard data — score, scorers, cards, subs, team stats, formations — straight from API-Football, across whatever competitions your plan covers. football-data.org has been removed (its Vercel route kept 404ing and everything it did, API-Football already covers). |
+| Settings panel had two password fields | Settings panel just has a "Check server APIs" status button |
 | Voiceover (Edge Read Aloud / Puter.js / browser fallback) | **Unchanged** — still runs entirely in the browser, no key needed |
 
 I also fixed the bug where the voiceover sometimes read section headers out
@@ -37,9 +37,6 @@ when it sat alone on its own line; it now strips it wherever it appears.
    Settings → Environment Variables →
    - `GEMINI_API_KEY` = your key from aistudio.google.com/apikey
    - `API_SPORTS_KEY` = your free key from dashboard.api-football.com (Account → My Access)
-   - `FOOTBALL_DATA_API_KEY` = your free key from football-data.org/client/register
-     (optional — only the "Live Matches Today" picker needs it; everything else
-     still works without it)
    Then **redeploy** (Deployments tab → ⋯ → Redeploy) so the functions pick
    up the new variables — Vercel doesn't hot-reload env vars into an
    existing deployment.

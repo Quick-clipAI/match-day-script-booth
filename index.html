@@ -142,9 +142,9 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
       </div>
       <div id="footballKeyStatus"></div>
       <div class="settings-note">
-        Gemini, API-Football, and football-data.org calls now run through this site's own <b>/api</b> backend, so
+        Gemini and API-Football calls now run through this site's own <b>/api</b> backend, so
         no key ever touches your browser. If a request fails with a "server is missing" error, the site owner
-        needs to add <b>GEMINI_API_KEY</b>, <b>RAPIDAPI_KEY</b>, and/or <b>FOOTBALL_DATA_API_KEY</b> in Vercel →
+        needs to add <b>GEMINI_API_KEY</b> and <b>API_SPORTS_KEY</b> in Vercel →
         Project Settings → Environment Variables, then redeploy.
       </div>
 
@@ -181,12 +181,12 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
         </div>
         <div class="settings-row" style="margin-top:8px">
           <input type="date" id="matchDate" style="max-width:170px"/>
-          <span style="font-size:11px;color:var(--dim);align-self:center">Optional — if the match is in the top 12 leagues, this pulls the exact hard score from football-data.org alongside the web search, for any date past or present.</span>
+          <span style="font-size:11px;color:var(--dim);align-self:center">Optional — set this to pull the exact score, cards, subs, stats, and formations as hard data from API-Football, for any date past or present.</span>
         </div>
       </div>
       <div class="settings-row" style="margin-bottom:10px">
         <button class="btn-outline" id="liveMatchesBtn" style="width:auto;white-space:nowrap;padding:8px 14px;font-size:12px">📡 Live Matches Today</button>
-        <span style="font-size:11px;color:var(--dim)">Exact scores from football-data.org — top 12 leagues only</span>
+        <span style="font-size:11px;color:var(--dim)">Scores and full match data from API-Football — whatever competitions it covers today</span>
       </div>
       <div id="liveMatchesList" style="margin-bottom:10px"></div>
       <div id="matchSearchError"></div>
@@ -667,7 +667,7 @@ function setFootballKeyStatus(kind, msg){
 }
 
 /* Pings our own /api routes (not the upstream providers directly) so this
-   also verifies the Vercel deployment has GEMINI_API_KEY / RAPIDAPI_KEY set. */
+   also verifies the Vercel deployment has GEMINI_API_KEY / API_SPORTS_KEY set. */
 testFootballKeyBtn.addEventListener('click', function(){
   testFootballKeyBtn.disabled = true;
   var originalIcon = testFootballKeyBtn.textContent;
@@ -675,7 +675,6 @@ testFootballKeyBtn.addEventListener('click', function(){
   footballKeyStatus.innerHTML = '<div class="msg-note">⏳ <span>Checking server API status…</span></div>';
 
   var apiFootballMsg = null, apiFootballErr = null;
-  var footballDataMsg = null, footballDataErr = null;
 
   var checkApiFootball = fetch('/api/football/status').then(function(res){
     return res.json().then(function(data){ return { ok: res.ok, status: res.status, data: data }; });
@@ -693,21 +692,10 @@ testFootballKeyBtn.addEventListener('click', function(){
     }
   }).catch(function(e){ apiFootballErr = e.message || 'unreachable'; });
 
-  var checkFootballData = fetch('/api/football-data/competitions').then(function(res){
-    var remainingHdr = res.headers.get('x-requests-available-minute');
-    return res.json().then(function(data){ return { ok: res.ok, status: res.status, data: data, remainingHdr: remainingHdr }; });
-  }).then(function(result){
-    if(!result.ok) throw new Error((result.data && (result.data.error || result.data.message)) || ('status '+result.status));
-    var quotaMsg = result.remainingHdr!=null ? (' ('+result.remainingHdr+' req/min left)') : '';
-    footballDataMsg = 'football-data.org OK.'+quotaMsg;
-  }).catch(function(e){ footballDataErr = e.message || 'unreachable'; });
-
-  Promise.all([checkApiFootball, checkFootballData]).then(function(){
-    var lines = [];
-    lines.push((apiFootballErr ? '⚠️ API-Football: '+apiFootballErr : '✅ '+apiFootballMsg));
-    lines.push((footballDataErr ? '⚠️ football-data.org: '+footballDataErr : '✅ '+footballDataMsg));
-    var cls = (apiFootballErr || footballDataErr) ? 'msg-error' : 'msg-note';
-    footballKeyStatus.innerHTML = '<div class="'+cls+'">'+lines.join('<br>')+'</div>';
+  checkApiFootball.then(function(){
+    var line = (apiFootballErr ? '⚠️ API-Football: '+apiFootballErr : '✅ '+apiFootballMsg);
+    var cls = apiFootballErr ? 'msg-error' : 'msg-note';
+    footballKeyStatus.innerHTML = '<div class="'+cls+'">'+line+'</div>';
   }).finally(function(){
     testFootballKeyBtn.disabled = false;
     testFootballKeyBtn.textContent = originalIcon;
@@ -720,46 +708,93 @@ testFootballKeyBtn.addEventListener('click', function(){
 function showMatchSearchError(msg){ matchSearchError.innerHTML = '<div class="msg-error">⚠️ <span>'+msg+'</span></div>'; }
 function clearMatchSearchError(){ matchSearchError.innerHTML=''; }
 
-// Try to find this query's exact score from football-data.org for a given date.
-// Returns a Promise resolving to a short fact-lines array, or null if nothing matched
-// (wrong date, team not in the 12 covered leagues, or the API call itself failed —
-// all of these are silent fallbacks, since Gemini's web search still runs regardless).
-function lookupHardScore(dateStr, queryText){
-  if(!dateStr) return Promise.resolve(null);
-  return fetch('/api/football-data/matches?dateFrom='+dateStr+'&dateTo='+dateStr)
-    .then(function(res){ return res.ok ? res.json() : null; })
-    .then(function(data){
-      var matches = (data && data.matches) || [];
-      if(!matches.length) return null;
-      var q = queryText.toLowerCase();
-      var hit = matches.find(function(m){
-        var home = ((m.homeTeam && m.homeTeam.name) || '').toLowerCase();
-        var away = ((m.awayTeam && m.awayTeam.name) || '').toLowerCase();
-        var homeShort = ((m.homeTeam && m.homeTeam.shortName) || '').toLowerCase();
-        var awayShort = ((m.awayTeam && m.awayTeam.shortName) || '').toLowerCase();
-        return (home && q.indexOf(home)>=0) || (away && q.indexOf(away)>=0) ||
-               (homeShort && q.indexOf(homeShort)>=0) || (awayShort && q.indexOf(awayShort)>=0);
+// Pulls the full HARD DATA block (score, scorers, cards, subs, team stats, formations)
+// for one already-identified fixture, straight from API-Football (api-sports.io).
+// Costs 3 requests against the 100/day free quota (statistics, events, lineups).
+function fetchApiFootballFixtureFacts(fixture, dateStr){
+  var fixtureId = fixture && fixture.fixture && fixture.fixture.id;
+  if(!fixtureId) return Promise.resolve(null);
+
+  var statsCall = fetch('/api/football/fixtures/statistics?fixture='+fixtureId)
+    .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+  var eventsCall = fetch('/api/football/fixtures/events?fixture='+fixtureId)
+    .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+  var lineupsCall = fetch('/api/football/fixtures/lineups?fixture='+fixtureId)
+    .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+
+  return Promise.all([statsCall, eventsCall, lineupsCall]).then(function(results){
+    var statsData = results[0], eventsData = results[1], lineupsData = results[2];
+    var home = fixture.teams.home.name, away = fixture.teams.away.name;
+    var goalsHome = fixture.goals && fixture.goals.home, goalsAway = fixture.goals && fixture.goals.away;
+    var comp = (fixture.league && fixture.league.name) || '';
+    var statusShort = (fixture.fixture && fixture.fixture.status && fixture.fixture.status.short) || '';
+
+    var lines = [];
+    lines.push('=== HARD DATA from API-Football (fixture #'+fixtureId+') ===');
+    lines.push('Competition & date: '+comp+', '+dateStr);
+    lines.push('Status: '+statusShort);
+    if(goalsHome != null && goalsAway != null){
+      lines.push('Final/current score (hard data, API-Football): '+home+' '+goalsHome+' - '+goalsAway+' '+away);
+    }
+
+    var events = (eventsData && eventsData.response) || [];
+    function minuteOf(e){
+      var t = e.time || {};
+      return t.elapsed + (t.extra ? ('+'+t.extra) : '');
+    }
+    if(events.length){
+      var goals = events.filter(function(e){ return e.type === 'Goal'; });
+      var cards = events.filter(function(e){ return e.type === 'Card'; });
+      var subs = events.filter(function(e){ return e.type === 'subst'; });
+
+      if(goals.length){
+        lines.push('Scorers (hard data): ' + goals.map(function(e){
+          return (e.player && e.player.name || '?') + ' (' + (e.team && e.team.name) + ", " + minuteOf(e) + "')" + (e.detail ? ' ['+e.detail+']' : '');
+        }).join('; '));
+      }
+      if(cards.length){
+        lines.push('Cards / bookings (hard data): ' + cards.map(function(e){
+          return (e.player && e.player.name || '?') + ' (' + (e.team && e.team.name) + ", " + minuteOf(e) + "', " + (e.detail || 'Card') + ')';
+        }).join('; '));
+      } else {
+        lines.push('Cards / bookings (hard data): none recorded.');
+      }
+      if(subs.length){
+        lines.push('Substitutions (hard data): ' + subs.map(function(e){
+          var onName = e.assist && e.assist.name;
+          var offName = e.player && e.player.name;
+          return (e.team && e.team.name) + ' ' + minuteOf(e) + "': " + (onName ? onName+' ON' : '') + (offName ? (onName ? ', ' : '') + offName+' OFF' : '');
+        }).join('; '));
+      }
+    }
+
+    var statsArr = (statsData && statsData.response) || [];
+    var wantedStats = ['Ball Possession','Total passes','Passes accurate','Shots on Goal','Shots off Goal','Total Shots','Corner Kicks','Fouls','Offsides','Yellow Cards','Red Cards'];
+    if(statsArr.length){
+      statsArr.forEach(function(teamStat){
+        var teamName = (teamStat.team && teamStat.team.name) || '';
+        var s = teamStat.statistics || [];
+        var picked = s.filter(function(st){ return wantedStats.indexOf(st.type) >= 0 && st.value != null; });
+        if(picked.length){
+          lines.push(teamName+' stats (hard data): '+picked.map(function(st){ return st.type+': '+st.value; }).join(', '));
+        }
       });
-      if(!hit) return null;
-      var home = hit.homeTeam && hit.homeTeam.name || 'Home';
-      var away = hit.awayTeam && hit.awayTeam.name || 'Away';
-      var comp = hit.competition && hit.competition.name || '';
-      var score = (hit.score && hit.score.fullTime) || {};
-      var statusLabel = STATUS_LABEL[hit.status] || hit.status || '';
-      var lines = [
-        'Competition & date: '+comp+', '+dateStr,
-        'Status: '+statusLabel,
-        (score.home!=null && score.away!=null) ? ('Final/current score (hard data, football-data.org): '+home+' '+score.home+' - '+score.away+' '+away) : 'Score: not yet available'
-      ];
-      return lines.join('\n');
-    })
-    .catch(function(){ return null; });
+    }
+
+    var lineupsArr = (lineupsData && lineupsData.response) || [];
+    if(lineupsArr.length){
+      lineupsArr.forEach(function(teamLineup){
+        var teamName = (teamLineup.team && teamLineup.team.name) || '';
+        if(teamLineup.formation) lines.push(teamName+' formation (hard data): '+teamLineup.formation);
+      });
+    }
+
+    return lines.join('\n');
+  });
 }
 
-// Pulls REAL hard data (score, scorers, cards, subs, full team stats, formations)
-// for a match on a given date, straight from API-Football (api-sports.io) —
-// not a guess from a web search. Costs ~4 requests against the 100/day free quota
-// per successful match found (1 to locate the fixture, 3 to pull its detail).
+// Finds a fixture matching the query text on a given date, then pulls its full hard-data
+// block. Costs 1 extra request to locate the fixture, on top of the 3 above.
 // Silent fallback to null on any miss/error — Gemini's web search still runs regardless.
 function lookupApiFootballFacts(dateStr, queryText){
   if(!dateStr) return Promise.resolve(null);
@@ -774,85 +809,8 @@ function lookupApiFootballFacts(dateStr, queryText){
         var away = ((f.teams && f.teams.away && f.teams.away.name) || '').toLowerCase();
         return (home && q.indexOf(home) >= 0) || (away && q.indexOf(away) >= 0);
       });
-      var fixtureId = hit && hit.fixture && hit.fixture.id;
-      if(!fixtureId) return null;
-
-      var statsCall = fetch('/api/football/fixtures/statistics?fixture='+fixtureId)
-        .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
-      var eventsCall = fetch('/api/football/fixtures/events?fixture='+fixtureId)
-        .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
-      var lineupsCall = fetch('/api/football/fixtures/lineups?fixture='+fixtureId)
-        .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
-
-      return Promise.all([statsCall, eventsCall, lineupsCall]).then(function(results){
-        var statsData = results[0], eventsData = results[1], lineupsData = results[2];
-        var home = hit.teams.home.name, away = hit.teams.away.name;
-        var goalsHome = hit.goals && hit.goals.home, goalsAway = hit.goals && hit.goals.away;
-        var comp = (hit.league && hit.league.name) || '';
-        var statusShort = (hit.fixture && hit.fixture.status && hit.fixture.status.short) || '';
-
-        var lines = [];
-        lines.push('=== HARD DATA from API-Football (fixture #'+fixtureId+') ===');
-        lines.push('Competition & date: '+comp+', '+dateStr);
-        lines.push('Status: '+statusShort);
-        if(goalsHome != null && goalsAway != null){
-          lines.push('Final/current score (hard data, API-Football): '+home+' '+goalsHome+' - '+goalsAway+' '+away);
-        }
-
-        var events = (eventsData && eventsData.response) || [];
-        function minuteOf(e){
-          var t = e.time || {};
-          return t.elapsed + (t.extra ? ('+'+t.extra) : '');
-        }
-        if(events.length){
-          var goals = events.filter(function(e){ return e.type === 'Goal'; });
-          var cards = events.filter(function(e){ return e.type === 'Card'; });
-          var subs = events.filter(function(e){ return e.type === 'subst'; });
-
-          if(goals.length){
-            lines.push('Scorers (hard data): ' + goals.map(function(e){
-              return (e.player && e.player.name || '?') + ' (' + (e.team && e.team.name) + ", " + minuteOf(e) + "')" + (e.detail ? ' ['+e.detail+']' : '');
-            }).join('; '));
-          }
-          if(cards.length){
-            lines.push('Cards / bookings (hard data): ' + cards.map(function(e){
-              return (e.player && e.player.name || '?') + ' (' + (e.team && e.team.name) + ", " + minuteOf(e) + "', " + (e.detail || 'Card') + ')';
-            }).join('; '));
-          } else {
-            lines.push('Cards / bookings (hard data): none recorded.');
-          }
-          if(subs.length){
-            lines.push('Substitutions (hard data): ' + subs.map(function(e){
-              var onName = e.assist && e.assist.name;
-              var offName = e.player && e.player.name;
-              return (e.team && e.team.name) + ' ' + minuteOf(e) + "': " + (onName ? onName+' ON' : '') + (offName ? (onName ? ', ' : '') + offName+' OFF' : '');
-            }).join('; '));
-          }
-        }
-
-        var statsArr = (statsData && statsData.response) || [];
-        var wantedStats = ['Ball Possession','Total passes','Passes accurate','Shots on Goal','Shots off Goal','Total Shots','Corner Kicks','Fouls','Offsides','Yellow Cards','Red Cards'];
-        if(statsArr.length){
-          statsArr.forEach(function(teamStat){
-            var teamName = (teamStat.team && teamStat.team.name) || '';
-            var s = teamStat.statistics || [];
-            var picked = s.filter(function(st){ return wantedStats.indexOf(st.type) >= 0 && st.value != null; });
-            if(picked.length){
-              lines.push(teamName+' stats (hard data): '+picked.map(function(st){ return st.type+': '+st.value; }).join(', '));
-            }
-          });
-        }
-
-        var lineupsArr = (lineupsData && lineupsData.response) || [];
-        if(lineupsArr.length){
-          lineupsArr.forEach(function(teamLineup){
-            var teamName = (teamLineup.team && teamLineup.team.name) || '';
-            if(teamLineup.formation) lines.push(teamName+' formation (hard data): '+teamLineup.formation);
-          });
-        }
-
-        return lines.join('\n');
-      });
+      if(!hit) return null;
+      return fetchApiFootballFixtureFacts(hit, dateStr);
     })
     .catch(function(){ return null; });
 }
@@ -866,7 +824,6 @@ matchSearchBtn.addEventListener('click', function(){
   matchSearchBtn.disabled = true;
   matchSearchBtn.innerHTML = '<span class="spinner" style="border-color:rgba(166,255,46,.3);border-top-color:var(--neon)"></span>';
 
-  var hardScoreLookup = lookupHardScore(dateStr, q);
   var apiFootballLookup = lookupApiFootballFacts(dateStr, q);
 
   var prompt = "Search the web for real, current facts about: \""+q+"\".\n\n" +
@@ -899,28 +856,22 @@ matchSearchBtn.addEventListener('click', function(){
     return res.json();
   });
 
-  Promise.all([geminiSearch, hardScoreLookup, apiFootballLookup]).then(function(results){
-    var data = results[0], hardScoreText = results[1], apiFootballText = results[2];
+  Promise.all([geminiSearch, apiFootballLookup]).then(function(results){
+    var data = results[0], apiFootballText = results[1];
     var cand = data && data.candidates && data.candidates[0];
     var parts = cand && cand.content && cand.content.parts;
     var text = parts ? parts.map(function(p){ return p.text||''; }).join('') : '';
-    if(!text.trim() && !hardScoreText && !apiFootballText) throw new Error('No results came back for that search.');
+    if(!text.trim() && !apiFootballText) throw new Error('No results came back for that search.');
 
     // API-Football's structured data (score, scorers, cards, subs, stats, formations) is the
-    // most reliable, so it goes first. football-data.org's score is a backup only if API-Football
-    // missed the fixture (e.g. quota hit, or a competition it doesn't cover for this key/plan).
-    // Gemini's web search fills in anything neither hard source has (VAR detail, IFAB law text,
-    // narrative context, transfer news) and is labeled as needing manual verification.
-    var hardBlocks = [];
-    if(apiFootballText) hardBlocks.push(apiFootballText);
-    else if(hardScoreText) hardBlocks.push(hardScoreText);
-    verifiedFacts.value = (hardBlocks.length ? hardBlocks.join('\n\n')+'\n\n' : '') +
+    // most reliable, so it goes first. Gemini's web search fills in anything hard data can't
+    // cover (VAR detail, IFAB law text, narrative context, transfer news) and is labeled as
+    // needing manual verification.
+    verifiedFacts.value = (apiFootballText ? apiFootballText+'\n\n' : '') +
       (text.trim() ? '=== From web search (verify before using) ===\n'+text.trim() : '');
 
     var chunks = (cand && cand.groundingMetadata && cand.groundingMetadata.groundingChunks) || [];
-    var sourceNote = apiFootballText
-      ? 'Score, cards, subs, and stats verified via API-Football. '
-      : (hardScoreText ? 'Score verified via football-data.org. ' : '');
+    var sourceNote = apiFootballText ? 'Score, cards, subs, and stats verified via API-Football. ' : '';
     if(chunks.length){
       var links = chunks.map(function(c){
         var w = c.web || {};
@@ -943,11 +894,12 @@ matchSearchBtn.addEventListener('click', function(){
 });
 
 /* ---------------------------------------------------------------- */
-/* Live Matches Today (football-data.org — hard scores, 12 leagues)  */
+/* Live Matches Today (API-Football — every competition it covers)   */
 /* ---------------------------------------------------------------- */
 var STATUS_LABEL = {
-  LIVE:'LIVE', IN_PLAY:'LIVE', PAUSED:'HT',
-  FINISHED:'FT', SCHEDULED:'Scheduled', TIMED:'Scheduled', POSTPONED:'Postponed'
+  '1H':'LIVE', '2H':'LIVE', 'HT':'HT', 'ET':'LIVE', 'P':'LIVE', 'LIVE':'LIVE',
+  'FT':'FT', 'AET':'FT', 'PEN':'FT',
+  'NS':'Scheduled', 'TBD':'Scheduled', 'PST':'Postponed', 'CANC':'Cancelled'
 };
 
 liveMatchesBtn.addEventListener('click', function(){
@@ -958,26 +910,27 @@ liveMatchesBtn.addEventListener('click', function(){
 
   var today = new Date().toISOString().slice(0,10);
 
-  fetch('/api/football-data/matches?dateFrom='+today+'&dateTo='+today).then(function(res){
+  fetch('/api/football/fixtures?date='+today).then(function(res){
     return res.json().then(function(data){ return { ok: res.ok, status: res.status, data: data }; });
   }).then(function(result){
     if(!result.ok){
-      throw new Error((result.data && result.data.error) || (result.data && result.data.message) || ('Request failed with status '+result.status));
+      throw new Error((result.data && result.data.error) || ('Request failed with status '+result.status));
     }
-    var matches = (result.data && result.data.matches) || [];
-    if(!matches.length){
-      liveMatchesList.innerHTML = '<div class="msg-note">No matches today across the top 12 leagues (or they haven\'t kicked off yet). Try the search box above for anything else.</div>';
+    var fixtures = (result.data && result.data.response) || [];
+    if(!fixtures.length){
+      liveMatchesList.innerHTML = '<div class="msg-note">No matches found today (or they haven\'t kicked off yet). Try the search box above for anything else.</div>';
       return;
     }
     liveMatchesList.innerHTML = '';
-    matches.slice(0, 20).forEach(function(m){
-      var home = m.homeTeam && m.homeTeam.name || 'Home';
-      var away = m.awayTeam && m.awayTeam.name || 'Away';
-      var comp = m.competition && m.competition.name || '';
-      var score = (m.score && m.score.fullTime) || {};
-      var scoreStr = (score.home!=null && score.away!=null) ? (score.home+' – '+score.away) : 'vs';
-      var statusLabel = STATUS_LABEL[m.status] || m.status || '';
-      var kickoff = m.utcDate ? new Date(m.utcDate).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+    fixtures.slice(0, 20).forEach(function(f){
+      var home = f.teams && f.teams.home && f.teams.home.name || 'Home';
+      var away = f.teams && f.teams.away && f.teams.away.name || 'Away';
+      var comp = f.league && f.league.name || '';
+      var goalsHome = f.goals && f.goals.home, goalsAway = f.goals && f.goals.away;
+      var scoreStr = (goalsHome!=null && goalsAway!=null) ? (goalsHome+' – '+goalsAway) : 'vs';
+      var statusShort = (f.fixture && f.fixture.status && f.fixture.status.short) || '';
+      var statusLabel = STATUS_LABEL[statusShort] || statusShort;
+      var kickoff = (f.fixture && f.fixture.date) ? new Date(f.fixture.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
 
       var chip = document.createElement('button');
       chip.type = 'button';
@@ -988,20 +941,23 @@ liveMatchesBtn.addEventListener('click', function(){
 
       chip.addEventListener('click', function(){
         matchQuery.value = home+' vs '+away+' ('+comp+', '+today+')';
-        // Seed verified facts with the hard, exact score from football-data.org so it
-        // doesn't need to be re-confirmed by the Gemini web search below — only the
-        // narrative detail (scorers, cards, stats) still needs that search.
-        var lines = [
-          'Competition & date: '+comp+', '+today,
-          'Status: '+statusLabel,
-          (score.home!=null && score.away!=null) ? ('Final/current score: '+home+' '+score.home+' - '+score.away+' '+away) : 'Score: not yet available',
-          '(Source: football-data.org — scorers, cards, and stats not included; use Search above or the research chat below for those.)'
-        ];
-        verifiedFacts.value = lines.join('\n');
-        matchSources.innerHTML = 'Source: <a href="https://www.football-data.org" target="_blank" rel="noopener" style="color:var(--neon)">football-data.org</a>';
+        matchDate.value = today;
+        chip.disabled = true;
+        liveMatchesList.querySelectorAll('.live-match-chip').forEach(function(c){ c.disabled = true; });
+        matchSources.innerHTML = '<span class="spinner" style="width:11px;height:11px;border-width:2px"></span> Pulling full match data from API-Football…';
         matchResults.style.display = 'block';
-        saveWorkspace();
-        matchQuery.scrollIntoView({ behavior:'smooth', block:'center' });
+        verifiedFacts.value = '';
+
+        fetchApiFootballFixtureFacts(f, today).then(function(factsText){
+          verifiedFacts.value = factsText || ('Competition & date: '+comp+', '+today+'\nStatus: '+statusLabel+'\nScore: '+home+' '+scoreStr+' '+away);
+          matchSources.innerHTML = 'Source: <a href="https://www.api-football.com" target="_blank" rel="noopener" style="color:var(--neon)">API-Football</a> — for VAR detail, IFAB law text, or transfer context, use the Search box above.';
+          saveWorkspace();
+        }).catch(function(){
+          matchSources.innerHTML = 'Could not pull full match detail — try the Search box above instead.';
+        }).finally(function(){
+          liveMatchesList.querySelectorAll('.live-match-chip').forEach(function(c){ c.disabled = false; });
+          matchQuery.scrollIntoView({ behavior:'smooth', block:'center' });
+        });
       });
 
       liveMatchesList.appendChild(chip);
