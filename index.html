@@ -144,12 +144,12 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
       <div class="settings-note">
         Gemini, API-Football, and football-data.org calls now run through this site's own <b>/api</b> backend, so
         no key ever touches your browser. If a request fails with a "server is missing" error, the site owner
-        needs to add <b>GEMINI_API_KEY</b>, <b>RAPIDAPI_KEY</b>, and/or <b>FOOTBALL_DATA_API_KEY</b> in Vercel →
+        needs to add <b>GEMINI_API_KEY</b>, <b>API_SPORTS_KEY</b>, and/or <b>FOOTBALL_DATA_API_KEY</b> in Vercel →
         Project Settings → Environment Variables, then redeploy.
       </div>
 
       <div class="settings-note" style="margin-top:10px">
-        Your workspace — search results, chat history, script draft, and voice settings — autosaves locally
+        Your workspace — chat history, script draft, and voice settings — autosaves locally
         in this browser, so reopening the page picks up right where you left off (screenshots/files you
         attached in chat aren't kept, since images are too large for local storage; everything else is).
       </div>
@@ -160,48 +160,7 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
 
 <main class="container">
 
-  <!-- CARD 0: MATCH LOOKUP -->
-  <div class="card" style="margin-bottom:18px">
-    <div class="card-head">
-      <div class="step-badge" id="badge0">🔎</div>
-      <div class="card-title">Find Real Match Data</div>
-    </div>
-    <div class="card-body">
-      <div class="msg-note">
-        Search a real match before drafting — this pulls facts from the live web via Gemini's search grounding,
-        with source links so you can double-check anything before it goes near a script. For foul/penalty/card
-        questions, it also looks up the actual IFAB Law of the Game that applies. Skip this and the host
-        can only work off whatever you type manually.
-      </div>
-      <div class="field">
-        <label>Search a match, player, or incident</label>
-        <div class="settings-row">
-          <input type="text" id="matchQuery" placeholder="e.g. Arsenal vs Chelsea 10 August 2025, or Saka penalty shout"/>
-          <button class="btn-outline" id="matchSearchBtn" style="width:auto;white-space:nowrap;padding:10px 16px">🔎 Search</button>
-        </div>
-        <div class="settings-row" style="margin-top:8px">
-          <input type="date" id="matchDate" style="max-width:170px"/>
-          <span style="font-size:11px;color:var(--dim);align-self:center">Optional — if the match is in the top 12 leagues, this pulls the exact hard score from football-data.org alongside the web search, for any date past or present.</span>
-        </div>
-      </div>
-      <div class="settings-row" style="margin-bottom:10px">
-        <button class="btn-outline" id="liveMatchesBtn" style="width:auto;white-space:nowrap;padding:8px 14px;font-size:12px">📡 Live Matches Today</button>
-        <span style="font-size:11px;color:var(--dim)">Exact scores from football-data.org — top 12 leagues only</span>
-      </div>
-      <div id="liveMatchesList" style="margin-bottom:10px"></div>
-      <div id="matchSearchError"></div>
-      <div id="matchResults" style="display:none">
-        <div class="field">
-          <label>Verified Match Facts (edit anything that looks off before using it)</label>
-          <textarea id="verifiedFacts" rows="8" style="font-family:'JetBrains Mono',monospace;font-size:12.5px"></textarea>
-        </div>
-        <div id="matchSources" style="font-size:11px;color:var(--dim);margin-bottom:10px"></div>
-        <button class="btn-outline" id="useFactsBtn">↓ Use These Facts in Match Details Below</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- CARD 0.5: RESEARCH CHAT -->
+  <!-- CARD CHAT: RESEARCH + PLANNING + SCRIPT ASSISTANT -->
   <div class="card" style="margin-bottom:18px">
     <div class="card-head">
       <div class="step-badge" id="badgeChat">💬</div>
@@ -209,19 +168,18 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
     </div>
     <div class="card-body">
       <div class="msg-note">
-        Talk this through instead of a single search. It automatically sees whatever's in the Verified Match
-        Facts panel above, so it won't re-ask for anything already found — tell it what you already have, and
-        it'll ask for whatever stats are still missing — possession, pass completion, chances created, big
-        chances, shots on/off target, interceptions, touches, for either team or a specific key player. Attach
-        as many screenshots as you need at once (from Sofascore, WhoScored, etc.) and it'll read the numbers
-        straight off each image and read them back to confirm. You can also upload a stats export directly
-        — an .xlsx or .csv file (e.g. from Gemini/Sheets) — instead of screenshotting it.
+        Tell it what video you want to make. It'll confirm the type of video and list out exactly what it
+        needs to find, then wait for you to say "go" before it searches API-Football and the web in bulk —
+        after that it reports back what it found and what's still missing so you can help fill any gaps.
+        Once everything's confirmed, tell it to write the script and it'll produce the finished script right
+        here, in Tactical Theo's voice. You can also attach screenshots (Sofascore, WhoScored, etc.) or a
+        stats export (.xlsx/.csv) at any point and it'll read the numbers straight off them.
       </div>
       <div id="chatMessages" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:6px 2px"></div>
       <div id="chatError"></div>
       <div id="attachmentsPreview" style="display:none;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
       <div class="field" style="margin-top:10px">
-        <textarea id="chatInput" rows="2" placeholder="e.g. Spain had 61% possession, here's a screenshot of the rest..."></textarea>
+        <textarea id="chatInput" rows="2" placeholder="e.g. I want a World Cup Match Day 1 recap video..."></textarea>
       </div>
       <input type="file" id="imageInput" accept="image/*" multiple style="display:none"/>
       <input type="file" id="dataFileInput" accept=".xlsx,.xls,.csv" multiple style="display:none"/>
@@ -243,11 +201,14 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
         <div class="card-title">Configure &amp; Draft</div>
       </div>
       <div class="card-body">
+        <div class="msg-note" style="margin-bottom:10px">
+          Host voice: <strong>Tactical Theo</strong> (sharp, analytical, highly opinionated) — fixed throughout.
+        </div>
         <div class="field">
-          <label>Host Persona</label>
-          <select id="personaSelect">
-            <option value="theo">Tactical Theo (Sharp, analytical, highly opinionated)</option>
-            <option value="marcus">Coach Marcus (Direct, aggressive, former coach style)</option>
+          <label>Commentary Tone</label>
+          <select id="toneSelect">
+            <option value="opinionated">Opinionated (takes a bold stance, seeks the debate angle)</option>
+            <option value="neutral">Neutral (analyzes the facts, no manufactured controversy)</option>
           </select>
         </div>
         <div class="field">
@@ -260,13 +221,7 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
             <option value="postmatch">Post-Match Formation &amp; Performance Breakdown</option>
             <option value="ultimatexi">Ultimate XI Selection (World Cup / UCL / League Starts)</option>
             <option value="transfer">Transfer Analysis (Move, Fee &amp; Impact)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Tone</label>
-          <select id="toneSelect">
-            <option value="opinionated">Opinionated — bold, controversial verdict (default)</option>
-            <option value="neutral">Neutral — analyze only, no forced stance</option>
+            <option value="worldcuprecap">World Cup Recap (Full Match Day)</option>
           </select>
         </div>
         <div class="field">
@@ -365,11 +320,19 @@ function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){ memStore[k]=v; }
 /* ---------------------------------------------------------------- */
 /* Static data                                                       */
 /* ---------------------------------------------------------------- */
-var PERSONAS = {
-  theo:   { label:"Tactical Theo",
-    rule:'If Host is "Tactical Theo": Speak like a sharp, analytical pundit who backs up opinions with tactical structures, formations, and rules. Be highly opinionated, confident, slightly smug, but incredibly smart.' },
-  marcus: { label:"Coach Marcus",
-    rule:'If Host is "Coach Marcus": Speak like a gritty, blunt, direct former manager. Use passionate, raw, and aggressive language. Take zero prisoners and tell it exactly like it is.' }
+var HOST_PERSONA = { label:"Tactical Theo",
+  rule:'Speak like a sharp, analytical pundit who backs up opinions with tactical structures, formations, and rules. Be highly opinionated, confident, slightly smug, but incredibly smart.' };
+var TONES = {
+  opinionated: {
+    label: "Opinionated",
+    styleRule: 'Do not remain neutral; you MUST take a definitive, bold stance and actively look for the debate angle.',
+    verdictRule: 'The host delivers their final personal, highly opinionated judgment. End with a sharp challenge to the audience to drop their own thoughts in the comments if they think you\'re wrong.'
+  },
+  neutral: {
+    label: "Neutral",
+    styleRule: 'Stay neutral and analytical throughout. Present the facts and the reasonable interpretations of them without manufacturing controversy or forcing a one-sided take — it is fine to note that a decision or performance was arguably good AND debatable, rather than picking a side purely to be provocative.',
+    verdictRule: 'The host delivers a clear, fair closing summary of the key takeaway from the analysis, weighing the reasonable perspectives evenly rather than forcing a single bold verdict.'
+  }
 };
 var MODES = {
   var:        { label:"Referee/VAR Controversy",
@@ -385,19 +348,9 @@ var MODES = {
   transfer:   { label:"Transfer Analysis (Move, Fee & Impact)",
     rule:'For "Transfer Analysis": Treat the reported transfer (player, fee, clubs, terms) as fact — do not invent figures beyond what is given. Assess the impact on BOTH sides of the deal: what the selling club gains or loses (finances, squad depth, replacement need) and what the buying club gains or risks (system fit, competition for the position, value versus the reported fee, age/injury history if mentioned). Deliver a clear personal verdict on whether the move and the fee make sense for each club.' },
   ultimatexi: { label:"Ultimate XI Selection (World Cup / UCL / League Starts)",
-    rule:'For "Ultimate XI Selection": Compare performance metrics across different tournament starts (World Cup, League, Champions League) to justify your selections.' }
-};
-var TONES = {
-  opinionated: {
-    label: "Opinionated",
-    verdictRule: 'Do not remain neutral; you MUST take a definitive, bold stance.',
-    verdictBody: '(20% of duration. The host delivers their final personal, highly opinionated judgment. End with a sharp challenge to the audience to drop their own thoughts in the comments if they think you\'re wrong.)'
-  },
-  neutral: {
-    label: "Neutral",
-    verdictRule: 'Stay analytical and even-handed — weigh the strongest points on each side fairly rather than forcing a dramatic take.',
-    verdictBody: '(20% of duration. The host gives a level-headed closing summary: what the evidence/stats actually support, and what remains genuinely uncertain or debatable. No forced controversy — if the facts point clearly one way, say so plainly; if they don\'t, say that too instead of manufacturing a strong opinion.)'
-  }
+    rule:'For "Ultimate XI Selection": Compare performance metrics across different tournament starts (World Cup, League, Champions League) to justify your selections.' },
+  worldcuprecap: { label:"World Cup Recap (Full Match Day)",
+    rule:'For "World Cup Recap": This script covers an ENTIRE match day, not a single game. Go through every match played that day in chronological/kickoff order, giving each one a tight beat: final score, the moment that decided it, and one standout performer. If opening/closing ceremony details, attendance records, or other tournament-wide storylines are provided, weave in a brief mention of those too — treat them as part of the day\'s story, not an afterthought. Close by tying the day together: what it means for the group/knockout picture so far.' }
 };
 var DURATIONS = [60,90,120,180];
 var TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
@@ -538,15 +491,12 @@ function stripScriptMarkup(text){
 var $ = function(id){ return document.getElementById(id); };
 var settingsBtn = $('settingsBtn'), settingsPanel = $('settings-panel');
 var testFootballKeyBtn = $('testFootballKeyBtn'), footballKeyStatus = $('footballKeyStatus');
-var personaSelect = $('personaSelect'), modeSelect = $('modeSelect'), toneSelect = $('toneSelect'), durationSlider = $('durationSlider'), durationLabel = $('durationLabel');
+var toneSelect = $('toneSelect'), modeSelect = $('modeSelect'), durationSlider = $('durationSlider'), durationLabel = $('durationLabel');
 var teamDetails = $('teamDetails'), tacticalContext = $('tacticalContext'), draftBtn = $('draftBtn'), draftError = $('draftError');
 var sandboxEmpty = $('sandboxEmpty'), sandboxFull = $('sandboxFull'), scriptBox = $('scriptBox'), wordCount = $('wordCount'), charCount = $('charCount');
 var voiceEmpty = $('voiceEmpty'), voiceFieldset = $('voiceFieldset'), voiceSelect = $('voiceSelect'), rateSlider = $('rateSlider'), rateLabel = $('rateLabel');
 var voiceBtn = $('voiceBtn'), voiceError = $('voiceError'), engineNote = $('engineNote'), playerBox = $('playerBox');
 var badge1=$('badge1'), badge2=$('badge2'), badge3=$('badge3'), stage1=$('stage1'), stage2=$('stage2'), stage3=$('stage3');
-var matchQuery=$('matchQuery'), matchDate=$('matchDate'), matchSearchBtn=$('matchSearchBtn'), matchSearchError=$('matchSearchError');
-var matchResults=$('matchResults'), verifiedFacts=$('verifiedFacts'), matchSources=$('matchSources'), useFactsBtn=$('useFactsBtn');
-var liveMatchesBtn=$('liveMatchesBtn'), liveMatchesList=$('liveMatchesList');
 var chatMessages=$('chatMessages'), chatError=$('chatError'), chatInput=$('chatInput'), chatSendBtn=$('chatSendBtn'), useChatBtn=$('useChatBtn');
 var attachImageBtn=$('attachImageBtn'), imageInput=$('imageInput'), attachFileBtn=$('attachFileBtn'), dataFileInput=$('dataFileInput'), attachmentsPreview=$('attachmentsPreview');
 var clearDataBtn=$('clearDataBtn');
@@ -578,7 +528,9 @@ function sanitizeChatForStorage(history){
     return {
       role: msg.role,
       parts: msg.parts.map(function(p){
-        if(p.text) return { text: p.text };
+        if(p.text !== undefined) return { text: p.text };
+        if(p.functionCall) return { functionCall: p.functionCall };
+        if(p.functionResponse) return { functionResponse: p.functionResponse };
         return { text: '[attachment — not restored after reload]' };
       })
     };
@@ -588,19 +540,14 @@ function sanitizeChatForStorage(history){
 function saveWorkspace(){
   try{
     var payload = {
-      persona: personaSelect.value,
-      mode: modeSelect.value,
       tone: toneSelect.value,
+      mode: modeSelect.value,
       durationIdx: durationSlider.value,
       teamDetails: teamDetails.value,
       tacticalContext: tacticalContext.value,
       script: scriptBox.value,
       voice: voiceSelect.value,
       rate: rateSlider.value,
-      matchQuery: matchQuery.value,
-      verifiedFacts: verifiedFacts.value,
-      matchSourcesHTML: matchSources.innerHTML,
-      matchResultsVisible: matchResults.style.display === 'block',
       chatHistory: sanitizeChatForStorage(chatHistory || [])
     };
     lsSet(WORKSPACE_KEY, JSON.stringify(payload));
@@ -614,9 +561,8 @@ function restoreWorkspace(){
   var s;
   try{ s = JSON.parse(raw); }catch(e){ return; }
 
-  if(s.persona) personaSelect.value = s.persona;
-  if(s.mode) modeSelect.value = s.mode;
   if(s.tone) toneSelect.value = s.tone;
+  if(s.mode) modeSelect.value = s.mode;
   if(s.durationIdx !== undefined){
     durationSlider.value = s.durationIdx;
     durationLabel.textContent = 'Target Duration — '+DURATIONS[Number(s.durationIdx)]+'s';
@@ -628,12 +574,6 @@ function restoreWorkspace(){
     rateSlider.value = s.rate;
     rateLabel.textContent = 'Speech Rate — '+(Number(s.rate)>0?'+':'')+s.rate+'%';
   }
-  if(s.matchQuery) matchQuery.value = s.matchQuery;
-  if(s.verifiedFacts){
-    verifiedFacts.value = s.verifiedFacts;
-    matchSources.innerHTML = s.matchSourcesHTML || '';
-    matchResults.style.display = 'block';
-  }
   applyFieldConfig();
   if(s.script){
     scriptBox.value = s.script;
@@ -643,7 +583,10 @@ function restoreWorkspace(){
   if(s.chatHistory && s.chatHistory.length){
     chatHistory = s.chatHistory;
     chatHistory.forEach(function(msg){
+      var hasFunctionPlumbing = msg.parts.some(function(p){ return p.functionCall || p.functionResponse; });
+      if(hasFunctionPlumbing) return; // internal tool-call turns aren't shown as chat bubbles
       var text = msg.parts.map(function(p){ return p.text || ''; }).join(' ');
+      if(!text.trim()) return;
       renderChatMessage(msg.role === 'user' ? 'user' : 'model', text, [], []);
     });
   }
@@ -667,7 +610,7 @@ function setFootballKeyStatus(kind, msg){
 }
 
 /* Pings our own /api routes (not the upstream providers directly) so this
-   also verifies the Vercel deployment has GEMINI_API_KEY / RAPIDAPI_KEY set. */
+   also verifies the Vercel deployment has GEMINI_API_KEY / API_SPORTS_KEY set. */
 testFootballKeyBtn.addEventListener('click', function(){
   testFootballKeyBtn.disabled = true;
   var originalIcon = testFootballKeyBtn.textContent;
@@ -715,235 +658,215 @@ testFootballKeyBtn.addEventListener('click', function(){
 });
 
 /* ---------------------------------------------------------------- */
-/* Card 0: Real match data lookup (Gemini + Google Search grounding)  */
+/* Research chat — plans, then researches via tool-calling, then writes */
 /* ---------------------------------------------------------------- */
-function showMatchSearchError(msg){ matchSearchError.innerHTML = '<div class="msg-error">⚠️ <span>'+msg+'</span></div>'; }
-function clearMatchSearchError(){ matchSearchError.innerHTML=''; }
 
-// Try to find this query's exact score from football-data.org for a given date.
-// Returns a Promise resolving to a short fact-lines array, or null if nothing matched
-// (wrong date, team not in the 12 covered leagues, or the API call itself failed —
-// all of these are silent fallbacks, since Gemini's web search still runs regardless).
-function lookupHardScore(dateStr, queryText){
-  if(!dateStr) return Promise.resolve(null);
-  return fetch('/api/football-data/matches?dateFrom='+dateStr+'&dateTo='+dateStr)
-    .then(function(res){ return res.ok ? res.json() : null; })
-    .then(function(data){
-      var matches = (data && data.matches) || [];
-      if(!matches.length) return null;
-      var q = queryText.toLowerCase();
-      var hit = matches.find(function(m){
-        var home = ((m.homeTeam && m.homeTeam.name) || '').toLowerCase();
-        var away = ((m.awayTeam && m.awayTeam.name) || '').toLowerCase();
-        var homeShort = ((m.homeTeam && m.homeTeam.shortName) || '').toLowerCase();
-        var awayShort = ((m.awayTeam && m.awayTeam.shortName) || '').toLowerCase();
-        return (home && q.indexOf(home)>=0) || (away && q.indexOf(away)>=0) ||
-               (homeShort && q.indexOf(homeShort)>=0) || (awayShort && q.indexOf(awayShort)>=0);
-      });
-      if(!hit) return null;
-      var home = hit.homeTeam && hit.homeTeam.name || 'Home';
-      var away = hit.awayTeam && hit.awayTeam.name || 'Away';
-      var comp = hit.competition && hit.competition.name || '';
-      var score = (hit.score && hit.score.fullTime) || {};
-      var statusLabel = STATUS_LABEL[hit.status] || hit.status || '';
-      var lines = [
-        'Competition & date: '+comp+', '+dateStr,
-        'Status: '+statusLabel,
-        (score.home!=null && score.away!=null) ? ('Final/current score (hard data, football-data.org): '+home+' '+score.home+' - '+score.away+' '+away) : 'Score: not yet available'
-      ];
-      return lines.join('\n');
-    })
-    .catch(function(){ return null; });
+/* Tool declarations exposed to Gemini. The model decides when to call these
+   itself (function calling) — the frontend just executes whatever it asks
+   for against our own /api/football/* proxy (or a grounded Gemini sub-call
+   for web_search) and hands the result back. */
+var CHAT_TOOLS = [{
+  functionDeclarations: [
+    {
+      name: 'find_team_id',
+      description: 'Look up a football team\'s API-Football team ID by name. Use this first if you need an ID for search_head_to_head and don\'t already have one.',
+      parameters: { type:'object', properties: {
+        name: { type:'string', description:'Team name, e.g. "Arsenal" or "Argentina"' }
+      }, required:['name'] }
+    },
+    {
+      name: 'search_head_to_head',
+      description: 'Get past fixtures between two named teams — exact scores, dates, venues, competitions. Use for any past-match lookup, optionally narrowed to one year.',
+      parameters: { type:'object', properties: {
+        team1: { type:'string' },
+        team2: { type:'string' },
+        year: { type:'string', description:'Optional 4-digit year to narrow results, e.g. "2022"' }
+      }, required:['team1','team2'] }
+    },
+    {
+      name: 'get_fixtures_by_date',
+      description: 'Get every fixture (scores, status, competition) on one calendar date. Use for "today\'s matches", live scores, or a specific day of a tournament (e.g. a World Cup match day).',
+      parameters: { type:'object', properties: {
+        date: { type:'string', description:'YYYY-MM-DD' }
+      }, required:['date'] }
+    },
+    {
+      name: 'get_fixture_details',
+      description: 'Get full detail for one fixture by its fixture_id (from search_head_to_head or get_fixtures_by_date results) — goal scorers with minutes, cards, and team statistics.',
+      parameters: { type:'object', properties: {
+        fixture_id: { type:'number' }
+      }, required:['fixture_id'] }
+    },
+    {
+      name: 'web_search',
+      description: 'Search the live web for anything API-Football can\'t give you: IFAB Laws of the Game for a specific decision, ceremony/attendance/storyline details, transfer news, injury news, quotes, or general context. Returns a factual summary with sources.',
+      parameters: { type:'object', properties: {
+        query: { type:'string' }
+      }, required:['query'] }
+    }
+  ]
+}];
+
+function apiFootballTeamLookup(name){
+  return fetch('/api/football/teams?search='+encodeURIComponent(name)).then(function(res){ return res.json(); }).then(function(data){
+    var arr = (data && data.response) || [];
+    if(!arr.length) return { found:false, message:'No team found matching "'+name+'".' };
+    var t = arr[0].team;
+    return { found:true, id:t.id, name:t.name, country:t.country };
+  }).catch(function(e){ return { found:false, error:String((e&&e.message)||e) }; });
 }
 
-matchSearchBtn.addEventListener('click', function(){
-  clearMatchSearchError();
-  var q = matchQuery.value.trim();
-  if(!q){ showMatchSearchError('Type a match, player, or incident to search for.'); return; }
-  var dateStr = matchDate.value;
+var TOOL_EXECUTORS = {
+  find_team_id: function(args){ return apiFootballTeamLookup(args.name); },
 
-  matchSearchBtn.disabled = true;
-  matchSearchBtn.innerHTML = '<span class="spinner" style="border-color:rgba(166,255,46,.3);border-top-color:var(--neon)"></span>';
-
-  var hardScoreLookup = lookupHardScore(dateStr, q);
-
-  var prompt = "Search the web for real, current facts about: \""+q+"\".\n\n" +
-"If this query is about a player transfer, move, or contract negotiation, return ONLY a plain-text factual report with these fields (omit any you genuinely cannot find — never invent a value):\n" +
-"- Player name, age, position\n- Clubs involved (selling club and buying club)\n- Reported or confirmed fee, and whether it's confirmed, in-progress, or just rumored\n- Contract length / terms, release clause, or add-ons if reported\n" +
-"- Official confirmation status (medical booked, here-we-go, official announcement, still speculation, etc.) and as of what date\n- Reason for the move / club need, if reported\n- Any other notable context mentioned in sources\n\n" +
-"Otherwise, treat this as a match query and return ONLY a plain-text factual report with these fields (omit any you genuinely cannot find — never invent a value):\n" +
-"- Competition & date\n- Final score (or current score if in progress)\n- Scorers with minutes\n- Cards / bookings with minutes\n- Any referee or VAR decisions, with the minute, what happened, and what the replay/rule showed\n" +
-"- Starting lineups or formations, if reported\n" +
-"- Team stats for BOTH sides if reported anywhere: possession %, passes completed/attempted (pass completion %), chances created, big chances created, shots on target, shots off target, interceptions, total touches\n" +
-"- Key player stats if reported: for the standout players on each side, their individual possession/touches, passes completed, chances created, big chances created, shots on/off target, and interceptions\n" +
-"- Any other notable stats mentioned in sources\n\n" +
-"If this query is about a foul, penalty, handball, offside, red/yellow card, or any other refereeing or VAR decision, ALSO add a field:\n" +
-"- Relevant Law of the Game: search for and quote the actual current IFAB Laws of the Game rule (the law number and its real wording or an accurate summary of it) that governs this exact situation, so the decision can be judged against the real rule rather than a general impression of it.\n\n" +
-"Rules: state only what your sources actually report. If sources disagree, note the disagreement instead of picking one, and flag if reports are still just speculation rather than confirmed. If you cannot find real information on this, say so plainly instead of guessing.";
-
-  var geminiSearch = fetch('/api/gemini', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({
-      contents:[{ role:'user', parts:[{ text: prompt }] }],
-      tools:[{ google_search:{} }]
-    })
-  }).then(function(res){
-    if(!res.ok){
-      return res.json().catch(function(){ return {}; }).then(function(err){
-        throw new Error((err && err.error && err.error.message) || ('Request failed ('+res.status+')'));
+  search_head_to_head: function(args){
+    return Promise.all([apiFootballTeamLookup(args.team1), apiFootballTeamLookup(args.team2)]).then(function(res){
+      var a = res[0], b = res[1];
+      if(!a.found || !b.found){
+        return { found:false, message:'Could not resolve one or both team names to an API-Football ID.', team1Result:a, team2Result:b };
+      }
+      return fetch('/api/football/fixtures?h2h='+a.id+'-'+b.id+'&last=20').then(function(res2){ return res2.json(); }).then(function(data){
+        var fixtures = (data && data.response) || [];
+        if(args.year){
+          fixtures = fixtures.filter(function(fx){ return String(new Date(fx.fixture.date).getFullYear()) === String(args.year); });
+        }
+        fixtures.sort(function(x,y){ return new Date(y.fixture.date) - new Date(x.fixture.date); });
+        var mapped = fixtures.slice(0,10).map(function(fx){
+          return {
+            fixture_id: fx.fixture.id,
+            date: fx.fixture.date ? new Date(fx.fixture.date).toISOString().slice(0,10) : null,
+            competition: fx.league && fx.league.name,
+            venue: fx.fixture.venue && fx.fixture.venue.name,
+            home: fx.teams.home.name, away: fx.teams.away.name,
+            score_home: fx.goals.home, score_away: fx.goals.away,
+            status: fx.fixture.status && fx.fixture.status.short
+          };
+        });
+        return { found: mapped.length>0, count: mapped.length, fixtures: mapped };
       });
-    }
-    return res.json();
-  });
+    }).catch(function(e){ return { found:false, error:String((e&&e.message)||e) }; });
+  },
 
-  Promise.all([geminiSearch, hardScoreLookup]).then(function(results){
-    var data = results[0], hardScoreText = results[1];
-    var cand = data && data.candidates && data.candidates[0];
-    var parts = cand && cand.content && cand.content.parts;
-    var text = parts ? parts.map(function(p){ return p.text||''; }).join('') : '';
-    if(!text.trim() && !hardScoreText) throw new Error('No results came back for that search.');
-    verifiedFacts.value = (hardScoreText ? hardScoreText+'\n\n' : '') + text.trim();
-
-    var chunks = (cand && cand.groundingMetadata && cand.groundingMetadata.groundingChunks) || [];
-    if(chunks.length){
-      var links = chunks.map(function(c){
-        var w = c.web || {};
-        return '<a href="'+(w.uri||'#')+'" target="_blank" rel="noopener" style="color:var(--neon)">'+(w.title||w.uri||'source')+'</a>';
+  get_fixtures_by_date: function(args){
+    return fetch('/api/football/fixtures?date='+args.date).then(function(res){ return res.json(); }).then(function(data){
+      var fixtures = (data && data.response) || [];
+      var mapped = fixtures.slice(0,40).map(function(fx){
+        return {
+          fixture_id: fx.fixture.id,
+          competition: fx.league && fx.league.name,
+          home: fx.teams.home.name, away: fx.teams.away.name,
+          score_home: fx.goals.home, score_away: fx.goals.away,
+          status: fx.fixture.status && fx.fixture.status.short,
+          kickoff: fx.fixture.date
+        };
       });
-      matchSources.innerHTML = (hardScoreText ? 'Score verified via football-data.org. ' : '') + 'Sources: '+links.join(' &middot; ');
-    } else {
-      matchSources.innerHTML = hardScoreText
-        ? 'Score verified via football-data.org. No additional source links came back from the web search — verify scorers/cards/stats manually.'
-        : 'No source links were returned — treat this summary with extra caution and verify manually.';
-    }
-    matchResults.style.display = 'block';
-    saveWorkspace();
-  }).catch(function(e){
-    showMatchSearchError(e.message || 'Something went wrong while searching.');
-  }).finally(function(){
-    matchSearchBtn.disabled = false;
-    matchSearchBtn.innerHTML = '🔎 Search';
-  });
-});
+      return { count: mapped.length, fixtures: mapped };
+    }).catch(function(e){ return { error:String((e&&e.message)||e) }; });
+  },
 
-/* ---------------------------------------------------------------- */
-/* Live Matches Today (football-data.org — hard scores, 12 leagues)  */
-/* ---------------------------------------------------------------- */
-var STATUS_LABEL = {
-  LIVE:'LIVE', IN_PLAY:'LIVE', PAUSED:'HT',
-  FINISHED:'FT', SCHEDULED:'Scheduled', TIMED:'Scheduled', POSTPONED:'Postponed'
+  get_fixture_details: function(args){
+    var id = args.fixture_id;
+    return Promise.all([
+      fetch('/api/football/fixtures?id='+id).then(function(r){ return r.json(); }).catch(function(){ return null; }),
+      fetch('/api/football/fixtures/events?fixture='+id).then(function(r){ return r.json(); }).catch(function(){ return null; }),
+      fetch('/api/football/fixtures/statistics?fixture='+id).then(function(r){ return r.json(); }).catch(function(){ return null; })
+    ]).then(function(res){
+      var fixtureData = res[0] && res[0].response && res[0].response[0];
+      var events = (res[1] && res[1].response) || [];
+      var stats = (res[2] && res[2].response) || [];
+      return {
+        fixture: fixtureData ? {
+          date: fixtureData.fixture.date,
+          venue: fixtureData.fixture.venue && fixtureData.fixture.venue.name,
+          competition: fixtureData.league && fixtureData.league.name,
+          home: fixtureData.teams.home.name, away: fixtureData.teams.away.name,
+          score_home: fixtureData.goals.home, score_away: fixtureData.goals.away
+        } : null,
+        events: events.map(function(e){
+          return { minute:e.time && e.time.elapsed, team:e.team && e.team.name, player:e.player && e.player.name, type:e.type, detail:e.detail };
+        }),
+        statistics: stats.map(function(s){
+          return { team:s.team && s.team.name, stats:(s.statistics||[]).map(function(st){ return { type:st.type, value:st.value }; }) };
+        })
+      };
+    }).catch(function(e){ return { error:String((e&&e.message)||e) }; });
+  },
+
+  web_search: function(args){
+    return fetch('/api/gemini', {
+      method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        contents:[{ role:'user', parts:[{ text:
+          "Search the web for real, current, factual information about: \""+args.query+"\". Report only what sources " +
+          "actually say, in plain text, and note if sources disagree. If this concerns a foul, penalty, handball, " +
+          "offside, or other refereeing/VAR decision, also accurately state the actual current IFAB Law of the Game " +
+          "that governs it. If you can't find real information, say so plainly instead of guessing."
+        }] }],
+        tools:[{ google_search:{} }]
+      })
+    }).then(function(res){ return res.json(); }).then(function(data){
+      var cand = data && data.candidates && data.candidates[0];
+      var parts = cand && cand.content && cand.content.parts;
+      var text = parts ? parts.map(function(p){ return p.text||''; }).join('') : '';
+      var chunks = (cand && cand.groundingMetadata && cand.groundingMetadata.groundingChunks) || [];
+      var sources = chunks.map(function(c){ var w=c.web||{}; return { title:w.title||w.uri, url:w.uri }; });
+      return { summary: text.trim() || 'No results found.', sources: sources };
+    }).catch(function(e){ return { error:String((e&&e.message)||e) }; });
+  }
 };
 
-liveMatchesBtn.addEventListener('click', function(){
-  liveMatchesBtn.disabled = true;
-  var originalLabel = liveMatchesBtn.textContent;
-  liveMatchesBtn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:2px"></span>';
-  liveMatchesList.innerHTML = '<div class="msg-note">⏳ <span>Loading today\'s matches…</span></div>';
+function executeFunctionCall(call){
+  var fn = TOOL_EXECUTORS[call.name];
+  if(!fn) return Promise.resolve({ error:'Unknown tool: '+call.name });
+  try{ return Promise.resolve(fn(call.args || {})); }
+  catch(e){ return Promise.resolve({ error:String((e&&e.message)||e) }); }
+}
 
-  var today = new Date().toISOString().slice(0,10);
-
-  fetch('/api/football-data/matches?dateFrom='+today+'&dateTo='+today).then(function(res){
-    return res.json().then(function(data){ return { ok: res.ok, status: res.status, data: data }; });
-  }).then(function(result){
-    if(!result.ok){
-      throw new Error((result.data && result.data.error) || (result.data && result.data.message) || ('Request failed with status '+result.status));
-    }
-    var matches = (result.data && result.data.matches) || [];
-    if(!matches.length){
-      liveMatchesList.innerHTML = '<div class="msg-note">No matches today across the top 12 leagues (or they haven\'t kicked off yet). Try the search box above for anything else.</div>';
-      return;
-    }
-    liveMatchesList.innerHTML = '';
-    matches.slice(0, 20).forEach(function(m){
-      var home = m.homeTeam && m.homeTeam.name || 'Home';
-      var away = m.awayTeam && m.awayTeam.name || 'Away';
-      var comp = m.competition && m.competition.name || '';
-      var score = (m.score && m.score.fullTime) || {};
-      var scoreStr = (score.home!=null && score.away!=null) ? (score.home+' – '+score.away) : 'vs';
-      var statusLabel = STATUS_LABEL[m.status] || m.status || '';
-      var kickoff = m.utcDate ? new Date(m.utcDate).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-
-      var chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'live-match-chip';
-      chip.innerHTML =
-        '<span>'+home+' '+scoreStr+' '+away+'<br><span style="color:var(--dim);font-size:10px">'+comp+'</span></span>' +
-        '<span class="lm-status">'+statusLabel+(kickoff && statusLabel==='Scheduled' ? ' · '+kickoff : '')+'</span>';
-
-      chip.addEventListener('click', function(){
-        matchQuery.value = home+' vs '+away+' ('+comp+', '+today+')';
-        // Seed verified facts with the hard, exact score from football-data.org so it
-        // doesn't need to be re-confirmed by the Gemini web search below — only the
-        // narrative detail (scorers, cards, stats) still needs that search.
-        var lines = [
-          'Competition & date: '+comp+', '+today,
-          'Status: '+statusLabel,
-          (score.home!=null && score.away!=null) ? ('Final/current score: '+home+' '+score.home+' - '+score.away+' '+away) : 'Score: not yet available',
-          '(Source: football-data.org — scorers, cards, and stats not included; use Search above or the research chat below for those.)'
-        ];
-        verifiedFacts.value = lines.join('\n');
-        matchSources.innerHTML = 'Source: <a href="https://www.football-data.org" target="_blank" rel="noopener" style="color:var(--neon)">football-data.org</a>';
-        matchResults.style.display = 'block';
-        saveWorkspace();
-        matchQuery.scrollIntoView({ behavior:'smooth', block:'center' });
-      });
-
-      liveMatchesList.appendChild(chip);
-    });
-  }).catch(function(e){
-    liveMatchesList.innerHTML = '<div class="msg-error">⚠️ <span>'+(e.message || 'Could not load live matches.')+'</span></div>';
-  }).finally(function(){
-    liveMatchesBtn.disabled = false;
-    liveMatchesBtn.textContent = originalLabel;
-  });
-});
-
-useFactsBtn.addEventListener('click', function(){
-  var existing = teamDetails.value.trim();
-  var facts = verifiedFacts.value.trim();
-  teamDetails.value = existing ? (existing+'\n\n[Verified facts]\n'+facts) : facts;
-  teamDetails.scrollIntoView({ behavior:'smooth', block:'center' });
-  teamDetails.focus();
-});
-
-/* ---------------------------------------------------------------- */
-/* Research chat (multimodal, with screenshot upload)                 */
-/* ---------------------------------------------------------------- */
-var CHAT_SYSTEM_PROMPT =
-"You are a meticulous football analytics research assistant helping a content creator gather ACCURATE " +
-"match and player facts before they write a video script. A wrong stat here can genuinely hurt their " +
-"credibility with their audience, so precision matters more than speed.\n\n" +
-"Prioritize confirming these, for both teams and especially any key/standout players the user mentions:\n" +
-"possession %, passes completed/attempted (pass completion %), chances created, big chances created, " +
-"shots on target, shots off target, interceptions, and total touches.\n\n" +
-"Rules:\n" +
-"- If the user gives you one or more screenshots, read the exact numbers as shown in each image and read them " +
-"back to the user to confirm you read them correctly — never assume or estimate a number you can't actually see.\n" +
-"- If the user uploads spreadsheet/CSV data, treat the rows and columns as authoritative source data and " +
-"summarize what you found from it before asking anything else.\n" +
-"- If something is missing, ask a short, specific follow-up question for exactly what's missing rather than " +
-"a vague 'tell me more'.\n" +
-"- Never invent a statistic. If you don't have it and the user doesn't provide it, say it's missing.\n" +
-"- Keep responses short and conversational, like a colleague double-checking notes, not an essay.\n" +
-"- If the user asks for a summary or says they're ready, respond with a clean, structured recap of every " +
-"confirmed fact and stat gathered so far, organized by team then key players, ready to paste into a script.\n\n" +
-"WRITING THE ACTUAL SCRIPT — only do this when the user explicitly asks you to write, draft, or generate a script " +
-"(not just recap facts). This covers requests that don't fit the single-match Draft Script tool, e.g. multi-match " +
-"recaps like 'World Cup Match Day 3 recap' covering several games (and things like the opening ceremony) in one script.\n" +
-"- Persona: Tactical Theo — sharp, analytical, confident, backs opinions with tactical detail, always lands on a " +
-"real stance rather than staying neutral, unless the user tells you otherwise in the same message.\n" +
-"- Ask the user for target duration (seconds) if they haven't given one, and use ~150 words per minute of spoken " +
-"audio to size the script.\n" +
-"- Structure: open with a fast, high-energy hook (no 'hey guys, welcome back'), move through the analysis/breakdown " +
-"of everything covered (each match or moment gets its own beat, in the order most compelling for the video — not " +
-"necessarily chronological), and close with a clear personal verdict or ranking, ending with a direct challenge to " +
-"the audience to share their own take in the comments.\n" +
-"- Use bracketed section labels with timestamps, e.g. [0:00 - THE HOOK], the same way the Draft Script tool does, so " +
-"the output drops straight into the Script Sandbox without reformatting.\n" +
-"- Only use facts actually confirmed earlier in this conversation or given in the Verified Match Facts context — " +
-"never invent a score, scorer, or incident that wasn't actually provided.\n" +
-"- Output the script as its own clearly separated block so the user can copy just that part into the sandbox.";
+function buildChatSystemPrompt(){
+  var tone = TONES[toneSelect.value] || TONES.opinionated;
+  var modeList = Object.keys(MODES).map(function(k){ return '- "'+MODES[k].label+'": '+MODES[k].rule; }).join('\n');
+  return (
+"You are Tactical Theo's research producer and ghostwriter — a meticulous football analytics assistant helping " +
+"a content creator go from an idea to a finished, fact-checked video script, entirely in this chat.\n\n" +
+"You work in three phases, in order. Do not skip ahead.\n\n" +
+"PHASE 1 — UNDERSTAND & PLAN.\n" +
+"When the user describes a video idea, first confirm your understanding of exactly what kind of video it is " +
+"(pick the closest fit from the video-mode reference below, or describe it plainly if it's a custom format like " +
+"a multi-match recap). Then list out, as a short bulleted plan, precisely what information you intend to go find " +
+"— which match(es)/date(s)/teams, and which specific facts (scores, scorers, cards, VAR incidents, stats, " +
+"ceremonies/storylines, etc.). Do NOT call any tool yet. End the plan by asking the user to confirm ('reply go ahead " +
+"if this looks right, or tell me what to change'). If the user pushes back, revise the plan and ask again — only move " +
+"to Phase 2 once the user clearly approves it.\n\n" +
+"PHASE 2 — RESEARCH IN BULK.\n" +
+"Once approved, use the available tools to gather everything from your plan in one focused burst — call as many " +
+"tools as you need, in whatever order makes sense (resolve team names to IDs first if needed). Prefer the " +
+"API-Football tools (find_team_id, search_head_to_head, get_fixtures_by_date, get_fixture_details) for scores, " +
+"scorers, cards, and stats; use web_search only for things those can't give you (ceremonies, storylines, transfer " +
+"news, injury news, or the exact IFAB law for a decision). When you're done, report back plainly: what you found " +
+"(organized clearly), and what — if anything — you could not find or confirm, asking the user to help supply " +
+"exactly that. Never invent or guess a fact you couldn't confirm.\n\n" +
+"PHASE 3 — WRITE THE SCRIPT.\n" +
+"Only once the user says the information is complete or tells you to write/create the script, produce the FULL " +
+"formatted script directly in this chat — no need for any form elsewhere. Always use the 'Tactical Theo' voice: " +
+"sharp, analytical, confident, slightly smug, backs up opinions with tactical detail — this never changes. " +
+"Commentary tone for this session: "+tone.label+" — "+tone.styleRule+"\n\n" +
+"Video-mode reference (pick whichever the user's idea actually matches; for a multi-match recap like a World Cup " +
+"match day, cover every match played that day in chronological order with a tight beat each — score, deciding " +
+"moment, standout performer — and weave in ceremony/storyline details if provided):\n"+modeList+"\n\n" +
+"Script format — exactly three bracketed sections with timestamps, nothing else, no preamble or notes before/after:\n\n" +
+"[0:00 - THE HOOK]\n(~15% of total length. High-energy, attention-grabbing line — no \"hey guys, welcome back\".)\n\n" +
+"[TIMESTAMP - THE ANALYSIS]\n(~65% of total length. The core breakdown per the video-mode rule above.)\n\n" +
+"[TIMESTAMP - MY VERDICT]\n(~20% of total length. "+tone.verdictRule+")\n\n" +
+"Estimate a reasonable total length from how much material there is (~150 spoken words per minute) unless the user " +
+"gives a target duration.\n\n" +
+"HARD RULES throughout all phases:\n" +
+"- Never invent a scoreline, scorer, card, stat, minute, or quote. Only use what a tool actually returned or what " +
+"the user directly told you (including screenshots/files they attached — read exact numbers off images, never " +
+"estimate).\n" +
+"- If the user uploads a spreadsheet/CSV, treat its rows/columns as authoritative and summarize what's in it.\n" +
+"- Keep non-script responses short and conversational, like a colleague talking it through — not an essay."
+  );
+}
 
 var chatHistory = [];
 var pendingAttachments = []; // { kind:'image', name, mime, base64, previewUrl } | { kind:'file', name, content }
@@ -1065,6 +988,76 @@ dataFileInput.addEventListener('change', function(){
   dataFileInput.value = '';
 });
 
+var TOOL_CALL_LABELS = {
+  find_team_id: 'Looking up team…',
+  search_head_to_head: 'Searching past meetings…',
+  get_fixtures_by_date: 'Pulling match day fixtures…',
+  get_fixture_details: 'Pulling match detail & stats…',
+  web_search: 'Searching the web…'
+};
+
+function callGeminiChat(){
+  return fetch('/api/gemini', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({
+      system_instruction: { parts:[{ text: buildChatSystemPrompt() }] },
+      contents: chatHistory,
+      tools: CHAT_TOOLS
+    })
+  }).then(function(res){
+    if(!res.ok){
+      return res.json().catch(function(){ return {}; }).then(function(err){
+        throw new Error((err && err.error && err.error.message) || ('Request failed ('+res.status+')'));
+      });
+    }
+    return res.json();
+  });
+}
+
+// Drives the plan -> research (tool-calling) -> write loop for one user turn.
+// Returns the final text reply once the model stops requesting tools.
+function runAssistantTurn(thinkingBubble){
+  var MAX_STEPS = 8;
+  var step = 0;
+
+  function next(){
+    step++;
+    if(step > MAX_STEPS){
+      throw new Error('That took too many research steps — try narrowing the request and send it again.');
+    }
+    return callGeminiChat().then(function(data){
+      var cand = data && data.candidates && data.candidates[0];
+      var content = cand && cand.content;
+      var parts = (content && content.parts) || [];
+      var functionCalls = parts.filter(function(p){ return p.functionCall; }).map(function(p){ return p.functionCall; });
+
+      // Preserve the exact part structure the model returned (needed for valid history).
+      chatHistory.push({ role: (content && content.role) || 'model', parts: parts });
+
+      if(functionCalls.length === 0){
+        var replyText = parts.map(function(p){ return p.text||''; }).join('');
+        if(!replyText.trim()) throw new Error('No reply came back.');
+        return replyText.trim();
+      }
+
+      var label = TOOL_CALL_LABELS[functionCalls[0].name] || 'Researching…';
+      thinkingBubble.textContent = label;
+
+      return Promise.all(functionCalls.map(executeFunctionCall)).then(function(results){
+        var responseParts = functionCalls.map(function(call, i){
+          return { functionResponse: { name: call.name, response: results[i] } };
+        });
+        chatHistory.push({ role:'user', parts: responseParts });
+        thinkingBubble.textContent = 'Thinking…';
+        return next();
+      });
+    });
+  }
+
+  return next();
+}
+
 function sendChatMessage(){
   clearChatError();
   var text = chatInput.value.trim();
@@ -1081,6 +1074,7 @@ function sendChatMessage(){
   if(combinedText) userParts.push({ text: combinedText });
 
   renderChatMessage('user', text, images.map(function(i){ return i.previewUrl; }), files.map(function(f){ return f.name; }));
+  var historyLenBeforeTurn = chatHistory.length;
   chatHistory.push({ role:'user', parts: userParts });
 
   chatInput.value = '';
@@ -1092,36 +1086,13 @@ function sendChatMessage(){
   chatSendBtn.innerHTML = '<span class="spinner"></span>';
   var thinkingBubble = renderChatMessage('model', 'Thinking…');
 
-  var searchContext = verifiedFacts.value.trim();
-  var systemPrompt = CHAT_SYSTEM_PROMPT + (searchContext
-    ? "\n\n[Real match facts already found via the search tool above — treat these as already-confirmed, no need to re-ask for them:]\n" + searchContext
-    : '');
-
-  fetch('/api/gemini', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({
-      system_instruction: { parts:[{ text: systemPrompt }] },
-      contents: chatHistory
-    })
-  }).then(function(res){
-    if(!res.ok){
-      return res.json().catch(function(){ return {}; }).then(function(err){
-        throw new Error((err && err.error && err.error.message) || ('Request failed ('+res.status+')'));
-      });
-    }
-    return res.json();
-  }).then(function(data){
-    var parts = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
-    var replyText = parts ? parts.map(function(p){ return p.text||''; }).join('') : '';
-    if(!replyText.trim()) throw new Error('No reply came back.');
+  runAssistantTurn(thinkingBubble).then(function(replyText){
     thinkingBubble.remove();
-    renderChatMessage('model', replyText.trim());
-    chatHistory.push({ role:'model', parts:[{ text: replyText.trim() }] });
+    renderChatMessage('model', replyText);
     saveWorkspace();
   }).catch(function(e){
     thinkingBubble.remove();
-    chatHistory.pop(); // roll back the failed turn so retry is clean
+    chatHistory.length = historyLenBeforeTurn; // roll back the whole failed turn (incl. any partial tool calls)
     showChatError((e.message || 'Something went wrong.') + (hadAttachments ? ' (try resending the attachment(s))' : ''));
   }).finally(function(){
     chatSendBtn.disabled = false;
@@ -1139,12 +1110,14 @@ useChatBtn.addEventListener('click', function(){
     showChatError('Chat with the analyst first — there\'s nothing to bring over yet.');
     return;
   }
-  var lines = chatHistory.map(function(msg){
+  var lines = chatHistory.filter(function(msg){
+    return !msg.parts.some(function(p){ return p.functionCall || p.functionResponse; });
+  }).map(function(msg){
     var label = msg.role === 'user' ? 'You' : 'Analyst';
     var textParts = msg.parts.filter(function(p){ return p.text; }).map(function(p){ return p.text; }).join(' ');
     var hadImage = msg.parts.some(function(p){ return p.inline_data; });
     return label+': '+(textParts || '')+(hadImage ? ' [screenshot attached]' : '');
-  });
+  }).filter(function(line){ return !/:\s*$/.test(line); });
   var transcript = lines.join('\n');
   var existing = teamDetails.value.trim();
   teamDetails.value = existing ? (existing+'\n\n[Research chat transcript]\n'+transcript) : ('[Research chat transcript]\n'+transcript);
@@ -1175,6 +1148,12 @@ var FIELD_CONFIG = {
     ctxLabel: "Tactical Context / Lineup Details",
     ctxPlaceholder: "e.g. Spain in a 4-3-3 pressing high; France sitting in a mid-block 4-2-3-1..."
   },
+  worldcuprecap: {
+    teamLabel: "Match Day Results & Key Moments (every match played that day)",
+    teamPlaceholder: "e.g. Match Day 1:\nArgentina 2-0 Mexico (Messi 2 goals)\nFrance 1-1 Tunisia (late equalizer, 89')\nJapan 2-1 Germany (shock upset)...",
+    ctxLabel: "Ceremonies / Storylines / Tournament Context (optional)",
+    ctxPlaceholder: "e.g. Opening ceremony featured..., record attendance of..., host nation's first match in 8 years..."
+  },
   _default: {
     teamLabel: "Team / Match Details",
     teamPlaceholder: "e.g. Arsenal vs Real Madrid, UCL Quarter-Final 2nd leg. Saka, Odegaard, Bellingham, Vinicius...",
@@ -1191,7 +1170,7 @@ function applyFieldConfig(){
 }
 modeSelect.addEventListener('change', function(){ applyFieldConfig(); saveWorkspace(); });
 applyFieldConfig();
-personaSelect.addEventListener('change', saveWorkspace);
+toneSelect.addEventListener('change', saveWorkspace);
 voiceSelect.addEventListener('change', saveWorkspace);
 
 /* ---------------------------------------------------------------- */
@@ -1209,7 +1188,6 @@ rateSlider.addEventListener('input', function(){
 });
 teamDetails.addEventListener('input', debouncedSaveWorkspace);
 tacticalContext.addEventListener('input', debouncedSaveWorkspace);
-matchQuery.addEventListener('input', debouncedSaveWorkspace);
 
 /* ---------------------------------------------------------------- */
 /* Stage 1: Draft script via Gemini                                   */
@@ -1247,32 +1225,34 @@ draftBtn.addEventListener('click', function(){
   if(!team){ showDraftError('Add team/match details before drafting.'); return; }
 
   setDrafting(true);
-  var persona = PERSONAS[personaSelect.value];
-  var mode = MODES[modeSelect.value];
+  var persona = HOST_PERSONA;
   var tone = TONES[toneSelect.value] || TONES.opinionated;
+  var mode = MODES[modeSelect.value];
   var duration = currentDuration();
   var t = getTimings(duration);
   var targetWords = Math.round(150*(duration/60));
   var tactical = tacticalContext.value.trim() || "None provided — infer reasonable tactical detail from the match details above.";
 
-  var prompt = "You are an elite, highly opinionated football (soccer) content creator and expert analyst.\n" +
+  var prompt = "You are an elite football (soccer) content creator and expert analyst.\n" +
 "Your goal is to write a highly engaging, fast-paced, first-person video script based on the following parameters:\n\n" +
 "[PARAMETERS]\n" +
 "- Host Persona: "+persona.label+"\n" +
+"- Commentary Tone: "+tone.label+"\n" +
 "- Video Mode: "+mode.label+"\n" +
 "- Target Duration: "+duration+" seconds (Aim for ~150 words per minute of spoken audio, roughly "+targetWords+" words total)\n" +
 "- Team / Match Details: "+team+"\n" +
 "- Tactical Context / Lineup Details: "+tactical+"\n\n" +
 "[HOST PERSONA RULES]\n"+persona.rule+"\n\n" +
+"[COMMENTARY TONE RULES]\n"+tone.styleRule+"\n\n" +
 "[VIDEO MODE RULES & SCRIPT STRUCTURE]\n" +
-"The script must be formatted exactly into 3 clear visual sections with timestamps. Avoid generic filler. Use natural spoken transitions. "+tone.verdictRule+"\n\n" +
+"The script must be formatted exactly into 3 clear visual sections with timestamps. Avoid generic filler. Use natural spoken transitions.\n\n" +
 "Format the output strictly as follows:\n\n" +
 "["+t.hookStart+" - THE HOOK]\n" +
-"(15% of duration. Start immediately with a shocking, controversial, or high-energy statement. No \"Hey guys, welcome back\". Go straight for the throat.)\n\n" +
+"(15% of duration. Start immediately with a high-energy, attention-grabbing statement. No \"Hey guys, welcome back\". Go straight into it.)\n\n" +
 "["+t.analysisStart+" - THE ANALYSIS]\n" +
 "(65% of duration. Break down the core details:\n - "+mode.rule+")\n\n" +
 "["+t.verdictStart+" - MY VERDICT]\n" +
-tone.verdictBody+"\n\n" +
+"(20% of duration. "+tone.verdictRule+")\n\n" +
 "Output ONLY the script text with the three bracketed section headings shown above (replace the parenthetical instructions with the actual spoken script content), nothing else — no preamble, no extra notes, no markdown formatting.\n\n" +
 "CRITICAL: Only use scores, stats, minutes, and incidents that are explicitly present in the Team/Match Details or Tactical Context above. Do not invent scorelines, cards, injuries, or quotes that weren't given to you. If a detail you'd want isn't provided, speak in general tactical terms instead of fabricating a specific fact. If a relevant Law of the Game or rule text is present in the input, base your refereeing verdict on that exact rule rather than a general impression of the law.";
 
