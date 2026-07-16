@@ -710,9 +710,14 @@ var CHAT_TOOLS = [{
 function apiFootballTeamLookup(name){
   return fetch('/api/football/teams?search='+encodeURIComponent(name)).then(function(res){ return res.json(); }).then(function(data){
     var arr = (data && data.response) || [];
-    if(!arr.length) return { found:false, message:'No team found matching "'+name+'".' };
-    var t = arr[0].team;
-    return { found:true, id:t.id, name:t.name, country:t.country };
+    if(!arr.length) return { found:false, message:'No team found matching "'+name+'" in API-Football. This can happen for national teams in some tournaments depending on API-Football\'s coverage — cross-check with web_search before assuming the team/match doesn\'t exist.' };
+    // Prefer an exact (case-insensitive) name match, and prefer a national side over a club/youth
+    // side of a similar name (e.g. searching "England" shouldn't silently pick an obscure club).
+    var exact = arr.filter(function(x){ return x.team && x.team.name && x.team.name.toLowerCase() === name.toLowerCase(); });
+    var pool = exact.length ? exact : arr;
+    var national = pool.filter(function(x){ return x.team && x.team.national; });
+    var pick = (national.length ? national : pool)[0].team;
+    return { found:true, id:pick.id, name:pick.name, country:pick.country };
   }).catch(function(e){ return { found:false, error:String((e&&e.message)||e) }; });
 }
 
@@ -723,7 +728,7 @@ var TOOL_EXECUTORS = {
     return Promise.all([apiFootballTeamLookup(args.team1), apiFootballTeamLookup(args.team2)]).then(function(res){
       var a = res[0], b = res[1];
       if(!a.found || !b.found){
-        return { found:false, message:'Could not resolve one or both team names to an API-Football ID.', team1Result:a, team2Result:b };
+        return { found:false, message:'Could not resolve one or both team names to an API-Football ID. Do not assume this means the match didn\'t happen — cross-check with web_search before telling the user that.', team1Result:a, team2Result:b };
       }
       return fetch('/api/football/fixtures?h2h='+a.id+'-'+b.id+'&last=20').then(function(res2){ return res2.json(); }).then(function(data){
         var fixtures = (data && data.response) || [];
@@ -742,7 +747,14 @@ var TOOL_EXECUTORS = {
             status: fx.fixture.status && fx.fixture.status.short
           };
         });
-        return { found: mapped.length>0, count: mapped.length, fixtures: mapped };
+        var result = { found: mapped.length>0, count: mapped.length, fixtures: mapped };
+        if(!mapped.length){
+          result.note = 'API-Football returned no matching fixtures here — this can be a coverage gap (some plans don\'t ' +
+            'include every international tournament) rather than proof the match never happened, especially for a ' +
+            'specific year filter. Before telling the user it doesn\'t exist or asking them to double-check the date, ' +
+            'run a web_search for "<team1> vs <team2>'+(args.year?' '+args.year:'')+'" to verify one way or the other.';
+        }
+        return result;
       });
     }).catch(function(e){ return { found:false, error:String((e&&e.message)||e) }; });
   },
@@ -760,7 +772,13 @@ var TOOL_EXECUTORS = {
           kickoff: fx.fixture.date
         };
       });
-      return { count: mapped.length, fixtures: mapped };
+      var result = { count: mapped.length, fixtures: mapped };
+      if(!mapped.length){
+        result.note = 'API-Football returned zero fixtures for this date — this can be a coverage gap (some plans ' +
+          'don\'t include every international tournament) rather than proof nothing was played. Before telling the ' +
+          'user no match exists on this date or asking them to re-confirm it, run a web_search to verify.';
+      }
+      return result;
     }).catch(function(e){ return { error:String((e&&e.message)||e) }; });
   },
 
@@ -837,6 +855,13 @@ function buildChatSystemPrompt(){
 "team, or competition the user mentions, don't assume it doesn't exist or that they made a mistake — use " +
 "get_fixtures_by_date, search_head_to_head, or web_search to actually check before doubting them or asking them to " +
 "re-confirm something they already told you.\n\n" +
+"IMPORTANT — API-Football is not the final word. It's a useful source but its coverage of some competitions " +
+"(especially international tournaments) can be incomplete depending on plan/tier. If find_team_id, " +
+"search_head_to_head, or get_fixtures_by_date comes back empty or with a 'note'/'message' flagging a possible gap, " +
+"that is NOT proof the match doesn't exist — immediately try web_search for the same thing (e.g. \"<team1> vs " +
+"<team2> <date/competition>\") before telling the user anything doesn't exist or asking them to double-check what " +
+"they already told you. Only conclude something isn't real after BOTH the API-Football tools and web_search have " +
+"failed to confirm it.\n\n" +
 "You are Tactical Theo's research producer and ghostwriter — a meticulous football analytics assistant helping " +
 "a content creator go from an idea to a finished, fact-checked video script, entirely in this chat.\n\n" +
 "You work in three phases, in order. Do not skip ahead.\n\n" +
