@@ -23,7 +23,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: { message: 'Missing "contents" in request body.' } });
   }
 
-  const model = 'gemini-2.5-flash';
+  // Flash-Lite generally carries a more generous free-tier daily quota than
+  // full Flash — worth trying first if you're hitting quota errors. Revert to
+  // 'gemini-2.5-flash' here if you want the more capable model back.
+  const model = 'gemini-2.5-flash-lite';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
 
   try {
