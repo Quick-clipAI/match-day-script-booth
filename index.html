@@ -145,7 +145,13 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
         Gemini and API-Football calls now run through this site's own <b>/api</b> backend, so
         no key ever touches your browser. If a request fails with a "server is missing" error, the site owner
         needs to add <b>GEMINI_API_KEY</b> and <b>API_SPORTS_KEY</b> in Vercel →
-        Project Settings → Environment Variables, then redeploy.
+        Project Settings → Environment Variables, then redeploy. Three more are optional: <b>GROQ_API_KEY</b>
+        (free, no card — automatic backup chat AI for when Gemini's daily quota runs out),
+        <b>ELEVENLABS_API_KEY</b> + <b>ELEVENLABS_VOICE_ID</b> (primary voiceover — studio quality,
+        with correct pronunciation), and <b>GOOGLE_TTS_API_KEY</b> (backup voiceover if ElevenLabs
+        isn't set up or its quota runs out — needs a Google Cloud billing account with a card on
+        file, though usage stays free under 1M characters/month). Without any of the three,
+        voiceover still works via the browser's own built-in voice.
       </div>
 
       <div class="settings-note" style="margin-top:10px">
@@ -353,7 +359,6 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
 <footer>Script drafting and live football data are fetched through this site's own backend (Vercel serverless functions), so no API key ever sits in your browser. Voiceover synthesis still runs client-side.</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://js.puter.com/v2/"></script>
 <script>
 /* ---------------------------------------------------------------- */
 /* Safe storage — real localStorage when available, in-memory otherwise */
@@ -400,7 +405,6 @@ var TONES = {
   }
 };
 var DURATIONS = [60,90,120,180];
-var TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
 
 /* ---------------------------------------------------------------- */
 /* Helpers                                                           */
@@ -415,91 +419,55 @@ function getTimings(duration){
   var analysisEnd = duration*0.8;
   return { hookStart: formatTimestamp(0), analysisStart: formatTimestamp(hookEnd), verdictStart: formatTimestamp(analysisEnd) };
 }
-function escapeXml(str){
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
-}
-function buildSSML(text, voice, ratePercent){
-  var sign = ratePercent>=0 ? '+' : '';
-  return "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='"+voice+"'><prosody rate='"+sign+ratePercent+"%'>"+escapeXml(text)+"</prosody></voice></speak>";
-}
-function uuidNoDashes(){
-  if(window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID().replace(/-/g,'');
-  return 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'.replace(/x/g,function(){return Math.floor(Math.random()*16).toString(16);});
-}
-
-/* Best-effort, keyless live connection to Microsoft's Edge neural TTS.
-   Falls back to the browser's built-in Web Speech API if unreachable. */
-function synthesizeEdgeTTS(text, voice, ratePercent, timeoutMs){
-  timeoutMs = timeoutMs || 9000;
-  return new Promise(function(resolve, reject){
-    var settled = false;
-    function done(fn, val){
-      if(settled) return;
-      settled = true;
-      clearTimeout(timer);
-      try{ ws.close(); }catch(e){}
-      fn(val);
+/* Primary (optional) engine: ElevenLabs, via our own /api/elevenlabs proxy.
+   Best quality, and the only one of the two with a real pronunciation dictionary
+   (for player names, "semi-final", etc.) and tone control. Falls through to
+   Google Cloud TTS automatically if it's not configured, or if its free 10k
+   characters/month quota is used up. */
+function synthesizeElevenLabsTTS(text){
+  return fetch('/api/elevenlabs', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({ text: text })
+  }).then(function(res){
+    if(!res.ok){
+      return res.json().catch(function(){ return {}; }).then(function(err){
+        throw new Error((err && err.error) || ('ElevenLabs request failed ('+res.status+')'));
+      });
     }
-    var timer = setTimeout(function(){ done(reject, new Error('Edge TTS timed out')); }, timeoutMs);
-    var ws;
-    try{
-      var connectionId = uuidNoDashes();
-      ws = new WebSocket('wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken='+TRUSTED_CLIENT_TOKEN+'&ConnectionId='+connectionId);
-      ws.binaryType = 'arraybuffer';
-    }catch(e){ clearTimeout(timer); reject(e); return; }
-
-    var audioChunks = [];
-    ws.onopen = function(){
-      var now = new Date().toISOString();
-      var configMsg = 'X-Timestamp:'+now+'\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n'+
-        JSON.stringify({ context:{ synthesis:{ audio:{ metadataoptions:{ sentenceBoundaryEnabled:false, wordBoundaryEnabled:false }, outputFormat:'audio-24khz-48kbitrate-mono-mp3' } } } });
-      ws.send(configMsg);
-      var requestId = uuidNoDashes();
-      var ssml = buildSSML(text, voice, ratePercent);
-      var ssmlMsg = 'X-RequestId:'+requestId+'\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:'+now+'\r\nPath:ssml\r\n\r\n'+ssml;
-      ws.send(ssmlMsg);
-    };
-    ws.onmessage = function(event){
-      if(typeof event.data === 'string'){
-        if(event.data.indexOf('Path:turn.end') !== -1){
-          if(audioChunks.length===0) done(reject, new Error('No audio returned'));
-          else done(resolve, new Blob(audioChunks, { type:'audio/mpeg' }));
-        }
-        return;
-      }
-      try{
-        var buffer = event.data;
-        var view = new DataView(buffer);
-        var headerLength = view.getUint16(0, false);
-        var headerBytes = new Uint8Array(buffer, 2, headerLength);
-        var headerText = new TextDecoder().decode(headerBytes);
-        if(headerText.indexOf('Path:audio') !== -1){
-          var audioData = buffer.slice(2+headerLength);
-          if(audioData.byteLength>0) audioChunks.push(audioData);
-        }
-      }catch(e){ /* ignore malformed frame */ }
-    };
-    ws.onerror = function(){ done(reject, new Error('Edge TTS connection blocked or failed')); };
-    ws.onclose = function(ev){ if(!settled && ev.code!==1000) done(reject, new Error('Edge TTS closed unexpectedly')); };
+    return res.blob();
   });
 }
 
-/* Second-tier, keyless free engine: Puter.js (js.puter.com), which proxies
-   AWS Polly / OpenAI / Gemini / xAI TTS under a "user pays their own usage"
-   model — no signup, no API key. Used when the raw Edge websocket is blocked. */
-var PUTER_VOICE_MAP = {
-  'en-GB-RyanNeural':        { voice:'Brian',   engine:'neural',   language:'en-GB' },
-  'en-US-ChristopherNeural': { voice:'Matthew', engine:'neural',   language:'en-US' },
-  'en-US-GuyNeural':         { voice:'Joey',    engine:'neural',   language:'en-US' },
-  'en-AU-WilliamNeural':     { voice:'Russell', engine:'standard', language:'en-AU' }
+/* Backup engine: Google Cloud Text-to-Speech, via our own /api/google-tts proxy.
+   Stays free within 1M characters/month for Neural2 voices, but (unlike
+   ElevenLabs) Google requires a billing account with a card on file to turn the
+   API on at all — see the Settings panel note for setup details. */
+var GOOGLE_TTS_VOICE_MAP = {
+  'en-GB-RyanNeural':        { languageCode:'en-GB', name:'en-GB-Neural2-B' },
+  'en-US-ChristopherNeural': { languageCode:'en-US', name:'en-US-Neural2-D' },
+  'en-US-GuyNeural':         { languageCode:'en-US', name:'en-US-Neural2-J' },
+  'en-AU-WilliamNeural':     { languageCode:'en-AU', name:'en-AU-Neural2-B' }
 };
-function synthesizePuterTTS(text, voiceId){
-  return new Promise(function(resolve, reject){
-    if(!window.puter || !window.puter.ai || !window.puter.ai.txt2speech){
-      reject(new Error('Puter.js not available')); return;
-    }
-    var cfg = PUTER_VOICE_MAP[voiceId] || PUTER_VOICE_MAP['en-US-ChristopherNeural'];
-    window.puter.ai.txt2speech(text, cfg).then(resolve).catch(reject);
+function synthesizeGoogleTTS(text, voiceId, ratePercent){
+  var cfg = GOOGLE_TTS_VOICE_MAP[voiceId] || GOOGLE_TTS_VOICE_MAP['en-US-ChristopherNeural'];
+  return fetch('/api/google-tts', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({
+      text: text,
+      languageCode: cfg.languageCode,
+      voiceName: cfg.name,
+      speakingRate: 1 + (ratePercent||0)/100
+    })
+  }).then(function(res){
+    return res.json().then(function(data){
+      if(!res.ok) throw new Error(data.error || ('Google TTS request failed ('+res.status+')'));
+      var byteChars = atob(data.audioContent);
+      var byteNumbers = new Array(byteChars.length);
+      for(var i=0; i<byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+      return new Blob([new Uint8Array(byteNumbers)], { type:'audio/mpeg' });
+    });
   });
 }
 
@@ -981,6 +949,262 @@ useFactsBtn.addEventListener('click', function(){
 /* ---------------------------------------------------------------- */
 /* Research chat (multimodal, with screenshot upload)                 */
 /* ---------------------------------------------------------------- */
+/* ---------------------------------------------------------------- */
+/* Chat tools — gives the research chat real, live access to        */
+/* API-Football for pre-match analytics (form, head-to-head) and     */
+/* specific past/present match facts, via Gemini function calling.   */
+/* ---------------------------------------------------------------- */
+var CHAT_TOOLS = [{
+  functionDeclarations: [
+    {
+      name: 'get_team_recent_form',
+      description: "Get a football team's most recent finished matches — dates, opponents, scores, competitions — to assess current form. Call this for BOTH teams whenever the user wants a preview, analysis, or prediction of an upcoming or hypothetical match.",
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          team_name: { type: 'STRING', description: 'The team name, e.g. "Arsenal" or "Real Madrid".' },
+          count: { type: 'INTEGER', description: 'How many recent matches to pull (default 5, max 10).' }
+        },
+        required: ['team_name']
+      }
+    },
+    {
+      name: 'get_head_to_head',
+      description: "Get the head-to-head match history between two football teams — every past meeting with dates, scores, and competition. Call this whenever the user wants a preview or prediction of a match between two specific teams.",
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          team_a: { type: 'STRING' },
+          team_b: { type: 'STRING' },
+          count: { type: 'INTEGER', description: 'How many past meetings to pull (default 10, max 15).' }
+        },
+        required: ['team_a', 'team_b']
+      }
+    },
+    {
+      name: 'get_match_facts',
+      description: "Get the full hard data (score, scorers, cards, subs, team stats, formations) for a SPECIFIC match between two teams on a known date. Only use this for a match you are confident has already kicked off or finished — for a future match that hasn't happened yet, use get_team_recent_form and get_head_to_head instead.",
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          team_a: { type: 'STRING' },
+          team_b: { type: 'STRING' },
+          date: { type: 'STRING', description: 'The match date in YYYY-MM-DD format.' }
+        },
+        required: ['team_a', 'team_b', 'date']
+      }
+    }
+  ]
+}];
+
+// Resolves a team name to its API-Football team ID (cached per session to save quota).
+var teamIdCache = {};
+function resolveTeamId(name){
+  var key = (name || '').trim().toLowerCase();
+  if(!key) return Promise.resolve(null);
+  if(teamIdCache[key]) return Promise.resolve(teamIdCache[key]);
+  return fetch('/api/football/teams?search='+encodeURIComponent(name))
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(data){
+      var arr = (data && data.response) || [];
+      if(!arr.length) return null;
+      var team = arr[0].team;
+      if(!team || !team.id) return null;
+      var resolved = { id: team.id, name: team.name };
+      teamIdCache[key] = resolved;
+      return resolved;
+    })
+    .catch(function(){ return null; });
+}
+
+function summarizeFixtureList(fixtures){
+  return fixtures.map(function(f){
+    var home = f.teams && f.teams.home && f.teams.home.name || '?';
+    var away = f.teams && f.teams.away && f.teams.away.name || '?';
+    var gh = f.goals && f.goals.home, ga = f.goals && f.goals.away;
+    var date = (f.fixture && f.fixture.date) ? f.fixture.date.slice(0,10) : '?';
+    var comp = (f.league && f.league.name) || '';
+    var result = (gh != null && ga != null) ? (home+' '+gh+'-'+ga+' '+away) : (home+' vs '+away+' (no score yet)');
+    return date+': '+result+' ('+comp+')';
+  });
+}
+
+function toolGetTeamRecentForm(args){
+  var count = Math.min(Math.max(parseInt(args.count, 10) || 5, 1), 10);
+  return resolveTeamId(args.team_name).then(function(team){
+    if(!team) return { error: 'Could not find a team matching "'+args.team_name+'".' };
+    return fetch('/api/football/fixtures?team='+team.id+'&last='+count)
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(data){
+        var fixtures = (data && data.response) || [];
+        if(!fixtures.length) return { team: team.name, recent_matches: [], note: 'No recent finished matches found.' };
+        return { team: team.name, recent_matches: summarizeFixtureList(fixtures) };
+      });
+  }).catch(function(){ return { error: 'Lookup failed — try again.' }; });
+}
+
+function toolGetHeadToHead(args){
+  var count = Math.min(Math.max(parseInt(args.count, 10) || 10, 1), 15);
+  return Promise.all([resolveTeamId(args.team_a), resolveTeamId(args.team_b)]).then(function(teams){
+    var a = teams[0], b = teams[1];
+    if(!a || !b) return { error: 'Could not find one or both teams: "'+args.team_a+'", "'+args.team_b+'".' };
+    return fetch('/api/football/fixtures/headtohead?h2h='+a.id+'-'+b.id+'&last='+count)
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(data){
+        var fixtures = (data && data.response) || [];
+        if(!fixtures.length) return { team_a: a.name, team_b: b.name, head_to_head: [], note: 'No past meetings found.' };
+        return { team_a: a.name, team_b: b.name, head_to_head: summarizeFixtureList(fixtures) };
+      });
+  }).catch(function(){ return { error: 'Lookup failed — try again.' }; });
+}
+
+function toolGetMatchFacts(args){
+  if(!args.date) return Promise.resolve({ error: 'A date (YYYY-MM-DD) is required.' });
+  return fetch('/api/football/fixtures?date='+args.date)
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(data){
+      var fixtures = (data && data.response) || [];
+      var qa = (args.team_a || '').toLowerCase(), qb = (args.team_b || '').toLowerCase();
+      var hit = fixtures.find(function(f){
+        var home = ((f.teams && f.teams.home && f.teams.home.name) || '').toLowerCase();
+        var away = ((f.teams && f.teams.away && f.teams.away.name) || '').toLowerCase();
+        var aMatches = qa && (home.indexOf(qa) >= 0 || away.indexOf(qa) >= 0);
+        var bMatches = qb && (home.indexOf(qb) >= 0 || away.indexOf(qb) >= 0);
+        return aMatches && bMatches;
+      });
+      if(!hit) return { error: 'No fixture found for "'+args.team_a+'" vs "'+args.team_b+'" on '+args.date+'.' };
+      return fetchApiFootballFixtureFacts(hit, args.date).then(function(text){
+        return { match_facts: text || 'Fixture found, but no detailed stats/events are available for it yet.' };
+      });
+    })
+    .catch(function(){ return { error: 'Lookup failed — try again.' }; });
+}
+
+function executeToolCall(name, args){
+  args = args || {};
+  if(name === 'get_team_recent_form') return toolGetTeamRecentForm(args);
+  if(name === 'get_head_to_head') return toolGetHeadToHead(args);
+  if(name === 'get_match_facts') return toolGetMatchFacts(args);
+  return Promise.resolve({ error: 'Unknown tool: '+name });
+}
+
+/* ---------------------------------------------------------------- */
+/* Gemini → Groq automatic fallback (free, no card, when Gemini's    */
+/* free-tier quota runs out). Groq is OpenAI-compatible, so this      */
+/* converts our Gemini-shaped request/response into that format and   */
+/* back, transparently, so calling code doesn't need to know which    */
+/* provider actually answered.                                        */
+/* ---------------------------------------------------------------- */
+var GROQ_MODEL = 'llama-3.3-70b-versatile';
+
+function geminiToolsToOpenAI(tools){
+  if(!tools || !tools.length) return undefined;
+  var decls = [];
+  tools.forEach(function(t){ (t.functionDeclarations || []).forEach(function(d){ decls.push(d); }); });
+  if(!decls.length) return undefined;
+  return decls.map(function(d){
+    return { type:'function', function: { name: d.name, description: d.description, parameters: d.parameters } };
+  });
+}
+
+function geminiContentsToOpenAIMessages(systemText, contents){
+  var messages = [];
+  if(systemText) messages.push({ role:'system', content: systemText });
+  var lastToolCallIds = null;
+
+  (contents || []).forEach(function(turn){
+    var parts = turn.parts || [];
+    var calls = parts.filter(function(p){ return p.functionCall; });
+    var responses = parts.filter(function(p){ return p.functionResponse; });
+
+    if(calls.length){
+      lastToolCallIds = calls.map(function(_, i){ return 'call_'+i; });
+      var textPart = parts.filter(function(p){ return p.text; }).map(function(p){ return p.text; }).join('');
+      messages.push({
+        role: 'assistant',
+        content: textPart || null,
+        tool_calls: calls.map(function(c, i){
+          return { id: lastToolCallIds[i], type:'function', function:{ name: c.functionCall.name, arguments: JSON.stringify(c.functionCall.args || {}) } };
+        })
+      });
+    } else if(responses.length){
+      responses.forEach(function(r, i){
+        messages.push({
+          role: 'tool',
+          tool_call_id: (lastToolCallIds && lastToolCallIds[i]) || ('call_'+i),
+          content: JSON.stringify(r.functionResponse.response)
+        });
+      });
+    } else {
+      // Images (inline_data) aren't supported by the Groq fallback model — dropped silently,
+      // since callAI() only falls back for image-free requests in the first place.
+      var role = turn.role === 'model' ? 'assistant' : 'user';
+      var textParts = parts.filter(function(p){ return p.text; }).map(function(p){ return p.text; }).join('\n');
+      messages.push({ role: role, content: textParts });
+    }
+  });
+  return messages;
+}
+
+function openAIResponseToGeminiShape(data){
+  var choice = data && data.choices && data.choices[0];
+  var msg = choice && choice.message;
+  if(!msg) return { candidates: [] };
+  var parts = [];
+  if(msg.tool_calls && msg.tool_calls.length){
+    msg.tool_calls.forEach(function(tc){
+      var args = {};
+      try{ args = JSON.parse(tc.function.arguments || '{}'); }catch(e){}
+      parts.push({ functionCall: { name: tc.function.name, args: args } });
+    });
+  }
+  if(msg.content) parts.push({ text: msg.content });
+  return { candidates: [{ content: { parts: parts } }] };
+}
+
+// Drop-in replacement for a raw fetch('/api/gemini', ...) call: tries Gemini first,
+// and — only for text-only requests, since the fallback model has no vision — falls
+// back to Groq automatically on a quota/rate-limit error. Resolves to
+// { data: <gemini-shaped response>, provider: 'gemini'|'groq' } either way, or rejects
+// with a combined error message if both providers fail.
+function callAI(requestBody){
+  var hasImages = (requestBody.contents || []).some(function(t){
+    return (t.parts || []).some(function(p){ return p.inline_data; });
+  });
+
+  return fetch('/api/gemini', {
+    method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(requestBody)
+  }).then(function(res){
+    if(res.ok) return res.json().then(function(data){ return { data: data, provider: 'gemini' }; });
+
+    return res.json().catch(function(){ return {}; }).then(function(err){
+      var geminiMsg = (err && err.error && err.error.message) || ('status '+res.status);
+      var isQuota = res.status === 429 || /quota|rate.?limit/i.test(geminiMsg);
+      if(!isQuota || hasImages) throw new Error(geminiMsg);
+
+      var systemText = requestBody.system_instruction && requestBody.system_instruction.parts &&
+        requestBody.system_instruction.parts.map(function(p){ return p.text; }).join('\n');
+      var messages = geminiContentsToOpenAIMessages(systemText, requestBody.contents);
+      var openAITools = geminiToolsToOpenAI(requestBody.tools);
+
+      return fetch('/api/groq', {
+        method:'POST', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ model: GROQ_MODEL, messages: messages, tools: openAITools })
+      }).then(function(res2){
+        if(!res2.ok){
+          return res2.json().catch(function(){ return {}; }).then(function(err2){
+            var groqMsg = (err2 && err2.error && (err2.error.message || err2.error)) || res2.status;
+            throw new Error('Gemini: '+geminiMsg+' — backup (Groq) also failed: '+groqMsg);
+          });
+        }
+        return res2.json().then(function(data2){
+          return { data: openAIResponseToGeminiShape(data2), provider: 'groq' };
+        });
+      });
+    });
+  });
+}
+
 var CHAT_SYSTEM_PROMPT =
 "You are a meticulous football analytics research assistant helping a content creator gather ACCURATE " +
 "match and player facts before they write a video script. A wrong stat here can genuinely hurt their " +
@@ -989,11 +1213,20 @@ var CHAT_SYSTEM_PROMPT =
 "possession %, passes completed/attempted (pass completion %), chances created, big chances created, " +
 "shots on target, shots off target, interceptions, and total touches.\n\n" +
 "Rules:\n" +
-"- You have NO web search or API access in this chat window — you cannot look anything up yourself. NEVER say " +
-"things like 'I'll search for that', 'let me look that up', or 'I will find these details using web searches' — " +
-"you can't do that from here, and saying so just stalls the user. If a fact is missing, say plainly that it's " +
-"missing and tell the user to run it through the search box in the 'Find Real Match Data' card above (or the " +
-"Live Matches Today button), then hit 'Use These Facts' so it lands here as Verified Match Facts context.\n" +
+"- You HAVE live API access in this chat via tools: get_team_recent_form (a team's recent results/form), " +
+"get_head_to_head (past meetings between two teams), and get_match_facts (full hard data — score, scorers, " +
+"cards, subs, stats, formations — for one SPECIFIC match once you know its date). Use them, don't guess. " +
+"Whenever the user wants a preview, prediction, or pre-match analysis of an upcoming or hypothetical match, " +
+"automatically call get_team_recent_form for BOTH teams and get_head_to_head, without waiting to be asked — " +
+"that combination of current form plus past meetings is the basis for any real prediction. Only call " +
+"get_match_facts for a match you're confident has already kicked off or finished; never call it for a match " +
+"that hasn't happened yet.\n" +
+"- Trust the real current date given to you below over anything from your own training. A fixture in 2026 or " +
+"later is not automatically 'in the future' or 'unavailable' just because it's after your training cutoff — " +
+"check the real date given to you, and use the tools to find out what's actually happened, rather than " +
+"assuming or refusing.\n" +
+"- If a tool comes back with an error or no data, say plainly what's missing rather than inventing it, and " +
+"suggest the user try the search box in the 'Find Real Match Data' card above as a fallback.\n" +
 "- If the user gives you one or more screenshots, read the exact numbers as shown in each image and read them " +
 "back to the user to confirm you read them correctly — never assume or estimate a number you can't actually see.\n" +
 "- If the user uploads spreadsheet/CSV data, treat the rows and columns as authoritative source data and " +
@@ -1157,6 +1390,7 @@ function sendChatMessage(){
   if(combinedText) userParts.push({ text: combinedText });
 
   renderChatMessage('user', text, images.map(function(i){ return i.previewUrl; }), files.map(function(f){ return f.name; }));
+  var historyLenBeforeSend = chatHistory.length;
   chatHistory.push({ role:'user', parts: userParts });
 
   chatInput.value = '';
@@ -1169,40 +1403,65 @@ function sendChatMessage(){
   var thinkingBubble = renderChatMessage('model', 'Thinking…');
 
   var searchContext = verifiedFacts.value.trim();
-  var systemPrompt = CHAT_SYSTEM_PROMPT + (searchContext
-    ? "\n\n[Real match facts already found via the search tool above — treat these as already-confirmed, no need to re-ask for them:]\n" + searchContext
-    : '');
+  var todayStr = new Date().toISOString().slice(0,10);
+  var systemPrompt = CHAT_SYSTEM_PROMPT +
+    "\n\nToday's real date is " + todayStr + ". Trust this completely, over any date you'd otherwise assume.\n" +
+    (searchContext
+      ? "\n[Real match facts already found via the search tool above — treat these as already-confirmed, no need to re-ask for them:]\n" + searchContext
+      : '');
 
-  fetch('/api/gemini', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({
-      system_instruction: { parts:[{ text: systemPrompt }] },
-      contents: chatHistory
-    })
-  }).then(function(res){
-    if(!res.ok){
-      return res.json().catch(function(){ return {}; }).then(function(err){
-        throw new Error((err && err.error && err.error.message) || ('Request failed ('+res.status+')'));
-      });
-    }
-    return res.json();
-  }).then(function(data){
-    var parts = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
-    var replyText = parts ? parts.map(function(p){ return p.text||''; }).join('') : '';
-    if(!replyText.trim()) throw new Error('No reply came back.');
+  function fail(e){
     thinkingBubble.remove();
-    renderChatMessage('model', replyText.trim());
-    chatHistory.push({ role:'model', parts:[{ text: replyText.trim() }] });
-    saveWorkspace();
-  }).catch(function(e){
-    thinkingBubble.remove();
-    chatHistory.pop(); // roll back the failed turn so retry is clean
+    chatHistory.length = historyLenBeforeSend; // roll back the whole turn so retry is clean
     showChatError((e.message || 'Something went wrong.') + (hadAttachments ? ' (try resending the attachment(s))' : ''));
-  }).finally(function(){
     chatSendBtn.disabled = false;
     chatSendBtn.innerHTML = 'Send';
-  });
+  }
+
+  function runTurn(depth){
+    callAI({
+      system_instruction: { parts:[{ text: systemPrompt }] },
+      contents: chatHistory,
+      tools: CHAT_TOOLS
+    }).then(function(result){
+      var data = result.data;
+      var cand = data && data.candidates && data.candidates[0];
+      var parts = (cand && cand.content && cand.content.parts) || [];
+      var calls = parts.filter(function(p){ return p.functionCall; });
+
+      if(result.provider === 'groq' && depth === 0){
+        var span0 = thinkingBubble.querySelector('span');
+        if(span0) span0.textContent = "Gemini's daily quota is used up — answering via backup AI instead…";
+      }
+
+      if(calls.length && depth < 2){
+        chatHistory.push({ role:'model', parts: parts });
+        var span = thinkingBubble.querySelector('span');
+        if(span) span.textContent = 'Checking API-Football (' + calls.map(function(c){ return c.functionCall.name; }).join(', ') + ')…';
+
+        Promise.all(calls.map(function(c){
+          return executeToolCall(c.functionCall.name, c.functionCall.args).then(function(result){
+            return { functionResponse: { name: c.functionCall.name, response: result } };
+          });
+        })).then(function(responseParts){
+          chatHistory.push({ role:'function', parts: responseParts });
+          runTurn(depth + 1);
+        }).catch(fail);
+        return;
+      }
+
+      var replyText = parts.map(function(p){ return p.text || ''; }).join('');
+      if(!replyText.trim()) throw new Error('No reply came back.');
+      thinkingBubble.remove();
+      renderChatMessage('model', replyText.trim());
+      chatHistory.push({ role:'model', parts:[{ text: replyText.trim() }] });
+      saveWorkspace();
+      chatSendBtn.disabled = false;
+      chatSendBtn.innerHTML = 'Send';
+    }).catch(fail);
+  }
+
+  runTurn(0);
 }
 
 chatSendBtn.addEventListener('click', sendChatMessage);
@@ -1478,24 +1737,26 @@ voiceBtn.addEventListener('click', function(){
     saveWorkspace();
   }
 
-  synthesizeEdgeTTS(speakable, voice, rate).then(function(blob){
+  function tryGoogleThenBrowser(){
+    return synthesizeGoogleTTS(speakable, voice, rate).then(function(blob){
+      state.audioUrl = URL.createObjectURL(blob);
+      state.usingFallback = false;
+      setVoiceNote('ElevenLabs was unavailable this session, so we used Google Cloud Text-to-Speech instead.');
+    }).catch(function(e){
+      console.warn('Google TTS unavailable, falling back:', e.message);
+      state.usingFallback = true;
+      setVoiceNote("ElevenLabs and Google Cloud TTS were both unreachable this session, so we fell back to your browser's built-in voice for playback. Downloading isn't available in fallback mode.");
+    });
+  }
+
+  synthesizeElevenLabsTTS(speakable).then(function(blob){
     state.audioUrl = URL.createObjectURL(blob);
     state.usingFallback = false;
-    setVoiceNote('Live neural voice ('+voice+') via Microsoft Edge Read Aloud.');
-    finishVoiceGeneration();
-  }).catch(function(){
-    return synthesizePuterTTS(speakable, voice).then(function(audioEl){
-      var url = audioEl && (audioEl.src || audioEl.currentSrc);
-      if(!url) throw new Error('No audio URL returned from Puter.js');
-      try{ audioEl.playbackRate = Math.min(2, Math.max(0.5, 1 + rate/100)); }catch(e){}
-      state.audioUrl = url;
-      state.usingFallback = false;
-      setVoiceNote('Edge neural voice was unreachable this session, so we used a free neural voice via Puter.js instead. (Its speed adjusts on playback rather than being baked into the file.)');
-      finishVoiceGeneration();
-    });
-  }).catch(function(){
-    state.usingFallback = true;
-    setVoiceNote("Both the Edge and Puter.js neural engines were unreachable this session, so we fell back to your browser's built-in voice for playback. Downloading isn't available in fallback mode.");
+    setVoiceNote('Studio-quality voice via ElevenLabs.');
+  }).catch(function(e){
+    console.warn('ElevenLabs unavailable, falling back:', e.message);
+    return tryGoogleThenBrowser();
+  }).then(function(){
     finishVoiceGeneration();
   }).finally(function(){
     voiceBtn.disabled = false;
