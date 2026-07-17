@@ -2,6 +2,14 @@
   "functions": {
     "api/**/*.js": {
       "maxDuration": 60
+    },
+    "api/split-audio.js": {
+      "maxDuration": 60,
+      "includeFiles": "node_modules/ffmpeg-static/**"
+    },
+    "api/merge-video.js": {
+      "maxDuration": 60,
+      "includeFiles": "node_modules/ffmpeg-static/**"
     }
   }
 }
