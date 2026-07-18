@@ -114,28 +114,6 @@ fieldset:disabled{opacity:.35;pointer-events:none}
 .stop-mini{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--dim2);border:1px solid var(--border2);border-radius:8px;padding:5px 9px;background:transparent;cursor:pointer}
 .stop-mini:hover{border-color:var(--neon);color:var(--neon)}
 footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
-
-/* Video Lab */
-.tab-bar{display:flex;gap:8px;margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:0}
-.tab-btn{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--dim);font-family:var(--body);font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;padding:10px 4px;cursor:pointer;transition:.15s;margin-bottom:-1px}
-.tab-btn:hover{color:var(--dim2)}
-.tab-btn.active{color:var(--neon);border-bottom-color:var(--neon)}
-.photo-dropzone{width:120px;height:120px;border:1.5px dashed var(--border2);border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim);text-align:center;overflow:hidden;transition:.15s;background:rgba(0,0,0,.25)}
-.photo-dropzone:hover{border-color:var(--neon);color:var(--dim2)}
-.photo-dropzone img{width:100%;height:100%;object-fit:cover}
-.waveform-wrap{position:relative;background:rgba(0,0,0,.35);border:1px solid var(--border2);border-radius:10px;padding:8px;overflow:hidden}
-#waveformCanvas{width:100%;display:block;cursor:default}
-.chunk-grid{display:grid;grid-template-columns:1fr;gap:12px}
-@media(min-width:760px){.chunk-grid{grid-template-columns:repeat(2,1fr)}}
-@media(min-width:1180px){.chunk-grid{grid-template-columns:repeat(3,1fr)}}
-.chunk-card{background:rgba(0,0,0,.3);border:1px solid var(--border2);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
-.chunk-card-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;color:var(--dim2);text-transform:uppercase;letter-spacing:.05em}
-.chunk-status{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:.04em}
-.chunk-status.pending{background:rgba(255,255,255,.06);color:var(--dim)}
-.chunk-status.processing{background:rgba(166,255,46,.12);color:var(--neon)}
-.chunk-status.done{background:var(--neon);color:#04100a}
-.chunk-status.failed{background:var(--red-bg);color:var(--red)}
-.chunk-card video{width:100%;border-radius:8px;background:#000}
 </style>
 </head>
 <body>
@@ -187,11 +165,6 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
 </header>
 
 <main class="container">
-
-  <div class="tab-bar">
-    <button class="tab-btn active" id="tabBoothBtn" type="button">📻 Script Booth</button>
-    <button class="tab-btn" id="tabVideoLabBtn" type="button">🎬 Video Lab</button>
-  </div>
 
   <div id="scriptBoothView">
 
@@ -379,114 +352,12 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
         <div id="voiceError"></div>
         <div id="engineNote"></div>
         <div id="playerBox" style="display:none"></div>
-        <button class="btn-outline" id="sendToVideoLabBtn" style="display:none;margin-top:10px">📤 Send to Video Lab</button>
       </div>
     </div>
 
   </div>
 
   </div><!-- /scriptBoothView -->
-
-  <div id="videoLabView" style="display:none">
-
-    <div class="msg-note" style="margin-bottom:18px">
-      Voiceover comes in from the Script Booth's Voice Generator (step 3) — hit
-      <b>"📤 Send to Video Lab"</b> there once you've generated it. Runs entirely through
-      Sync.so, one chunk at a time, so it never hits a rate-limit wall and never needs
-      heavy local compute or bandwidth.
-    </div>
-
-    <div class="grid" style="grid-template-columns:1fr">
-
-      <!-- PRESENTER PHOTO + INCOMING AUDIO -->
-      <div class="card">
-        <div class="card-head">
-          <div class="step-badge">🖼</div>
-          <div class="card-title">Presenter Photo &amp; Incoming Audio</div>
-        </div>
-        <div class="card-body">
-          <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
-            <div style="flex:0 0 auto">
-              <div id="photoDropzone" class="photo-dropzone">
-                <img id="photoPreview" style="display:none"/>
-                <div id="photoPlaceholder">
-                  <div style="font-size:26px">📷</div>
-                  <div style="font-size:11px;margin-top:4px">Click to upload presenter photo</div>
-                </div>
-              </div>
-              <input type="file" id="photoInput" accept="image/*" style="display:none"/>
-              <div style="font-size:10.5px;color:var(--dim);margin-top:6px;max-width:150px;text-align:center">Reused for every generation — saved in this browser</div>
-            </div>
-            <div style="flex:1;min-width:220px">
-              <div class="field" style="margin-bottom:8px"><label>Incoming Voiceover</label></div>
-              <div id="vlIncomingEmpty" class="msg-note">No voiceover yet — generate one in the Script Booth, then hit "Send to Video Lab".</div>
-              <div id="vlIncomingAudio" style="display:none">
-                <audio id="vlSourceAudioEl" controls style="width:100%"></audio>
-                <div style="font-size:11px;color:var(--dim);margin-top:6px" id="vlSourceMeta"></div>
-              </div>
-            </div>
-          </div>
-          <div id="vlSplitError" style="margin-top:12px"></div>
-          <button class="btn-primary" id="splitAudioBtn" style="margin-top:12px" disabled>✂ Split Audio</button>
-        </div>
-      </div>
-
-      <!-- WAVEFORM / SPLIT MARKERS -->
-      <div class="card" id="waveformCard" style="display:none">
-        <div class="card-head">
-          <div class="step-badge">〜</div>
-          <div class="card-title">Split Points — drag a marker to adjust</div>
-        </div>
-        <div class="card-body">
-          <div class="waveform-wrap">
-            <canvas id="waveformCanvas" height="90"></canvas>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-            <button class="btn-outline" id="confirmSplitBtn" style="width:auto;padding:9px 16px">✅ Confirm Split</button>
-            <button class="btn-outline" id="resliceBtn" style="width:auto;padding:9px 16px;display:none">↺ Re-slice With Dragged Markers</button>
-            <span id="splitConfirmedNote" style="font-size:11.5px;color:var(--dim2);align-self:center"></span>
-          </div>
-          <div id="chunkPreviews" class="chunk-grid" style="margin-top:14px"></div>
-        </div>
-      </div>
-
-      <!-- VIDEO GENERATION -->
-      <div class="card" id="generateCard" style="display:none">
-        <div class="card-head">
-          <div class="step-badge">🎬</div>
-          <div class="card-title">Generate Video (sequential, rate-limit-safe)</div>
-        </div>
-        <div class="card-body">
-          <div class="settings-row" style="align-items:center">
-            <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);white-space:nowrap">Cooldown between chunks</label>
-            <input type="text" id="cooldownInput" value="8" style="max-width:70px;text-align:center"/>
-            <span style="font-size:11px;color:var(--dim)">seconds</span>
-          </div>
-          <div id="vlGenerateError" style="margin-top:10px"></div>
-          <button class="btn-primary" id="generateVideoBtn" style="margin-top:10px" disabled>🎬 Generate Video</button>
-          <div id="vlOrchestrationStatus" style="font-size:11.5px;color:var(--dim2);margin-top:8px"></div>
-          <div id="videoChunks" class="chunk-grid" style="margin-top:14px"></div>
-        </div>
-      </div>
-
-      <!-- MERGE -->
-      <div class="card" id="mergeCard" style="display:none">
-        <div class="card-head">
-          <div class="step-badge">🔗</div>
-          <div class="card-title">Merge Into Final Video</div>
-        </div>
-        <div class="card-body">
-          <label for="vlTitleInput" style="display:block;margin-bottom:6px;font-size:13px;opacity:.8">Video Title</label>
-          <input type="text" id="vlTitleInput" placeholder="e.g. Spain vs Argentina Analytics" style="width:100%;margin-bottom:12px" />
-          <button class="btn-primary" id="mergeAllBtn" disabled>🔗 Merge All</button>
-          <button class="btn-outline" id="downloadZipBtn" disabled style="margin-left:8px">📦 Download All (ZIP)</button>
-          <div id="vlMergeError" style="margin-top:10px"></div>
-          <div id="mergeResult" style="margin-top:10px"></div>
-        </div>
-      </div>
-
-    </div>
-  </div><!-- /videoLabView -->
 
 </main>
 
@@ -500,34 +371,6 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
 var memStore = {};
 function lsGet(k){ try{ var v=localStorage.getItem(k); return v===null?'':v; }catch(e){ return memStore[k]||''; } }
 function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){ memStore[k]=v; } }
-
-/* ---- video title versioning (Video Lab) ---- */
-var VL_VERSIONS_KEY = 'mdsb_vl_title_versions';
-function vlVersionsMap(){
-  try{ return JSON.parse(lsGet(VL_VERSIONS_KEY) || '{}'); }catch(e){ return {}; }
-}
-function vlNormalizeTitle(title){
-  return (title || 'Match Day Video').trim().toLowerCase().replace(/\s+/g,' ');
-}
-function vlPeekNextVersion(title){
-  var map = vlVersionsMap();
-  var key = vlNormalizeTitle(title);
-  return (map[key] || 0) + 1;
-}
-function vlCommitVersion(title, version){
-  var map = vlVersionsMap();
-  map[vlNormalizeTitle(title)] = version;
-  lsSet(VL_VERSIONS_KEY, JSON.stringify(map));
-}
-function vlSanitizeForFileName(s){
-  return (s || '').replace(/[\/\\:*?"<>|]/g, '').trim();
-}
-function vlBuildFileName(rawTitle, ext, suffix){
-  var title = vlSanitizeForFileName(rawTitle) || 'Match Day Video';
-  var version = vlPeekNextVersion(rawTitle);
-  var name = title + ' v' + version + (suffix ? ' ' + suffix : '') + '.' + ext;
-  return { fileName: name, titleForCommit: rawTitle, versionForCommit: version };
-}
 
 /* ---------------------------------------------------------------- */
 /* Static data                                                       */
@@ -577,9 +420,10 @@ function formatTimestamp(totalSeconds){
   return m+':'+s;
 }
 function getTimings(duration){
-  var hookEnd = duration*0.15;
+  // No hook section anymore — a pre-recorded intro clip plays before this script starts,
+  // so the analysis itself now begins at 0:00. Verdict still gets the same ~20% share.
   var analysisEnd = duration*0.8;
-  return { hookStart: formatTimestamp(0), analysisStart: formatTimestamp(hookEnd), verdictStart: formatTimestamp(analysisEnd) };
+  return { analysisStart: formatTimestamp(0), verdictStart: formatTimestamp(analysisEnd) };
 }
 /* Primary (optional) engine: ElevenLabs, via our own /api/elevenlabs proxy.
    Best quality, and the only one of the two with a real pronunciation dictionary
@@ -1257,7 +1101,10 @@ function executeToolCall(name, args){
 /* back, transparently, so calling code doesn't need to know which    */
 /* provider actually answered.                                        */
 /* ---------------------------------------------------------------- */
-var GROQ_MODEL = 'llama-3.3-70b-versatile';
+// NOTE: llama-3.3-70b-versatile was deprecated by Groq (announced June 17, 2026).
+// openai/gpt-oss-120b is their recommended replacement — comparable general-purpose/
+// tool-use performance, current and actively served.
+var GROQ_MODEL = 'openai/gpt-oss-120b';
 
 function geminiToolsToOpenAI(tools){
   if(!tools || !tools.length) return undefined;
@@ -1326,7 +1173,9 @@ function openAIResponseToGeminiShape(data){
 
 // Drop-in replacement for a raw fetch('/api/gemini', ...) call: tries Gemini first,
 // and — only for text-only requests, since the fallback model has no vision — falls
-// back to Groq automatically on a quota/rate-limit error. Resolves to
+// back to Groq automatically on ANY Gemini failure (quota/rate-limit, deprecated/
+// invalid model, outage, etc — not just 429s, since a bad model string or a Google
+// outage should fail over just as readily as hitting a quota). Resolves to
 // { data: <gemini-shaped response>, provider: 'gemini'|'groq' } either way, or rejects
 // with a combined error message if both providers fail.
 function callAI(requestBody){
@@ -1341,8 +1190,7 @@ function callAI(requestBody){
 
     return res.json().catch(function(){ return {}; }).then(function(err){
       var geminiMsg = (err && err.error && err.error.message) || ('status '+res.status);
-      var isQuota = res.status === 429 || /quota|rate.?limit/i.test(geminiMsg);
-      if(!isQuota || hasImages) throw new Error(geminiMsg);
+      if(hasImages) throw new Error(geminiMsg); // Groq fallback model has no vision — nothing to fall back to
 
       var systemText = requestBody.system_instruction && requestBody.system_instruction.parts &&
         requestBody.system_instruction.parts.map(function(p){ return p.text; }).join('\n');
@@ -1406,12 +1254,16 @@ var CHAT_SYSTEM_PROMPT =
 "real stance rather than staying neutral, unless the user tells you otherwise in the same message.\n" +
 "- Ask the user for target duration (seconds) if they haven't given one, and use ~150 words per minute of spoken " +
 "audio to size the script.\n" +
-"- Structure: open with a fast, high-energy hook (no 'hey guys, welcome back'), move through the analysis/breakdown " +
-"of everything covered (each match or moment gets its own beat, in the order most compelling for the video — not " +
-"necessarily chronological), and close with a clear personal verdict or ranking, ending with a direct challenge to " +
-"the audience to share their own take in the comments.\n" +
-"- Use bracketed section labels with timestamps, e.g. [0:00 - THE HOOK], the same way the Draft Script tool does, so " +
-"the output drops straight into the Script Sandbox without reformatting.\n" +
+"- A pre-recorded, reusable lip-synced clip already plays BEFORE the script (host's signature opener + name card) " +
+"and another already plays AFTER it (sign-off + call-to-action). So: never write a greeting, welcome line, or " +
+"'welcome back' framing, and never write a closing sign-off or 'thanks for watching' / follow-comment CTA — those " +
+"are already handled by the pre-recorded clips.\n" +
+"- Structure: begin IMMEDIATELY with the headline/result stated as breaking news (e.g. 'Argentina has just beaten " +
+"England 2-1 to reach the World Cup Final'), move through the analysis/breakdown of everything covered (each match " +
+"or moment gets its own beat, in the order most compelling for the video — not necessarily chronological), and " +
+"close with a clear personal verdict or ranking as the final substantive content — not a wrap-up line.\n" +
+"- Use bracketed section labels with timestamps, e.g. [0:00 - THE ANALYSIS] then [X:XX - MY VERDICT], the same way " +
+"the Draft Script tool does, so the output drops straight into the Script Sandbox without reformatting.\n" +
 "- Only use facts actually confirmed earlier in this conversation or given in the Verified Match Facts context — " +
 "never invent a score, scorer, or incident that wasn't actually provided.\n" +
 "- Output the script as its own clearly separated block so the user can copy just that part into the sandbox.";
@@ -1761,16 +1613,24 @@ draftBtn.addEventListener('click', function(){
 "- Team / Match Details: "+team+"\n" +
 "- Tactical Context / Lineup Details: "+tactical+"\n\n" +
 "[HOST PERSONA RULES]\n"+persona.rule+"\n\n" +
+"[REUSABLE INTRO/OUTRO RULES]\n" +
+"A pre-recorded, reusable lip-synced clip already plays BEFORE this script starts (host's signature " +
+"opener + name card, e.g. \"Tactical Theo Studio...\") and another pre-recorded clip plays AFTER it ends " +
+"(a sign-off + call-to-action). Because of this:\n" +
+"- Do NOT write any greeting, welcome line, channel/host name introduction, or \"welcome back\" framing.\n" +
+"- Begin the script IMMEDIATELY with the headline/result stated as breaking news — e.g. \"Argentina has " +
+"just beaten England 2-1 to reach the World Cup Final.\" — then move straight into the breakdown.\n" +
+"- Do NOT write any closing sign-off, \"thanks for watching\", or generic call-to-action asking people to " +
+"follow/subscribe/comment at the very end — the pre-recorded outro clip already covers that. The final " +
+"personal verdict below should end on substantive analytical content, not a wrap-up line.\n\n" +
 "[VIDEO MODE RULES & SCRIPT STRUCTURE]\n" +
-"The script must be formatted exactly into 3 clear visual sections with timestamps. Avoid generic filler. Use natural spoken transitions. "+tone.verdictRule+"\n\n" +
+"The script must be formatted exactly into 2 clear visual sections with timestamps. Avoid generic filler. Use natural spoken transitions. "+tone.verdictRule+"\n\n" +
 "Format the output strictly as follows:\n\n" +
-"["+t.hookStart+" - THE HOOK]\n" +
-"(15% of duration. Start immediately with a shocking, controversial, or high-energy statement. No \"Hey guys, welcome back\". Go straight for the throat.)\n\n" +
 "["+t.analysisStart+" - THE ANALYSIS]\n" +
-"(65% of duration. Break down the core details:\n - "+mode.rule+")\n\n" +
+"(80% of duration. Opens immediately with the headline/result as breaking news per the rules above, then breaks down the core details:\n - "+mode.rule+")\n\n" +
 "["+t.verdictStart+" - MY VERDICT]\n" +
 tone.verdictBody+"\n\n" +
-"Output ONLY the script text with the three bracketed section headings shown above (replace the parenthetical instructions with the actual spoken script content), nothing else — no preamble, no extra notes, no markdown formatting.\n\n" +
+"Output ONLY the script text with the two bracketed section headings shown above (replace the parenthetical instructions with the actual spoken script content), nothing else — no preamble, no extra notes, no markdown formatting.\n\n" +
 "CRITICAL: Only use scores, stats, minutes, and incidents that are explicitly present in the Team/Match Details or Tactical Context above. Do not invent scorelines, cards, injuries, or quotes that weren't given to you. If a detail you'd want isn't provided, speak in general tactical terms instead of fabricating a specific fact. If a relevant Law of the Game or rule text is present in the input, base your refereeing verdict on that exact rule rather than a general impression of the law.";
 
   fetch('/api/gemini', {
@@ -1896,8 +1756,6 @@ voiceBtn.addEventListener('click', function(){
   function finishVoiceGeneration(){
     renderPlayer();
     badge3.classList.add('done'); badge3.textContent='✓'; stage3.classList.add('done');
-    var sendBtn = $('sendToVideoLabBtn');
-    if(sendBtn) sendBtn.style.display = (state.audioUrl && !state.usingFallback) ? 'flex' : 'none';
     saveWorkspace();
   }
 
@@ -1930,481 +1788,6 @@ voiceBtn.addEventListener('click', function(){
 
 window.addEventListener('beforeunload', stopPlayback);
 restoreWorkspace();
-
-/* ================================================================== */
-/* VIDEO LAB TAB                                                       */
-/* ================================================================== */
-(function(){
-
-  /* ---- tab switching ---- */
-  var tabBoothBtn = $('tabBoothBtn'), tabVideoLabBtn = $('tabVideoLabBtn');
-  var scriptBoothView = $('scriptBoothView'), videoLabView = $('videoLabView');
-  function showTab(which){
-    var booth = which==='booth';
-    scriptBoothView.style.display = booth ? '' : 'none';
-    videoLabView.style.display = booth ? 'none' : '';
-    tabBoothBtn.classList.toggle('active', booth);
-    tabVideoLabBtn.classList.toggle('active', !booth);
-  }
-  tabBoothBtn.addEventListener('click', function(){ showTab('booth'); });
-  tabVideoLabBtn.addEventListener('click', function(){ showTab('videolab'); });
-
-  /* ---- state ---- */
-  var vl = {
-    photoBase64: null, photoMimeType: null,
-    audioBase64: null, audioMimeType: 'audio/mpeg',
-    peaks: null, duration: 0,
-    splitPoints: [], chunks: [], confirmed: false,
-    jobs: [], cooldownSeconds: 8, dragIndex: null
-  };
-
-  /* ---- small helpers ---- */
-  function showErr(elId, msg){ $(elId).innerHTML = '<div class="msg-error">⚠️ <span>'+msg+'</span></div>'; }
-  function clearErr(elId){ $(elId).innerHTML=''; }
-  function fileToDataParts(file){
-    return new Promise(function(resolve, reject){
-      var reader = new FileReader();
-      reader.onload = function(){ resolve({ base64: reader.result.split(',')[1], mimeType: file.type }); };
-      reader.onerror = function(){ reject(new Error('Could not read file.')); };
-      reader.readAsDataURL(file);
-    });
-  }
-  function blobUrlToBase64(url){
-    return fetch(url).then(function(r){ return r.blob(); }).then(function(blob){
-      return new Promise(function(resolve, reject){
-        var reader = new FileReader();
-        reader.onload = function(){ resolve(reader.result.split(',')[1]); };
-        reader.onerror = function(){ reject(new Error('Could not read audio.')); };
-        reader.readAsDataURL(blob);
-      });
-    });
-  }
-  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
-
-  /* ---- presenter photo ---- */
-  var photoDropzone = $('photoDropzone'), photoInput = $('photoInput'), photoPreview = $('photoPreview'), photoPlaceholder = $('photoPlaceholder');
-  photoDropzone.addEventListener('click', function(){ photoInput.click(); });
-  photoInput.addEventListener('change', function(){
-    var file = photoInput.files && photoInput.files[0];
-    if(!file) return;
-    fileToDataParts(file).then(function(parts){
-      vl.photoBase64 = parts.base64; vl.photoMimeType = parts.mimeType;
-      photoPreview.src = 'data:'+parts.mimeType+';base64,'+parts.base64;
-      photoPreview.style.display='block'; photoPlaceholder.style.display='none';
-      lsSet('vlPhotoBase64', parts.base64); lsSet('vlPhotoMimeType', parts.mimeType);
-      updateGenerateEnablement();
-    }).catch(function(e){ showErr('vlSplitError', e.message); });
-  });
-  (function restorePhoto(){
-    var b64 = lsGet('vlPhotoBase64'), mt = lsGet('vlPhotoMimeType');
-    if(b64 && mt){
-      vl.photoBase64=b64; vl.photoMimeType=mt;
-      photoPreview.src='data:'+mt+';base64,'+b64;
-      photoPreview.style.display='block'; photoPlaceholder.style.display='none';
-    }
-  })();
-
-  /* ---- receive audio from the Script Booth ---- */
-  var sendToVideoLabBtn = $('sendToVideoLabBtn');
-  sendToVideoLabBtn.addEventListener('click', function(){
-    if(!state.audioUrl) return;
-    sendToVideoLabBtn.disabled = true;
-    sendToVideoLabBtn.innerHTML = '<span class="spinner"></span> Sending…';
-    blobUrlToBase64(state.audioUrl).then(function(b64){
-      vl.audioBase64 = b64; vl.audioMimeType = 'audio/mpeg';
-      // reset any previous split/generation state, since this is new audio
-      vl.duration=0; vl.splitPoints=[]; vl.chunks=[]; vl.confirmed=false; vl.jobs=[]; vl.peaks=null;
-      $('vlIncomingEmpty').style.display='none';
-      $('vlIncomingAudio').style.display='block';
-      $('vlSourceAudioEl').src = state.audioUrl;
-      $('vlSourceMeta').textContent = 'Ready to split — click "Split Audio" below.';
-      $('splitAudioBtn').disabled = false;
-      $('waveformCard').style.display='none';
-      $('generateCard').style.display='none';
-      $('mergeCard').style.display='none';
-      showTab('videolab');
-    }).catch(function(e){
-      showErr('voiceError', 'Could not send audio to Video Lab: ' + e.message);
-    }).finally(function(){
-      sendToVideoLabBtn.disabled = false;
-      sendToVideoLabBtn.innerHTML = '📤 Send to Video Lab';
-    });
-  });
-
-  /* ---- waveform (decoded client-side purely for display; the actual cuts happen server-side) ---- */
-  var waveformCanvas = $('waveformCanvas');
-  var audioCtx = null;
-  function decodePeaks(base64){
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    var binary = atob(base64);
-    var bytes = new Uint8Array(binary.length);
-    for(var i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
-    return audioCtx.decodeAudioData(bytes.buffer.slice(0)).then(function(buf){
-      var data = buf.getChannelData(0);
-      var buckets = 400;
-      var bucketSize = Math.floor(data.length / buckets) || 1;
-      var peaks = [];
-      for(var b=0; b<buckets; b++){
-        var min=0, max=0;
-        var start = b*bucketSize;
-        for(var j=start; j<start+bucketSize && j<data.length; j++){
-          var v = data[j];
-          if(v>max) max=v; if(v<min) min=v;
-        }
-        peaks.push([min,max]);
-      }
-      return peaks;
-    });
-  }
-  function drawWaveform(){
-    var dpr = window.devicePixelRatio || 1;
-    var cssWidth = waveformCanvas.parentElement.clientWidth;
-    waveformCanvas.width = cssWidth * dpr;
-    waveformCanvas.height = 90 * dpr;
-    waveformCanvas.style.width = cssWidth+'px';
-    var ctx = waveformCanvas.getContext('2d');
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    var w = cssWidth, h = 90;
-    ctx.clearRect(0,0,w,h);
-    if(vl.peaks){
-      var mid = h/2;
-      ctx.fillStyle = '#4d7a1e';
-      var barW = w / vl.peaks.length;
-      vl.peaks.forEach(function(p, i){
-        var x = i*barW;
-        var yTop = mid + p[1]*mid*0.9;
-        var yBot = mid + p[0]*mid*0.9;
-        ctx.fillRect(x, Math.min(yTop,yBot), Math.max(barW-0.5,1), Math.max(Math.abs(yTop-yBot),1));
-      });
-    }
-    // split markers
-    vl.splitPoints.forEach(function(t, idx){
-      var x = (t/vl.duration) * w;
-      ctx.strokeStyle = '#a6ff2e';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
-      ctx.fillStyle = '#a6ff2e';
-      ctx.beginPath(); ctx.arc(x, 8, 6, 0, Math.PI*2); ctx.fill();
-    });
-  }
-  function timeFromClientX(clientX){
-    var rect = waveformCanvas.getBoundingClientRect();
-    var frac = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    return frac * vl.duration;
-  }
-  function nearestMarkerIndex(clientX){
-    var rect = waveformCanvas.getBoundingClientRect();
-    var x = clientX - rect.left;
-    var best = -1, bestDist = 10; // px tolerance
-    vl.splitPoints.forEach(function(t, idx){
-      var mx = (t/vl.duration) * rect.width;
-      var d = Math.abs(mx - x);
-      if(d < bestDist){ bestDist = d; best = idx; }
-    });
-    return best;
-  }
-  waveformCanvas.addEventListener('mousedown', function(e){
-    var idx = nearestMarkerIndex(e.clientX);
-    if(idx === -1) return;
-    vl.dragIndex = idx;
-  });
-  window.addEventListener('mousemove', function(e){
-    if(vl.dragIndex === null) return;
-    var idx = vl.dragIndex;
-    var lo = idx>0 ? vl.splitPoints[idx-1]+2 : 2;
-    var hi = idx<vl.splitPoints.length-1 ? vl.splitPoints[idx+1]-2 : vl.duration-2;
-    var t = Math.min(hi, Math.max(lo, timeFromClientX(e.clientX)));
-    vl.splitPoints[idx] = Math.round(t*100)/100;
-    drawWaveform();
-  });
-  window.addEventListener('mouseup', function(){
-    if(vl.dragIndex === null) return;
-    vl.dragIndex = null;
-    vl.confirmed = false;
-    $('resliceBtn').style.display = 'inline-flex';
-    $('splitConfirmedNote').textContent = 'Markers moved — re-slice to lock in the new cut points.';
-    $('generateVideoBtn').disabled = true;
-  });
-  window.addEventListener('resize', function(){ if(vl.peaks) drawWaveform(); });
-
-  /* ---- chunk previews ---- */
-  function renderChunkPreviews(){
-    var html = vl.chunks.map(function(c){
-      return '<div class="chunk-card">'+
-        '<div class="chunk-card-head"><span>Chunk '+(c.index+1)+'</span><span>'+fmtTime(c.startTime)+' – '+fmtTime(c.endTime)+'</span></div>'+
-        '<audio controls style="width:100%" src="data:'+c.mimeType+';base64,'+c.audioBase64+'"></audio>'+
-      '</div>';
-    }).join('');
-    $('chunkPreviews').innerHTML = html;
-  }
-
-  /* ---- split audio (auto mode) ---- */
-  var splitAudioBtn = $('splitAudioBtn');
-  splitAudioBtn.addEventListener('click', function(){
-    if(!vl.audioBase64) return;
-    clearErr('vlSplitError');
-    splitAudioBtn.disabled = true;
-    splitAudioBtn.innerHTML = '<span class="spinner"></span> Splitting…';
-    Promise.all([
-      fetch('/api/split-audio', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ audioBase64: vl.audioBase64, mimeType: vl.audioMimeType })
-      }).then(function(res){
-        return res.json().then(function(data){
-          if(!res.ok) throw new Error(data.error || 'Split failed ('+res.status+')');
-          return data;
-        });
-      }),
-      decodePeaks(vl.audioBase64)
-    ]).then(function(results){
-      var data = results[0], peaks = results[1];
-      vl.duration = data.duration;
-      vl.splitPoints = data.splitPoints;
-      vl.chunks = data.chunks;
-      vl.peaks = peaks;
-      vl.confirmed = false;
-      $('waveformCard').style.display='block';
-      $('resliceBtn').style.display='none';
-      $('splitConfirmedNote').textContent = '';
-      $('vlSourceMeta').textContent = 'Split into '+data.chunks.length+' chunk(s), '+fmtTime(data.duration)+' total.';
-      drawWaveform();
-      renderChunkPreviews();
-      $('generateCard').style.display='none';
-      $('generateVideoBtn').disabled = true;
-    }).catch(function(e){
-      showErr('vlSplitError', e.message);
-    }).finally(function(){
-      splitAudioBtn.disabled = false;
-      splitAudioBtn.innerHTML = '✂ Split Audio';
-    });
-  });
-
-  /* ---- confirm / re-slice ---- */
-  $('confirmSplitBtn').addEventListener('click', function(){
-    vl.confirmed = true;
-    $('splitConfirmedNote').textContent = '✅ Split confirmed.';
-    $('resliceBtn').style.display = 'none';
-    $('generateCard').style.display = 'block';
-    updateGenerateEnablement();
-  });
-  $('resliceBtn').addEventListener('click', function(){
-    var btn = $('resliceBtn');
-    btn.disabled = true;
-    clearErr('vlSplitError');
-    fetch('/api/split-audio', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ audioBase64: vl.audioBase64, mimeType: vl.audioMimeType, manualSplits: vl.splitPoints })
-    }).then(function(res){
-      return res.json().then(function(data){
-        if(!res.ok) throw new Error(data.error || 'Re-slice failed ('+res.status+')');
-        return data;
-      });
-    }).then(function(data){
-      vl.duration = data.duration; vl.splitPoints = data.splitPoints; vl.chunks = data.chunks;
-      vl.confirmed = true;
-      drawWaveform(); renderChunkPreviews();
-      $('splitConfirmedNote').textContent = '✅ Re-sliced and confirmed.';
-      btn.style.display = 'none';
-      $('generateCard').style.display='block';
-      updateGenerateEnablement();
-    }).catch(function(e){ showErr('vlSplitError', e.message); })
-    .finally(function(){ btn.disabled = false; });
-  });
-
-  function updateGenerateEnablement(){
-    $('generateVideoBtn').disabled = !(vl.confirmed && vl.chunks.length && vl.photoBase64);
-  }
-
-  /* ---- video generation (sequential orchestration) ---- */
-  var cooldownInput = $('cooldownInput');
-  function renderVideoChunks(){
-    var html = vl.jobs.map(function(j, i){
-      var body;
-      if(j.status==='done'){
-        body = '<video controls src="'+j.videoUrl+'"></video>';
-      } else if(j.status==='failed'){
-        body = '<div class="msg-error">⚠️ <span>'+(j.error||'Generation failed.')+'</span></div>';
-      } else if(j.status==='processing'){
-        body = '<div style="display:flex;align-items:center;gap:8px;color:var(--dim2);font-size:12px"><span class="spinner"></span> Rendering…</div>';
-      } else {
-        body = '<div style="color:var(--dim);font-size:12px">Waiting in queue…</div>';
-      }
-      return '<div class="chunk-card">'+
-        '<div class="chunk-card-head"><span>Chunk '+(i+1)+'</span><span class="chunk-status '+j.status+'">'+j.status+'</span></div>'+
-        body+
-      '</div>';
-    }).join('');
-    $('videoChunks').innerHTML = html;
-  }
-
-  function submitChunk(chunk){
-    return fetch('/api/sync-generate', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        photoBase64: vl.photoBase64, photoMimeType: vl.photoMimeType,
-        audioBase64: chunk.audioBase64, audioMimeType: chunk.mimeType,
-        outputFileName: 'videolab-chunk-'+chunk.index
-      })
-    }).then(function(res){
-      return res.json().then(function(data){ return { ok: res.ok, status: res.status, data: data }; });
-    });
-  }
-  function submitChunkWithRetry(chunk){
-    return submitChunk(chunk).then(function(r){
-      if(r.ok) return r.data.jobId;
-      if(r.status === 429){
-        $('vlOrchestrationStatus').textContent = 'Sync.so rate-limited the submission — retrying in 10s…';
-        return sleep(10000).then(function(){ return submitChunkWithRetry(chunk); });
-      }
-      throw new Error(r.data.error || 'Submission failed ('+r.status+')');
-    });
-  }
-  function pollJob(jobId){
-    return fetch('/api/sync-status?jobId='+encodeURIComponent(jobId)).then(function(res){
-      return res.json().then(function(data){ return { ok: res.ok, status: res.status, data: data }; });
-    });
-  }
-  function pollUntilDone(jobId){
-    return pollJob(jobId).then(function(r){
-      if(r.status === 429){
-        return sleep(10000).then(function(){ return pollUntilDone(jobId); });
-      }
-      if(!r.ok) throw new Error(r.data.error || 'Status check failed ('+r.status+')');
-      if(r.data.status === 'processing') return sleep(4000).then(function(){ return pollUntilDone(jobId); });
-      return r.data; // { status:'done'|'failed', videoUrl, error }
-    });
-  }
-
-  var generateVideoBtn = $('generateVideoBtn');
-  generateVideoBtn.addEventListener('click', function(){
-    if(!vl.photoBase64){ showErr('vlGenerateError', 'Upload a presenter photo first.'); return; }
-    clearErr('vlGenerateError');
-    vl.cooldownSeconds = Math.max(0, Number(cooldownInput.value) || 8);
-    vl.jobs = vl.chunks.map(function(){ return { status: 'pending' }; });
-    renderVideoChunks();
-    generateVideoBtn.disabled = true;
-    generateVideoBtn.innerHTML = '<span class="spinner"></span> Generating…';
-    $('mergeCard').style.display = 'block';
-    $('mergeAllBtn').disabled = true;
-
-    var chunks = vl.chunks;
-    var i = 0;
-    function nextChunk(){
-      if(i >= chunks.length){
-        $('vlOrchestrationStatus').textContent = 'All chunks processed.';
-        generateVideoBtn.disabled = false;
-        generateVideoBtn.innerHTML = '🎬 Generate Video';
-        updateMergeEnablement();
-        return;
-      }
-      var chunk = chunks[i];
-      vl.jobs[i].status = 'processing';
-      renderVideoChunks();
-      $('vlOrchestrationStatus').textContent = 'Submitting chunk '+(i+1)+' of '+chunks.length+'…';
-      submitChunkWithRetry(chunk).then(function(jobId){
-        vl.jobs[i].jobId = jobId;
-        $('vlOrchestrationStatus').textContent = 'Rendering chunk '+(i+1)+' of '+chunks.length+'…';
-        return pollUntilDone(jobId);
-      }).then(function(result){
-        if(result.status === 'done'){
-          vl.jobs[i].status = 'done'; vl.jobs[i].videoUrl = result.videoUrl;
-        } else {
-          vl.jobs[i].status = 'failed'; vl.jobs[i].error = result.error;
-        }
-        renderVideoChunks();
-        updateMergeEnablement();
-        i++;
-        if(i < chunks.length && vl.cooldownSeconds > 0){
-          var remaining = vl.cooldownSeconds;
-          var tick = function(){
-            $('vlOrchestrationStatus').textContent = 'Cooling down '+remaining+'s before chunk '+(i+1)+' of '+chunks.length+'…';
-            if(remaining <= 0){ nextChunk(); return; }
-            remaining--;
-            setTimeout(tick, 1000);
-          };
-          tick();
-        } else {
-          nextChunk();
-        }
-      }).catch(function(e){
-        vl.jobs[i].status = 'failed'; vl.jobs[i].error = e.message;
-        renderVideoChunks();
-        i++;
-        nextChunk();
-      });
-    }
-    nextChunk();
-  });
-
-  function updateMergeEnablement(){
-    var allDone = vl.jobs.length>0 && vl.jobs.every(function(j){ return j.status==='done'; });
-    $('mergeAllBtn').disabled = !allDone;
-    $('downloadZipBtn').disabled = !allDone;
-  }
-
-  /* ---- merge all ---- */
-  $('mergeAllBtn').addEventListener('click', function(){
-    var btn = $('mergeAllBtn');
-    clearErr('vlMergeError');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Merging…';
-    var videoUrls = vl.jobs.map(function(j){ return j.videoUrl; });
-    var rawTitle = $('vlTitleInput').value;
-    var named = vlBuildFileName(rawTitle, 'mp4');
-    fetch('/api/merge-video', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ videoUrls: videoUrls, fileName: named.fileName })
-    }).then(function(res){
-      if(!res.ok) return res.json().then(function(d){ throw new Error(d.error || 'Merge failed ('+res.status+')'); });
-      return res.blob();
-    }).then(function(blob){
-      vlCommitVersion(named.titleForCommit, named.versionForCommit);
-      var url = URL.createObjectURL(blob);
-      $('mergeResult').innerHTML =
-        '<video controls style="width:100%;border-radius:8px;margin-bottom:10px" src="'+url+'"></video>'+
-        '<a class="btn-outline" href="'+url+'" download="'+named.fileName+'">⬇ Download Final Video</a>';
-    }).catch(function(e){
-      showErr('vlMergeError', e.message);
-    }).finally(function(){
-      btn.disabled = false;
-      btn.innerHTML = '🔗 Merge All';
-    });
-  });
-
-  /* ---- download all as zip ---- */
-  $('downloadZipBtn').addEventListener('click', function(){
-    var btn = $('downloadZipBtn');
-    clearErr('vlMergeError');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Zipping…';
-    var videoUrls = vl.jobs.map(function(j){ return j.videoUrl; });
-    var rawTitle = $('vlTitleInput').value;
-    var named = vlBuildFileName(rawTitle, 'zip', 'clips');
-    fetch('/api/zip-videos', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ videoUrls: videoUrls, fileName: named.fileName })
-    }).then(function(res){
-      if(!res.ok) return res.json().then(function(d){ throw new Error(d.error || 'Zip failed ('+res.status+')'); });
-      return res.blob();
-    }).then(function(blob){
-      vlCommitVersion(named.titleForCommit, named.versionForCommit);
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = named.fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-    }).catch(function(e){
-      showErr('vlMergeError', e.message);
-    }).finally(function(){
-      btn.disabled = false;
-      btn.innerHTML = '📦 Download All (ZIP)';
-    });
-  });
-
-})();
 </script>
 </body>
 </html>
