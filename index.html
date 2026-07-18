@@ -814,20 +814,16 @@ matchSearchBtn.addEventListener('click', function(){
 "- Relevant Law of the Game: search for and quote the actual current IFAB Laws of the Game rule (the law number and its real wording or an accurate summary of it) that governs this exact situation, so the decision can be judged against the real rule rather than a general impression of it.\n\n" +
 "Rules: state only what your sources actually report. If sources disagree, note the disagreement instead of picking one, and flag if reports are still just speculation rather than confirmed. If you cannot find real information on this, say so plainly instead of guessing.";
 
-  var geminiSearch = fetch('/api/gemini', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({
-      contents:[{ role:'user', parts:[{ text: prompt }] }],
-      tools:[{ google_search:{} }]
-    })
-  }).then(function(res){
-    if(!res.ok){
-      return res.json().catch(function(){ return {}; }).then(function(err){
-        throw new Error((err && err.error && err.error.message) || ('Request failed ('+res.status+')'));
-      });
-    }
-    return res.json();
+  // Note: if Gemini's quota is out, this falls back to Groq — but Groq has no
+  // web-search tool, so the fallback answer comes from the model's own training
+  // data rather than live sources (no source links, and it may be out of date).
+  var usedFallbackSearch = false;
+  var geminiSearch = callAI({
+    contents:[{ role:'user', parts:[{ text: prompt }] }],
+    tools:[{ google_search:{} }]
+  }).then(function(result){
+    usedFallbackSearch = (result.provider === 'groq');
+    return result.data;
   });
 
   Promise.all([geminiSearch, apiFootballLookup]).then(function(results){
@@ -852,6 +848,9 @@ matchSearchBtn.addEventListener('click', function(){
         return '<a href="'+(w.uri||'#')+'" target="_blank" rel="noopener" style="color:var(--neon)">'+(w.title||w.uri||'source')+'</a>';
       });
       matchSources.innerHTML = sourceNote + 'Sources: '+links.join(' &middot; ');
+    } else if(usedFallbackSearch){
+      matchSources.innerHTML = sourceNote +
+        "Gemini's quota is used up, so this came from the backup AI (Groq) without live web search — it's from the model's training data, not fresh sources. Verify carefully before using.";
     } else {
       matchSources.innerHTML = sourceNote
         ? sourceNote + (text.trim() ? 'No additional source links came back from the web search.' : '')
@@ -1636,22 +1635,17 @@ tone.verdictBody+"\n\n" +
 "Output ONLY the script text with the two bracketed section headings shown above (replace the parenthetical instructions with the actual spoken script content), nothing else — no preamble, no extra notes, no markdown formatting.\n\n" +
 "CRITICAL: Only use scores, stats, minutes, and incidents that are explicitly present in the Team/Match Details or Tactical Context above. Do not invent scorelines, cards, injuries, or quotes that weren't given to you. If a detail you'd want isn't provided, speak in general tactical terms instead of fabricating a specific fact. If a relevant Law of the Game or rule text is present in the input, base your refereeing verdict on that exact rule rather than a general impression of the law.";
 
-  fetch('/api/gemini', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({ contents:[{ role:'user', parts:[{ text: prompt }] }] })
-  }).then(function(res){
-    if(!res.ok){
-      return res.json().catch(function(){ return {}; }).then(function(err){
-        throw new Error((err && err.error && err.error.message) || ('Request failed ('+res.status+')'));
-      });
-    }
-    return res.json();
-  }).then(function(data){
+  callAI({
+    contents:[{ role:'user', parts:[{ text: prompt }] }]
+  }).then(function(result){
+    var data = result.data;
     var parts = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
     var text = parts ? parts.map(function(p){ return p.text||''; }).join('') : '';
     if(!text.trim()) throw new Error('The model returned an empty script.');
     scriptBox.value = text.trim();
+    if(result.provider === 'groq'){
+      showDraftError("Gemini's daily quota is used up — this draft came from the backup AI (Groq) instead.");
+    }
     updateCounts();
     unlockSandbox();
     saveWorkspace();
