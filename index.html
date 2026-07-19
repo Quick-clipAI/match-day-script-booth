@@ -35,6 +35,9 @@ header{border-bottom:1px solid var(--border);background:rgba(0,0,0,.35);backdrop
 .stage-track span.done{color:var(--neon)}
 @media(min-width:860px){.stage-track{display:flex;align-items:center}}
 .icon-btn{width:38px;height:38px;border-radius:9px;border:1px solid var(--border2);background:transparent;color:var(--dim2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;font-size:16px}
+.project-bar{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--border2);border-radius:12px;padding:8px 10px}
+.project-bar select{flex:1;min-width:0;background:transparent;color:var(--neon);border:none;font-weight:700;font-size:14px;padding:4px}
+.project-bar .icon-btn{width:auto;height:auto;padding:8px 10px;font-size:13px;white-space:nowrap}
 .icon-btn:hover{border-color:var(--neon);color:var(--neon)}
 .icon-btn:disabled{opacity:.4;cursor:not-allowed}
 .icon-btn:disabled:hover{border-color:var(--border2);color:var(--dim2)}
@@ -138,7 +141,7 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
     <div class="settings-box">
       <label class="settings-label">API Status</label>
       <div class="settings-row">
-        <button class="icon-btn" id="testFootballKeyBtn" title="Check server API status">▶ Check server APIs</button>
+        <button class="icon-btn" id="testFootballKeyBtn" title="Check all server API keys">▶ Check All APIs</button>
       </div>
       <div id="footballKeyStatus"></div>
       <div class="settings-note">
@@ -155,14 +158,24 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
       </div>
 
       <div class="settings-note" style="margin-top:10px">
-        Your workspace — search results, chat history, script draft, and voice settings — autosaves locally
-        in this browser, so reopening the page picks up right where you left off (screenshots/files you
+        Each project — search results, chat history, script draft, and voice settings — autosaves locally
+        in this browser under its own slot, so switching projects (via the bar above the search panel) never mixes
+        one match's data into another. Reopening the page picks up whichever project was open last (screenshots/files you
         attached in chat aren't kept, since images are too large for local storage; everything else is).
       </div>
       <button class="stop-mini" id="clearDataBtn" style="margin-top:10px">🗑 Clear Saved Data</button>
     </div>
   </div>
 </header>
+
+<div class="container" style="margin-top:14px">
+  <div class="project-bar">
+    <select id="projectSelect" title="Switch project"></select>
+    <button class="icon-btn" id="newProjectBtn" title="Start a new, blank project">＋ New</button>
+    <button class="icon-btn" id="renameProjectBtn" title="Rename this project">✎</button>
+    <button class="icon-btn" id="deleteProjectBtn" title="Delete this project">🗑</button>
+  </div>
+</div>
 
 <main class="container">
 
@@ -347,7 +360,13 @@ footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
               <div class="range-ticks"><span>-10%</span><span>0</span><span>+15%</span></div>
             </div>
           </div>
+          <div class="field">
+            <label>Pronunciation fixes (optional)</label>
+            <textarea id="pronunciationFixes" rows="3" placeholder="One per line: word=how it sounds&#10;e.g. Szoboszlai=Show-boss-lie&#10;semi=sem-ee"></textarea>
+            <div style="font-size:12px;color:var(--dim2);margin-top:4px;">Applies to all voice engines, including the browser fallback. Use this for names or terms that come out mispronounced (e.g. "semi" read as "sem-eye").</div>
+          </div>
           <button class="btn-primary" id="voiceBtn">🎙 2. Generate Voiceover</button>
+          <button class="btn-outline" id="copyTTSBtn" type="button" style="margin-top:8px;">📋 Copy Script for External TTS</button>
         </fieldset>
         <div id="voiceError"></div>
         <div id="engineNote"></div>
@@ -506,6 +525,28 @@ function stripScriptMarkup(text){
   return text.replace(/\[[^\]\n]*\]/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
+/* Parses the "word=replacement" lines from the pronunciation-fixes box and
+   swaps each whole-word match (case-insensitive) in the script text with the
+   respelled version, so TTS engines say it the way the user actually wants —
+   this matters most for foreign player names and terms like "semi" that
+   generic TTS models often get wrong. Applied identically for every engine
+   (ElevenLabs, Google TTS, browser fallback) since all three read the same
+   `speakable` string. */
+function applyPronunciationFixes(text){
+  var raw = (pronunciationFixes.value || '').split('\n');
+  raw.forEach(function(line){
+    var idx = line.indexOf('=');
+    if(idx === -1) return;
+    var find = line.slice(0, idx).trim();
+    var replace = line.slice(idx+1).trim();
+    if(!find || !replace) return;
+    var escaped = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var re = new RegExp('\\b'+escaped+'\\b', 'gi');
+    text = text.replace(re, replace);
+  });
+  return text;
+}
+
 /* ---------------------------------------------------------------- */
 /* DOM refs                                                          */
 /* ---------------------------------------------------------------- */
@@ -515,8 +556,8 @@ var testFootballKeyBtn = $('testFootballKeyBtn'), footballKeyStatus = $('footbal
 var personaSelect = $('personaSelect'), modeSelect = $('modeSelect'), toneSelect = $('toneSelect'), durationSlider = $('durationSlider'), durationLabel = $('durationLabel');
 var teamDetails = $('teamDetails'), tacticalContext = $('tacticalContext'), draftBtn = $('draftBtn'), draftError = $('draftError');
 var sandboxEmpty = $('sandboxEmpty'), sandboxFull = $('sandboxFull'), scriptBox = $('scriptBox'), wordCount = $('wordCount'), charCount = $('charCount');
-var voiceEmpty = $('voiceEmpty'), voiceFieldset = $('voiceFieldset'), voiceSelect = $('voiceSelect'), rateSlider = $('rateSlider'), rateLabel = $('rateLabel');
-var voiceBtn = $('voiceBtn'), voiceError = $('voiceError'), engineNote = $('engineNote'), playerBox = $('playerBox');
+var voiceEmpty = $('voiceEmpty'), voiceFieldset = $('voiceFieldset'), voiceSelect = $('voiceSelect'), rateSlider = $('rateSlider'), rateLabel = $('rateLabel'), pronunciationFixes = $('pronunciationFixes');
+var voiceBtn = $('voiceBtn'), voiceError = $('voiceError'), engineNote = $('engineNote'), playerBox = $('playerBox'), copyTTSBtn = $('copyTTSBtn');
 var badge1=$('badge1'), badge2=$('badge2'), badge3=$('badge3'), stage1=$('stage1'), stage2=$('stage2'), stage3=$('stage3');
 var matchQuery=$('matchQuery'), matchDate=$('matchDate'), matchSearchBtn=$('matchSearchBtn'), matchSearchError=$('matchSearchError');
 var matchResults=$('matchResults'), verifiedFacts=$('verifiedFacts'), matchSources=$('matchSources'), useFactsBtn=$('useFactsBtn');
@@ -524,6 +565,7 @@ var liveMatchesBtn=$('liveMatchesBtn'), liveMatchesList=$('liveMatchesList');
 var chatMessages=$('chatMessages'), chatError=$('chatError'), chatInput=$('chatInput'), chatSendBtn=$('chatSendBtn'), useChatBtn=$('useChatBtn');
 var attachImageBtn=$('attachImageBtn'), imageInput=$('imageInput'), attachFileBtn=$('attachFileBtn'), dataFileInput=$('dataFileInput'), attachmentsPreview=$('attachmentsPreview');
 var clearDataBtn=$('clearDataBtn');
+var projectSelect=$('projectSelect'), newProjectBtn=$('newProjectBtn'), renameProjectBtn=$('renameProjectBtn'), deleteProjectBtn=$('deleteProjectBtn');
 
 var state = {
   audioUrl: null,
@@ -536,7 +578,9 @@ var state = {
 /* ---------------------------------------------------------------- */
 /* Whole-workspace autosave (so nothing needs redoing on reload)      */
 /* ---------------------------------------------------------------- */
-var WORKSPACE_KEY = 'mdsb_workspace_v1';
+var WORKSPACE_KEY = 'mdsb_workspace_v1'; // legacy single-slot key, used only for migration
+var PROJECTS_KEY = 'mdsb_projects_v1';
+var ACTIVE_PROJECT_KEY = 'mdsb_active_project_v1';
 
 function debounce(fn, wait){
   var t;
@@ -559,35 +603,90 @@ function sanitizeChatForStorage(history){
   });
 }
 
-function saveWorkspace(){
-  try{
-    var payload = {
-      persona: personaSelect.value,
-      mode: modeSelect.value,
-      tone: toneSelect.value,
-      durationIdx: durationSlider.value,
-      teamDetails: teamDetails.value,
-      tacticalContext: tacticalContext.value,
-      script: scriptBox.value,
-      voice: voiceSelect.value,
-      rate: rateSlider.value,
-      matchQuery: matchQuery.value,
-      verifiedFacts: verifiedFacts.value,
-      matchSourcesHTML: matchSources.innerHTML,
-      matchResultsVisible: matchResults.style.display === 'block',
-      chatHistory: sanitizeChatForStorage(chatHistory || [])
-    };
-    lsSet(WORKSPACE_KEY, JSON.stringify(payload));
-  }catch(e){ /* storage full or unavailable — silently skip */ }
+/* ---- Project list helpers ---- */
+function getProjectList(){
+  try{ return JSON.parse(lsGet(PROJECTS_KEY) || '[]'); }catch(e){ return []; }
 }
-var debouncedSaveWorkspace = debounce(saveWorkspace, 700);
+function saveProjectList(list){ lsSet(PROJECTS_KEY, JSON.stringify(list)); }
+function genProjectId(){ return 'p' + Date.now() + Math.random().toString(36).slice(2,7); }
+function projectDataKey(id){ return 'mdsb_project_' + id; }
+function getActiveProjectId(){ return lsGet(ACTIVE_PROJECT_KEY) || ''; }
+function setActiveProjectId(id){ lsSet(ACTIVE_PROJECT_KEY, id); }
 
-function restoreWorkspace(){
-  var raw = lsGet(WORKSPACE_KEY);
-  if(!raw) return;
-  var s;
-  try{ s = JSON.parse(raw); }catch(e){ return; }
+function renderProjectSelect(){
+  var list = getProjectList();
+  var activeId = getActiveProjectId();
+  projectSelect.innerHTML = '';
+  list.forEach(function(p){
+    var opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    if(p.id === activeId) opt.selected = true;
+    projectSelect.appendChild(opt);
+  });
+}
 
+/* Clears every field back to a blank state — run before loading a project's
+   saved data so nothing from the previous project lingers on screen. */
+function resetFormFields(){
+  personaSelect.selectedIndex = 0;
+  modeSelect.selectedIndex = 0;
+  toneSelect.selectedIndex = 0;
+  voiceSelect.selectedIndex = 0;
+  durationSlider.value = 1;
+  durationLabel.textContent = 'Target Duration — '+DURATIONS[1]+'s';
+  rateSlider.value = 0;
+  rateLabel.textContent = 'Speech Rate — 0%';
+  teamDetails.value = '';
+  tacticalContext.value = '';
+  pronunciationFixes.value = '';
+  matchQuery.value = '';
+  verifiedFacts.value = '';
+  matchSources.innerHTML = '';
+  matchResults.style.display = 'none';
+  scriptBox.value = '';
+  updateCounts();
+  sandboxEmpty.style.display = '';
+  sandboxFull.style.display = 'none';
+  voiceEmpty.style.display = '';
+  voiceFieldset.disabled = true;
+  playerBox.style.display = 'none';
+  playerBox.innerHTML = '';
+  badge1.classList.remove('done'); badge1.textContent = '1';
+  badge2.classList.remove('done'); badge2.textContent = '2';
+  badge3.classList.remove('done'); badge3.textContent = '3';
+  stage1.classList.remove('done'); stage2.classList.remove('done'); stage3.classList.remove('done');
+  chatHistory = [];
+  chatMessages.innerHTML = '';
+  clearMatchSearchError();
+  clearChatError();
+  clearDraftError();
+  voiceError.innerHTML = '';
+  engineNote.innerHTML = '';
+  applyFieldConfig();
+}
+
+function collectStatePayload(){
+  return {
+    persona: personaSelect.value,
+    mode: modeSelect.value,
+    tone: toneSelect.value,
+    durationIdx: durationSlider.value,
+    teamDetails: teamDetails.value,
+    tacticalContext: tacticalContext.value,
+    script: scriptBox.value,
+    voice: voiceSelect.value,
+    rate: rateSlider.value,
+    pronunciationFixes: pronunciationFixes.value,
+    matchQuery: matchQuery.value,
+    verifiedFacts: verifiedFacts.value,
+    matchSourcesHTML: matchSources.innerHTML,
+    matchResultsVisible: matchResults.style.display === 'block',
+    chatHistory: sanitizeChatForStorage(chatHistory || [])
+  };
+}
+
+function applyStatePayload(s){
   if(s.persona) personaSelect.value = s.persona;
   if(s.mode) modeSelect.value = s.mode;
   if(s.tone) toneSelect.value = s.tone;
@@ -598,6 +697,7 @@ function restoreWorkspace(){
   if(s.teamDetails) teamDetails.value = s.teamDetails;
   if(s.tacticalContext) tacticalContext.value = s.tacticalContext;
   if(s.voice) voiceSelect.value = s.voice;
+  if(s.pronunciationFixes) pronunciationFixes.value = s.pronunciationFixes;
   if(s.rate !== undefined){
     rateSlider.value = s.rate;
     rateLabel.textContent = 'Speech Rate — '+(Number(s.rate)>0?'+':'')+s.rate+'%';
@@ -623,8 +723,145 @@ function restoreWorkspace(){
   }
 }
 
+function saveWorkspace(){
+  try{
+    var activeId = getActiveProjectId();
+    if(!activeId) return;
+    var payload = collectStatePayload();
+    lsSet(projectDataKey(activeId), JSON.stringify(payload));
+    var list = getProjectList();
+    var entry = list.filter(function(p){ return p.id === activeId; })[0];
+    if(entry){
+      entry.updatedAt = Date.now();
+      // Auto-name a still-untitled project from whatever the host typed first
+      if(/^Untitled/.test(entry.name)){
+        var guess = (payload.matchQuery || payload.teamDetails || '').trim().split('\n')[0].slice(0, 40);
+        if(guess) entry.name = guess;
+      }
+      saveProjectList(list);
+      renderProjectSelect();
+    }
+  }catch(e){ /* storage full or unavailable — silently skip */ }
+}
+var debouncedSaveWorkspace = debounce(saveWorkspace, 700);
+
+function loadProject(id){
+  resetFormFields();
+  var raw = lsGet(projectDataKey(id));
+  if(raw){
+    var s;
+    try{ s = JSON.parse(raw); }catch(e){ s = null; }
+    if(s) applyStatePayload(s);
+  }
+  setActiveProjectId(id);
+  renderProjectSelect();
+}
+
+function createProject(name){
+  var list = getProjectList();
+  var id = genProjectId();
+  list.push({ id: id, name: name || ('Untitled Project ' + (list.length + 1)), updatedAt: Date.now() });
+  saveProjectList(list);
+  lsSet(projectDataKey(id), '');
+  loadProject(id);
+}
+
+function deleteProject(id){
+  var list = getProjectList();
+  list = list.filter(function(p){ return p.id !== id; });
+  saveProjectList(list);
+  try{ localStorage.removeItem(projectDataKey(id)); }catch(e){}
+  if(list.length){
+    loadProject(list[0].id);
+  } else {
+    createProject('Untitled Project 1');
+  }
+}
+
+function renameProject(id, newName){
+  var list = getProjectList();
+  var entry = list.filter(function(p){ return p.id === id; })[0];
+  if(entry && newName && newName.trim()){
+    entry.name = newName.trim();
+    saveProjectList(list);
+    renderProjectSelect();
+  }
+}
+
+/* One-time migration from the old single-workspace storage, and startup load */
+function initProjects(){
+  var list = getProjectList();
+  if(!list.length){
+    var legacyRaw = lsGet(WORKSPACE_KEY);
+    if(legacyRaw){
+      var id = genProjectId();
+      var name = 'Imported Session';
+      try{
+        var parsed = JSON.parse(legacyRaw);
+        var guess = (parsed.matchQuery || parsed.teamDetails || '').trim().split('\n')[0].slice(0, 40);
+        if(guess) name = guess;
+      }catch(e){}
+      list = [{ id: id, name: name, updatedAt: Date.now() }];
+      saveProjectList(list);
+      lsSet(projectDataKey(id), legacyRaw);
+      setActiveProjectId(id);
+    } else {
+      var freshId = genProjectId();
+      list = [{ id: freshId, name: 'Untitled Project 1', updatedAt: Date.now() }];
+      saveProjectList(list);
+      lsSet(projectDataKey(freshId), '');
+      setActiveProjectId(freshId);
+    }
+  }
+  var activeId = getActiveProjectId();
+  if(!list.filter(function(p){ return p.id === activeId; }).length){
+    activeId = list[0].id;
+    setActiveProjectId(activeId);
+  }
+  renderProjectSelect();
+  resetFormFields();
+  var raw = lsGet(projectDataKey(activeId));
+  if(raw){
+    var s;
+    try{ s = JSON.parse(raw); }catch(e){ s = null; }
+    if(s) applyStatePayload(s);
+  }
+}
+
+projectSelect.addEventListener('change', function(){
+  saveWorkspace();
+  loadProject(projectSelect.value);
+});
+newProjectBtn.addEventListener('click', function(){
+  saveWorkspace();
+  var name = prompt('Name this new project (e.g. the match or show it\'s for):', '');
+  createProject(name);
+});
+renameProjectBtn.addEventListener('click', function(){
+  var list = getProjectList();
+  var current = list.filter(function(p){ return p.id === getActiveProjectId(); })[0];
+  var name = prompt('Rename project:', current ? current.name : '');
+  if(name !== null) renameProject(getActiveProjectId(), name);
+});
+deleteProjectBtn.addEventListener('click', function(){
+  var list = getProjectList();
+  var current = list.filter(function(p){ return p.id === getActiveProjectId(); })[0];
+  if(confirm('Delete "'+(current?current.name:'this project')+'"? This can\'t be undone.')){
+    deleteProject(getActiveProjectId());
+  }
+});
+
 clearDataBtn.addEventListener('click', function(){
-  try{ localStorage.removeItem(WORKSPACE_KEY); localStorage.removeItem('mdsb_gemini_key'); localStorage.removeItem('mdsb_football_key'); }catch(e){}
+  if(!confirm('This will delete ALL saved projects on this device — not just the current one. Continue?')) return;
+  try{
+    var list = getProjectList();
+    list.forEach(function(p){ localStorage.removeItem(projectDataKey(p.id)); });
+    localStorage.removeItem(PROJECTS_KEY);
+    localStorage.removeItem(ACTIVE_PROJECT_KEY);
+    localStorage.removeItem(WORKSPACE_KEY);
+    localStorage.removeItem('mdsb_gemini_key');
+    localStorage.removeItem('mdsb_football_key');
+  }catch(e){}
   memStore = {};
   location.reload();
 });
@@ -641,16 +878,12 @@ function setFootballKeyStatus(kind, msg){
 }
 
 /* Pings our own /api routes (not the upstream providers directly) so this
-   also verifies the Vercel deployment has GEMINI_API_KEY / API_SPORTS_KEY set. */
-testFootballKeyBtn.addEventListener('click', function(){
-  testFootballKeyBtn.disabled = true;
-  var originalIcon = testFootballKeyBtn.textContent;
-  testFootballKeyBtn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:2px"></span>';
-  footballKeyStatus.innerHTML = '<div class="msg-note">⏳ <span>Checking server API status…</span></div>';
-
-  var apiFootballMsg = null, apiFootballErr = null;
-
-  var checkApiFootball = fetch('/api/football/status').then(function(res){
+   also verifies the Vercel deployment has each provider's env var(s) set.
+   Each check does a minimal real call (a few words of text) rather than a
+   true no-op "ping", since none of these providers expose a free status
+   endpoint — so this uses a tiny sliver of each service's quota. */
+function checkApiFootball(){
+  return fetch('/api/football/status').then(function(res){
     return res.json().then(function(data){ return { ok: res.ok, status: res.status, data: data }; });
   }).then(function(result){
     if(!result.ok) throw new Error((result.data && result.data.error) || ('status '+result.status));
@@ -660,16 +893,82 @@ testFootballKeyBtn.addEventListener('click', function(){
       var remaining = (acct.requests && (acct.requests.limit_day - acct.requests.current));
       var limit = acct.requests && acct.requests.limit_day;
       var quotaMsg = (remaining!=null && limit!=null) ? (' ('+remaining+'/'+limit+' left today)') : '';
-      apiFootballMsg = 'API-Football OK — "'+plan+'" plan.'+quotaMsg;
-    } else {
-      apiFootballMsg = 'API-Football reachable.';
+      return 'API-Football OK — "'+plan+'" plan.'+quotaMsg;
     }
-  }).catch(function(e){ apiFootballErr = e.message || 'unreachable'; });
+    return 'API-Football reachable.';
+  });
+}
 
-  checkApiFootball.then(function(){
-    var line = (apiFootballErr ? '⚠️ API-Football: '+apiFootballErr : '✅ '+apiFootballMsg);
-    var cls = apiFootballErr ? 'msg-error' : 'msg-note';
-    footballKeyStatus.innerHTML = '<div class="'+cls+'">'+line+'</div>';
+function checkGemini(){
+  return fetch('/api/gemini', {
+    method:'POST', headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({ contents:[{ role:'user', parts:[{ text:'Reply with the single word OK.' }] }] })
+  }).then(function(res){
+    if(res.ok) return 'Gemini OK.';
+    return res.json().catch(function(){ return {}; }).then(function(err){
+      throw new Error((err && err.error && err.error.message) || ('status '+res.status));
+    });
+  });
+}
+
+function checkGroq(){
+  return fetch('/api/groq', {
+    method:'POST', headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({ messages:[{ role:'user', content:'Reply with the single word OK.' }] })
+  }).then(function(res){
+    if(res.ok) return 'Groq OK (chat fallback ready).';
+    return res.json().catch(function(){ return {}; }).then(function(err){
+      throw new Error((err && err.error && err.error.message) || ('status '+res.status));
+    });
+  });
+}
+
+function checkElevenLabs(){
+  return fetch('/api/elevenlabs', {
+    method:'POST', headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({ text:'Hi' })
+  }).then(function(res){
+    if(res.ok) return 'ElevenLabs OK.';
+    return res.json().catch(function(){ return {}; }).then(function(err){
+      throw new Error((err && err.error) || ('status '+res.status));
+    });
+  });
+}
+
+function checkGoogleTTS(){
+  return fetch('/api/google-tts', {
+    method:'POST', headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({ text:'Hi' })
+  }).then(function(res){
+    if(res.ok) return 'Google Cloud TTS OK.';
+    return res.json().catch(function(){ return {}; }).then(function(err){
+      throw new Error((err && err.error) || ('status '+res.status));
+    });
+  });
+}
+
+testFootballKeyBtn.addEventListener('click', function(){
+  testFootballKeyBtn.disabled = true;
+  var originalIcon = testFootballKeyBtn.textContent;
+  testFootballKeyBtn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:2px"></span>';
+  footballKeyStatus.innerHTML = '<div class="msg-note">⏳ <span>Checking all server APIs…</span></div>';
+
+  var checks = [
+    { label: 'API-Football', run: checkApiFootball },
+    { label: 'Gemini', run: checkGemini },
+    { label: 'Groq', run: checkGroq },
+    { label: 'ElevenLabs', run: checkElevenLabs },
+    { label: 'Google Cloud TTS', run: checkGoogleTTS }
+  ];
+
+  Promise.all(checks.map(function(c){
+    return c.run()
+      .then(function(msg){ return { ok: true, line: '✅ '+msg }; })
+      .catch(function(e){ return { ok: false, line: '⚠️ '+c.label+': '+(e.message || 'unreachable') }; });
+  })).then(function(results){
+    footballKeyStatus.innerHTML = results.map(function(r){
+      return '<div class="'+(r.ok ? 'msg-note' : 'msg-error')+'">'+r.line+'</div>';
+    }).join('');
   }).finally(function(){
     testFootballKeyBtn.disabled = false;
     testFootballKeyBtn.textContent = originalIcon;
@@ -1561,6 +1860,7 @@ rateSlider.addEventListener('input', function(){
 teamDetails.addEventListener('input', debouncedSaveWorkspace);
 tacticalContext.addEventListener('input', debouncedSaveWorkspace);
 matchQuery.addEventListener('input', debouncedSaveWorkspace);
+pronunciationFixes.addEventListener('input', debouncedSaveWorkspace);
 
 /* ---------------------------------------------------------------- */
 /* Stage 1: Draft script via Gemini                                   */
@@ -1587,7 +1887,8 @@ function updateCounts(){
   var text = scriptBox.value;
   var words = text.trim() ? text.trim().split(/\s+/).length : 0;
   wordCount.textContent = words+' words';
-  charCount.textContent = text.length+' characters';
+  charCount.textContent = text.length+' / 1000 characters';
+  charCount.style.color = text.length > 1000 ? '#ff6b6b' : '';
 }
 scriptBox.addEventListener('input', function(){ updateCounts(); debouncedSaveWorkspace(); });
 
@@ -1633,7 +1934,9 @@ draftBtn.addEventListener('click', function(){
 "["+t.verdictStart+" - MY VERDICT]\n" +
 tone.verdictBody+"\n\n" +
 "Output ONLY the script text with the two bracketed section headings shown above (replace the parenthetical instructions with the actual spoken script content), nothing else — no preamble, no extra notes, no markdown formatting.\n\n" +
-"CRITICAL: Only use scores, stats, minutes, and incidents that are explicitly present in the Team/Match Details or Tactical Context above. Do not invent scorelines, cards, injuries, or quotes that weren't given to you. If a detail you'd want isn't provided, speak in general tactical terms instead of fabricating a specific fact. If a relevant Law of the Game or rule text is present in the input, base your refereeing verdict on that exact rule rather than a general impression of the law.";
+"CRITICAL: Only use scores, stats, minutes, and incidents that are explicitly present in the Team/Match Details or Tactical Context above. Do not invent scorelines, cards, injuries, or quotes that weren't given to you. If a detail you'd want isn't provided, speak in general tactical terms instead of fabricating a specific fact. If a relevant Law of the Game or rule text is present in the input, base your refereeing verdict on that exact rule rather than a general impression of the law.\n\n" +
+"HARD LIMIT: The entire script output — both sections combined, including headings and spaces — must be 1000 characters or fewer. This overrides the target duration/word count above if they conflict; prioritize staying under 1000 characters. Be concise and cut detail rather than running long.\n\n" +
+"PUNCTUATION FOR VOICE PACING: The text-to-speech engine only reacts to two punctuation marks, so use them deliberately: a comma (,) is a short pause that keeps the same energy going, and a period (.) is a longer pause that resets to fresh energy on the next sentence — don't use other punctuation (dashes, semicolons, ellipses) to control pacing. When moving to a new subject or team but you only want a short pause rather than a full energy reset, bridge with \", and\" rather than a bare comma or a period — e.g. \"France in their usual four-three-three, and Spain compact in a back four\" reads as a smooth handoff, while a bare period there would kill the momentum and a bare comma would read as still describing France.";
 
   callAI({
     contents:[{ role:'user', parts:[{ text: prompt }] }]
@@ -1642,9 +1945,20 @@ tone.verdictBody+"\n\n" +
     var parts = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
     var text = parts ? parts.map(function(p){ return p.text||''; }).join('') : '';
     if(!text.trim()) throw new Error('The model returned an empty script.');
-    scriptBox.value = text.trim();
+    text = text.trim();
+    var wasTrimmed = false;
+    if(text.length > 1000){
+      var cut = text.slice(0, 1000);
+      var lastSpace = cut.lastIndexOf(' ');
+      if(lastSpace > 800) cut = cut.slice(0, lastSpace); // avoid cutting mid-word if a reasonable break is nearby
+      text = cut.trim();
+      wasTrimmed = true;
+    }
+    scriptBox.value = text;
     if(result.provider === 'groq'){
       showDraftError("Gemini's daily quota is used up — this draft came from the backup AI (Groq) instead.");
+    } else if(wasTrimmed){
+      showDraftError('The script ran long, so it was trimmed to fit the 1000-character limit.');
     }
     updateCounts();
     unlockSandbox();
@@ -1736,6 +2050,25 @@ function renderPlayer(){
   }
 }
 
+copyTTSBtn.addEventListener('click', function(){
+  var speakable = applyPronunciationFixes(stripScriptMarkup(scriptBox.value.trim()));
+  if(!speakable){ return; }
+  var restoreLabel = '📋 Copy Script for External TTS';
+  function flash(label){
+    copyTTSBtn.textContent = label;
+    setTimeout(function(){ copyTTSBtn.textContent = restoreLabel; }, 1800);
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(speakable).then(function(){
+      flash('✓ Copied — paste into your TTS site');
+    }).catch(function(){
+      flash('Copy failed — select and copy manually');
+    });
+  } else {
+    flash('Clipboard not available — select and copy manually');
+  }
+});
+
 voiceBtn.addEventListener('click', function(){
   var rawText = scriptBox.value.trim();
   if(!rawText) return;
@@ -1747,7 +2080,7 @@ voiceBtn.addEventListener('click', function(){
   state.usingFallback = false;
 
   var voice = voiceSelect.value, rate = Number(rateSlider.value);
-  var speakable = stripScriptMarkup(rawText);
+  var speakable = applyPronunciationFixes(stripScriptMarkup(rawText));
   state.speakableText = speakable;
 
   function finishVoiceGeneration(){
@@ -1784,7 +2117,7 @@ voiceBtn.addEventListener('click', function(){
 });
 
 window.addEventListener('beforeunload', stopPlayback);
-restoreWorkspace();
+initProjects();
 </script>
 </body>
 </html>
