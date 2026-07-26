@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Privacy Policy — Creator Booth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1a1918; --surface:#232220; --border:#3a3835;
+  --accent:#c96442; --text:#f2ede4; --text-dim:#948f86; --text-faint:#5f5b54;
+  --serif:'Source Serif 4',serif; --sans:'Inter',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.65;padding:28px 20px 60px}
+.wrap{max-width:640px;margin:0 auto}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--text-dim);text-decoration:none;font-size:13px;margin-bottom:22px}
+.back:hover{color:var(--text)}
+h1{font-family:var(--serif);font-weight:500;font-size:26px;margin-bottom:6px}
+.updated{font-size:12.5px;color:var(--text-faint);margin-bottom:28px}
+h2{font-family:var(--serif);font-weight:500;font-size:17px;color:var(--text);margin:26px 0 8px}
+p,li{font-size:14px;color:var(--text-dim)}
+ul{padding-left:20px;margin:6px 0}
+li{margin-bottom:6px}
+strong{color:var(--text)}
+a{color:var(--accent)}
+hr{border:none;border-top:1px solid var(--border);margin:32px 0}
+table{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:13.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--text);font-weight:600}
+td{color:var(--text-dim)}
+.note{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--text-faint)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">← Back to Creator Booth</a>
+  <h1>Privacy Policy</h1>
+  <div class="updated">Last updated: July 2026</div>
+
+  <div class="note">
+    A short, plain-language summary for an early-stage version of Creator Booth. It will be expanded as the product matures.
+  </div>
+
+  <h2>1. What we store</h2>
+  <table>
+    <tr><th>If you're signed in</th><td>Your email address, and the chats/messages you create, are stored in our Supabase database so you can return to them from any device.</td></tr>
+    <tr><th>If you're not signed in (guest)</th><td>Your chats are stored only in your browser's local storage. We don't receive or store them.</td></tr>
+    <tr><th>Sign-in method</th><td>Google OAuth (we receive your name/email from Google) or email magic link — we don't see or store passwords either way.</td></tr>
+  </table>
+
+  <h2>2. What we send to third parties</h2>
+  <p>To generate a response, the text of your request is sent to one or more of the following, only as needed to answer it:</p>
+  <ul>
+    <li><strong>Google Gemini</strong> — to draft scripts and, for some requests, run a live Google Search for current facts.</li>
+    <li><strong>Groq</strong> — as an automatic backup if Gemini is temporarily unavailable.</li>
+    <li><strong>API-Football</strong> — to look up real match data (scores, stats, events) relevant to football-mode requests.</li>
+  </ul>
+  <p>We don't sell your data, and we don't use your chats to train our own models.</p>
+
+  <h2>3. Cookies and local storage</h2>
+  <p>We use local storage (not cookies) to keep you signed in and, for guests, to store chats on-device. There's no third-party ad tracking in Creator Booth.</p>
+
+  <h2>4. Your controls</h2>
+  <ul>
+    <li>You can delete your account and all stored chats at any time from Settings → Profile → Delete Account.</li>
+    <li>You can sign out at any time from Settings.</li>
+    <li>Guest data can be cleared by clearing your browser's local storage for this site.</li>
+  </ul>
+
+  <h2>5. Data retention</h2>
+  <p>Signed-in data is kept until you delete it or delete your account. Guest data lives only in your browser and is never sent to us.</p>
+
+  <h2>6. Changes to this policy</h2>
+  <p>This policy may be updated as Creator Booth develops. Material changes will be reflected here with an updated date.</p>
+
+  <hr/>
+  <p>Questions about this policy? Reach out through the app's Help &amp; FAQ section.</p>
+</div>
+</body>
+</html>

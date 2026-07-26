@@ -3,2121 +3,1057 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Match Day Script Booth</title>
+<title>Creator Booth</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#04100a;--card:#0a1f15;--card2:#0e2a1c;
-  --border:#154332;--border2:#1e5a42;
-  --neon:#a6ff2e;--neon-dim:#4d7a1e;
-  --text:#eafff2;--dim:#5f9c7d;--dim2:#8fc4a5;
-  --red:#e85a5a;--red-bg:#2a1414;
-  --syne:'Teko',sans-serif;--body:'Inter',sans-serif;--mono:'Inter',monospace;
+  --bg:#1a1918; --surface:#232220; --surface2:#2b2a27; --surface3:#302f2c;
+  --border:#3a3835; --border-soft:#2f2e2b;
+  --accent:#c96442; --accent-dim:#8f4a32;
+  --text:#f2ede4; --text-dim:#948f86; --text-faint:#5f5b54;
+  --serif:'Source Serif 4',serif; --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
 }
-html,body{min-height:100%}
+html,body{height:100%}
 body{
-  background:radial-gradient(ellipse at top,#0a2418 0%,#04100a 45%,#000 100%);
-  color:var(--text);font-family:var(--body);line-height:1.5;
+  background:var(--bg); color:var(--text); font-family:var(--sans);
+  line-height:1.55; display:flex; flex-direction:column; height:100vh; height:100dvh; overflow:hidden;
 }
-.container{max-width:1280px;margin:0 auto;padding:0 20px}
 
 /* header */
-header{border-bottom:1px solid var(--border);background:rgba(0,0,0,.35);backdrop-filter:blur(6px);position:sticky;top:0;z-index:20}
-.hdr-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0}
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
-.brand-icon{width:42px;height:42px;flex-shrink:0;border-radius:10px;background:var(--neon);display:flex;align-items:center;justify-content:center;font-size:20px}
-.brand-title{font-family:var(--syne);font-weight:600;font-size:28px;line-height:1;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
-.brand-sub{font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.05em}
-.hdr-right{display:flex;align-items:center;gap:14px;flex-shrink:0}
-.stage-track{display:none;gap:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
-.stage-track span.done{color:var(--neon)}
-@media(min-width:860px){.stage-track{display:flex;align-items:center}}
-.icon-btn{width:38px;height:38px;border-radius:9px;border:1px solid var(--border2);background:transparent;color:var(--dim2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;font-size:16px}
-.project-bar{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--border2);border-radius:12px;padding:8px 10px}
-.project-bar select{flex:1;min-width:0;background:transparent;color:var(--neon);border:none;font-weight:700;font-size:14px;padding:4px}
-.project-bar .icon-btn{width:auto;height:auto;padding:8px 10px;font-size:13px;white-space:nowrap}
-.icon-btn:hover{border-color:var(--neon);color:var(--neon)}
-.icon-btn:disabled{opacity:.4;cursor:not-allowed}
-.icon-btn:disabled:hover{border-color:var(--border2);color:var(--dim2)}
-#settings-panel{display:none;padding:14px 0 18px}
-#settings-panel.open{display:block}
-.settings-box{background:var(--card2);border:1px solid var(--border2);border-radius:12px;padding:16px}
-.settings-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);display:block;margin-bottom:8px}
-.settings-row{display:flex;gap:8px}
-.settings-row input{flex:1}
-.settings-note{font-size:11.5px;color:var(--dim);margin-top:10px;line-height:1.6}
-.settings-note b{color:var(--neon)}
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;flex-shrink:0}
+.hdr-icon{width:22px;height:22px;color:var(--text-dim);cursor:pointer}
+.hdr-title{font-size:13px;font-weight:600;color:var(--text-dim);letter-spacing:.02em}
 
-/* layout */
-main{padding:24px 0 40px}
-.grid{display:grid;grid-template-columns:1fr;gap:18px}
-@media(min-width:960px){.grid{grid-template-columns:repeat(3,1fr)}}
-.card{background:var(--card);border:1px solid var(--border2);border-radius:16px;box-shadow:0 20px 40px -20px rgba(0,0,0,.6);overflow:hidden;display:flex;flex-direction:column}
-.card-head{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--border)}
-.step-badge{width:28px;height:28px;border-radius:50%;background:var(--card2);border:1px solid var(--border2);color:var(--neon);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.step-badge.done{background:var(--neon);color:#04100a;border-color:var(--neon)}
-.card-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
-.card-body{padding:18px;display:flex;flex-direction:column;gap:14px}
+/* thread */
+.thread{flex:1;overflow-y:auto;padding:0 18px;display:flex;flex-direction:column;gap:22px;scroll-behavior:smooth}
+.thread::-webkit-scrollbar{width:0}
 
-/* fields */
-.field label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);margin-bottom:6px}
-select,textarea,input[type=text],input[type=password]{
-  width:100%;background:rgba(0,0,0,.35);border:1px solid var(--border2);border-radius:9px;
-  color:var(--text);font-family:var(--body);font-size:13.5px;padding:10px 12px;outline:none;transition:border-color .15s;
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding-bottom:60px}
+.hero-mark{color:var(--accent);display:block}
+.hero-title{font-family:var(--serif);font-weight:500;font-size:26px;color:var(--text)}
+.hero-sub{font-size:13px;color:var(--text-faint);max-width:280px}
+
+.msg{max-width:88%;display:flex;flex-direction:column;gap:6px;animation:rise .35s ease}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-self:flex-end;align-items:flex-end}
+.msg.assistant{align-self:flex-start;align-items:flex-start;max-width:96%}
+
+.bubble-user{background:var(--surface2);border:1px solid var(--border-soft);border-radius:16px 16px 4px 16px;padding:11px 15px;font-size:14.5px}
+.bubble-assistant{font-size:14.5px;color:var(--text);white-space:pre-wrap}
+.bubble-assistant p{margin-bottom:10px}
+
+/* status pipeline — the signature element */
+.pipeline{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text-dim);font-family:var(--mono);letter-spacing:.01em}
+.pipeline .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
+.pipeline .stage{transition:opacity .25s}
+
+.sources{margin-top:8px;font-size:11px;color:var(--text-faint);border-top:1px solid var(--border-soft);padding-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+.sources span{background:var(--surface2);border-radius:6px;padding:3px 8px}
+.sources a{color:var(--accent);text-decoration:none}
+.sources a:hover{text-decoration:underline}
+
+/* chips */
+.chips{display:flex;flex-direction:column;gap:8px;margin-top:6px;width:100%}
+.chip{
+  text-align:left;background:var(--surface);border:1px solid var(--border-soft);color:var(--text);
+  border-radius:12px;padding:11px 14px;font-size:13.5px;font-family:var(--sans);cursor:pointer;
+  transition:.15s;display:flex;align-items:center;gap:10px;
 }
-select{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235f9c7d'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
-select:focus,textarea:focus,input:focus{border-color:var(--neon)}
-textarea{resize:none;font-family:var(--body)}
-textarea::placeholder{color:#2f5c48}
-.range-wrap{display:flex;flex-direction:column;gap:6px}
-input[type=range]{width:100%;accent-color:var(--neon)}
-.range-ticks{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);font-weight:700}
+.chip:hover{border-color:var(--accent-dim);background:var(--surface2)}
+.chip .num{color:var(--accent);font-family:var(--mono);font-size:12px;flex-shrink:0}
 
-/* buttons */
-.btn-primary{
-  width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
-  background:var(--neon);color:#04100a;border:none;border-radius:10px;padding:13px;
-  font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;transition:.15s;
+.err{font-size:13px;color:#d98a7a;background:#2a1f1c;border:1px solid #4a2f28;border-radius:10px;padding:10px 13px}
+
+/* sidebar drawer */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;opacity:0;pointer-events:none;transition:.2s}
+.overlay.open{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;top:0;left:0;bottom:0;width:270px;max-width:82vw;background:var(--surface);
+  border-right:1px solid var(--border);z-index:31;transform:translateX(-100%);transition:.25s ease;
+  display:flex;flex-direction:column;padding:18px 14px;
 }
-.btn-primary:hover:not(:disabled){filter:brightness(1.08)}
-.btn-primary:disabled{background:var(--card2);color:var(--dim);cursor:not-allowed}
-.btn-outline{
-  width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
-  background:transparent;color:var(--neon);border:1px solid var(--neon);border-radius:10px;padding:10px;
-  font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;transition:.15s;text-decoration:none;
+.drawer.open{transform:translateX(0)}
+.drawer-brand{font-family:var(--serif);font-size:20px;margin-bottom:18px;padding:0 4px}
+.drawer-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;font-size:14px;color:var(--text-dim);cursor:pointer;transition:.15s}
+.drawer-item:hover{background:var(--surface2);color:var(--text)}
+.drawer-item.accent{color:var(--accent)}
+.drawer-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);padding:14px 10px 6px}
+.drawer-chats{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.drawer-chat{padding:9px 10px;border-radius:9px;font-size:13.5px;color:var(--text-dim);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:.15s}
+.drawer-chat:hover{background:var(--surface2);color:var(--text)}
+.drawer-chat.active{background:var(--surface2);color:var(--text)}
+.drawer-account{border-top:1px solid var(--border-soft);padding-top:12px;margin-top:8px}
+.account-row{display:flex;align-items:center;gap:10px;padding:6px 4px}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.account-name{flex:1;font-size:13.5px;color:var(--text)}
+.signin-row{display:flex;gap:6px;padding:4px}
+.signin-row input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:13px;outline:none}
+.signin-row button{background:var(--accent);border:none;border-radius:8px;color:var(--bg);padding:8px 12px;font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.signin-note{font-size:11px;color:var(--text-faint);padding:6px 4px 0}
+.signin-btn{width:100%;background:var(--accent);border:none;border-radius:9px;color:var(--bg);padding:10px;font-weight:600;font-size:13.5px;cursor:pointer}
+.signin-btn:hover{filter:brightness(1.08)}
+.google-btn{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:9px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:9px;color:var(--text);padding:9px;font-weight:600;font-size:13px;cursor:pointer;margin-bottom:8px;
 }
-.btn-outline:hover{background:var(--neon);color:#04100a}
-.btn-outline:disabled,.btn-outline.disabled{border-color:var(--border2);color:var(--dim);cursor:not-allowed;pointer-events:none}
-.spinner{width:14px;height:14px;border:2px solid rgba(4,16,10,.35);border-top-color:#04100a;border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+.google-btn:hover{border-color:var(--border2,var(--border))}
+.divider-row{display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--text-faint);margin:8px 0}
+.divider-row::before,.divider-row::after{content:'';flex:1;height:1px;background:var(--border-soft)}
+.back-link{font-size:11px;color:var(--text-faint);cursor:pointer;padding:6px 4px 0;text-align:center}
+.back-link:hover{color:var(--text-dim)}
 
-/* messages */
-.msg-error{display:flex;gap:8px;font-size:12px;color:#ff9a9a;background:var(--red-bg);border:1px solid #4a2020;border-radius:9px;padding:9px 11px}
-.msg-note{display:flex;gap:8px;font-size:11.5px;color:var(--dim2);background:rgba(166,255,46,.06);border:1px solid var(--border2);border-radius:9px;padding:9px 11px;line-height:1.5}
-.live-match-chip{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:rgba(255,255,255,.03);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px;color:var(--fg);cursor:pointer;font-family:inherit}
-.live-match-chip:hover{border-color:var(--neon)}
-.live-match-chip .lm-status{font-size:10px;color:var(--neon);white-space:nowrap;text-transform:uppercase;letter-spacing:.03em}
+/* full-screen auth take-over (Claude-app style landing) */
+.auth-view{
+  position:fixed;inset:0;background:var(--bg);z-index:40;display:none;flex-direction:column;
+  padding:calc(20px + env(safe-area-inset-top)) 28px calc(26px + env(safe-area-inset-bottom));
+}
+.auth-view.open{display:flex}
+.auth-close{align-self:flex-start;width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);cursor:pointer;flex-shrink:0;margin-bottom:6px}
+.auth-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:22px}
+.auth-mark{color:var(--accent)}
+.auth-brand{font-family:var(--serif);font-weight:500;font-size:28px;color:var(--text)}
+.auth-tagline{font-size:14.5px;color:var(--text-faint);max-width:260px;line-height:1.5}
+.auth-bottom{flex-shrink:0;display:flex;flex-direction:column;gap:14px}
+.auth-google-btn{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--text);
+  border:none;border-radius:28px;color:var(--bg);font-weight:600;font-size:15px;padding:15px;cursor:pointer;
+}
+.auth-google-btn:hover{filter:brightness(.96)}
+.auth-divider{display:flex;align-items:center;gap:10px;font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--text-faint)}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border-soft)}
+.auth-email-row{
+  display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);
+  border-radius:28px;padding:6px 6px 6px 18px;
+}
+.auth-email-row input{
+  flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--sans);font-size:15px;padding:9px 0;
+}
+.auth-email-row input::placeholder{color:var(--text-faint)}
+.auth-email-send{
+  width:38px;height:38px;border-radius:50%;background:var(--accent);border:none;color:var(--bg);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:.15s;
+}
+.auth-email-send:disabled{background:var(--surface3);color:var(--text-faint);cursor:not-allowed}
+.auth-email-send:hover:not(:disabled){filter:brightness(1.1)}
+.auth-note{font-size:12px;color:var(--text-dim);text-align:center;min-height:16px}
+.auth-terms{font-size:11.5px;color:var(--text-faint);text-align:center;line-height:1.6}
+.auth-terms a{color:var(--text-dim);text-decoration:underline}
 
-/* sandbox */
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;padding:60px 10px;color:#2f5c48}
-.empty-state .big{font-size:34px}
-#scriptBox{min-height:440px;font-family:'JetBrains Mono',monospace;font-size:12.8px;line-height:1.7;white-space:pre-wrap}
-.counts{display:flex;justify-content:space-between;font-size:10.5px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+/* header incognito toggle */
+.hdr-icon.active{color:var(--accent)}
+.temp-banner{font-size:11.5px;color:var(--accent);text-align:center;padding:6px 0 2px;flex-shrink:0}
 
-/* voice card */
-fieldset{border:none;display:flex;flex-direction:column;gap:14px}
-fieldset:disabled{opacity:.35;pointer-events:none}
-.player-box{background:rgba(0,0,0,.35);border:1px solid var(--border2);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
-.player-row{display:flex;align-items:center;gap:10px}
-.play-btn{width:38px;height:38px;border-radius:50%;background:var(--neon);color:#04100a;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:14px}
-.seek{flex:1;display:flex;align-items:center;gap:8px}
-.seek span{font-size:10.5px;color:var(--dim2);width:32px;text-align:center}
-.stop-mini{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--dim2);border:1px solid var(--border2);border-radius:8px;padding:5px 9px;background:transparent;cursor:pointer}
-.stop-mini:hover{border-color:var(--neon);color:var(--neon)}
-footer{text-align:center;font-size:11px;color:#2f5c48;padding:20px 0 30px}
+/* settings + profile views */
+.view{flex:1;overflow-y:auto;padding:16px 16px 30px;display:none}
+.view.open{display:block}
+.settings-card{background:var(--surface);border:1px solid var(--border-soft);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.plan-badge{background:var(--text);color:var(--bg);font-size:11px;font-weight:700;border-radius:20px;padding:3px 10px}
+.settings-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border-soft);padding:13px 16px;font-size:14px;cursor:pointer;color:var(--text)}
+.settings-row:first-child{border-radius:12px 12px 0 0}
+.settings-row:last-child{border-radius:0 0 12px 12px;border-top:none}
+.settings-row + .settings-row{border-top:none;margin-top:-1px}
+.settings-group{margin-bottom:14px}
+.settings-row .chev{margin-left:auto;color:var(--text-faint)}
+.settings-row.danger{color:#d98a7a}
+.settings-row.danger svg{color:#d98a7a}
+
+.field-label{font-size:12.5px;color:var(--text-dim);margin:16px 0 6px}
+.field-input,.field-textarea{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:11px 13px;font-size:14px;font-family:var(--sans);outline:none}
+.field-textarea{min-height:90px;resize:vertical}
+.primary-btn{width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:10px;color:var(--text-dim);padding:11px;font-weight:600;font-size:13.5px;margin-top:10px;cursor:pointer}
+.primary-btn.ready{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.section-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin:20px 0 8px}
+
+/* composer */
+.composer{flex-shrink:0;padding:0 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 65%,transparent)}
+.composer-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:22px;overflow:hidden;
+}
+.composer textarea{
+  width:100%;background:transparent;border:none;outline:none;resize:none;color:var(--text);
+  font-family:var(--sans);font-size:15px;max-height:130px;line-height:1.45;padding:14px 16px 6px;
+}
+.composer textarea::placeholder{color:var(--text-faint)}
+.composer-controls{display:flex;align-items:center;gap:8px;padding:6px 8px 9px}
+.composer-controls .spacer{flex:1}
+.mode-pill-wrap{position:relative}
+.mode-pill{
+  display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);
+  border-radius:20px;color:var(--text-dim);font-size:12.5px;font-weight:500;padding:7px 12px;cursor:pointer;
+}
+.mode-pill .mp-icon{font-size:13px;line-height:1}
+.icon-btn{
+  width:34px;height:34px;border-radius:50%;background:transparent;border:none;
+  color:var(--text-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+}
+.send-btn{
+  width:34px;height:34px;border-radius:50%;background:var(--accent);border:none;color:var(--bg);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:.15s;
+}
+.send-btn:disabled{background:var(--surface3);color:var(--text-faint);cursor:not-allowed}
+.send-btn:hover:not(:disabled){filter:brightness(1.1)}
+.plus-btn{
+  width:34px;height:34px;border-radius:50%;background:transparent;border:1px solid var(--border);
+  color:var(--text-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+}
+
+/* mode picker menu */
+.mode-menu{
+  position:absolute;bottom:calc(100% + 8px);left:0;background:var(--surface2);border:1px solid var(--border);
+  border-radius:14px;padding:6px;display:none;flex-direction:column;gap:1px;min-width:250px;
+  box-shadow:0 16px 34px -12px rgba(0,0,0,.65);z-index:6;
+}
+.mode-menu.open{display:flex}
+.mode-menu-item{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;font-size:13.5px;
+  color:var(--text);cursor:pointer;background:transparent;border:none;text-align:left;width:100%;font-family:var(--sans);
+}
+.mode-menu-item:hover{background:var(--surface3)}
+.mode-menu-item.active{color:var(--accent)}
+.mode-menu-item .mi-icon{font-size:14px;width:18px;flex-shrink:0;text-align:center}
+
+/* session banner */
+.banner{display:flex;align-items:center;gap:10px;background:var(--surface2);border-bottom:1px solid var(--border-soft);padding:10px 14px;font-size:12px;color:var(--text-dim);max-height:80px;overflow:hidden;transition:max-height .28s ease,padding .28s ease,opacity .2s ease;opacity:1}
+.banner.closing{max-height:0;padding-top:0;padding-bottom:0;opacity:0;border-bottom-color:transparent}
+.banner .x{margin-left:auto;cursor:pointer;color:var(--text-faint);flex-shrink:0}
 </style>
 </head>
 <body>
 
-<header>
-  <div class="container hdr-row">
-    <div class="brand">
-      <div class="brand-icon">📡</div>
-      <div>
-        <div class="brand-title">Match Day Script Booth</div>
-        <div class="brand-sub">Draft → Edit → Voice, for football hosts</div>
-      </div>
-    </div>
-    <div class="hdr-right">
-      <div class="stage-track">
-        <span id="stage1">1 Draft</span>&nbsp;›&nbsp;<span id="stage2">2 Edit</span>&nbsp;›&nbsp;<span id="stage3">3 Voice</span>
-      </div>
-      <button class="icon-btn" id="settingsBtn" title="API settings">⚙</button>
-    </div>
+<div class="overlay" id="overlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-brand">Creator Booth</div>
+  <div class="drawer-item accent" id="new-chat-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+    New chat
   </div>
-  <div class="container" id="settings-panel">
-    <div class="settings-box">
-      <label class="settings-label">API Status</label>
-      <div class="settings-row">
-        <button class="icon-btn" id="testFootballKeyBtn" title="Check all server API keys">▶ Check All APIs</button>
-      </div>
-      <div id="footballKeyStatus"></div>
-      <div class="settings-note">
-        Gemini and API-Football calls now run through this site's own <b>/api</b> backend, so
-        no key ever touches your browser. If a request fails with a "server is missing" error, the site owner
-        needs to add <b>GEMINI_API_KEY</b> and <b>API_SPORTS_KEY</b> in Vercel →
-        Project Settings → Environment Variables, then redeploy. Three more are optional: <b>GROQ_API_KEY</b>
-        (free, no card — automatic backup chat AI for when Gemini's daily quota runs out),
-        <b>ELEVENLABS_API_KEY</b> + <b>ELEVENLABS_VOICE_ID</b> (primary voiceover — studio quality,
-        with correct pronunciation), and <b>GOOGLE_TTS_API_KEY</b> (backup voiceover if ElevenLabs
-        isn't set up or its quota runs out — needs a Google Cloud billing account with a card on
-        file, though usage stays free under 1M characters/month). Without any of the three,
-        voiceover still works via the browser's own built-in voice.
-      </div>
-
-      <div class="settings-note" style="margin-top:10px">
-        Each project — search results, chat history, script draft, and voice settings — autosaves locally
-        in this browser under its own slot, so switching projects (via the bar above the search panel) never mixes
-        one match's data into another. Reopening the page picks up whichever project was open last (screenshots/files you
-        attached in chat aren't kept, since images are too large for local storage; everything else is).
-      </div>
-      <button class="stop-mini" id="clearDataBtn" style="margin-top:10px">🗑 Clear Saved Data</button>
-    </div>
-  </div>
-</header>
-
-<div class="container" style="margin-top:14px">
-  <div class="project-bar">
-    <select id="projectSelect" title="Switch project"></select>
-    <button class="icon-btn" id="newProjectBtn" title="Start a new, blank project">＋ New</button>
-    <button class="icon-btn" id="renameProjectBtn" title="Rename this project">✎</button>
-    <button class="icon-btn" id="deleteProjectBtn" title="Delete this project">🗑</button>
+  <div class="drawer-label">Chats</div>
+  <div class="drawer-chats" id="drawer-chats"></div>
+  <div class="drawer-account" id="drawer-account">
+    <!-- filled by JS: signed-out shows email input, signed-in shows avatar row -->
   </div>
 </div>
 
-<main class="container">
-
-  <div id="scriptBoothView">
-
-  <!-- CARD 0: MATCH LOOKUP -->
-  <div class="card" style="margin-bottom:18px">
-    <div class="card-head">
-      <div class="step-badge" id="badge0">🔎</div>
-      <div class="card-title">Find Real Match Data</div>
+<div class="auth-view" id="auth-view">
+  <svg class="auth-close" id="auth-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  <div class="auth-hero">
+    <svg class="auth-mark" width="40" height="40" viewBox="0 0 32 32" fill="none">
+      <rect x="4" y="16" width="5" height="10" rx="2" fill="currentColor" opacity=".55"/>
+      <rect x="13.5" y="8" width="5" height="18" rx="2" fill="currentColor"/>
+      <rect x="23" y="12" width="5" height="14" rx="2" fill="currentColor" opacity=".55"/>
+      <circle cx="16" cy="4" r="2.4" fill="currentColor"/>
+    </svg>
+    <div class="auth-brand">Creator Booth</div>
+    <div class="auth-tagline">Research-backed scripts, drafted in seconds</div>
+  </div>
+  <div class="auth-bottom">
+    <button class="auth-google-btn" id="auth-google-btn" type="button">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.6 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3c-7.7 0-14.4 4.4-17.7 10.7z"/><path fill="#4CAF50" d="M24 45c5.5 0 10.4-1.9 14.2-5.1l-6.6-5.4C29.6 36.3 27 37 24 37c-5.3 0-9.7-3.4-11.3-8.1l-6.6 5.1C9.5 40.5 16.2 45 24 45z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.4l6.6 5.4C40.9 36 44 30.5 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>
+      Continue with Google
+    </button>
+    <div class="auth-divider">OR</div>
+    <div class="auth-email-row">
+      <input id="auth-email-input" type="email" placeholder="Enter your email">
+      <button class="auth-email-send" id="auth-email-send" disabled type="button">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
     </div>
-    <div class="card-body">
-      <div class="msg-note">
-        Search a real match before drafting. If you set a date, this pulls the score, scorers, cards, subs,
-        team stats, and formations as hard data straight from API-Football — plus a live web search (with
-        source links) for anything hard data can't cover, like VAR detail, IFAB Law of the Game text, or
-        transfer news. Skip this and the host can only work off whatever you type manually.
-      </div>
-      <div class="field">
-        <label>Search a match, player, or incident</label>
-        <div class="settings-row">
-          <input type="text" id="matchQuery" placeholder="e.g. Arsenal vs Chelsea 10 August 2025, or Saka penalty shout"/>
-          <button class="btn-outline" id="matchSearchBtn" style="width:auto;white-space:nowrap;padding:10px 16px">🔎 Search</button>
-        </div>
-        <div class="settings-row" style="margin-top:8px">
-          <input type="date" id="matchDate" style="max-width:170px"/>
-          <span style="font-size:11px;color:var(--dim);align-self:center">Optional — set this to pull the exact score, cards, subs, stats, and formations as hard data from API-Football, for any date past or present.</span>
-        </div>
-      </div>
-      <div class="settings-row" style="margin-bottom:10px">
-        <button class="btn-outline" id="liveMatchesBtn" style="width:auto;white-space:nowrap;padding:8px 14px;font-size:12px">📡 Live Matches Today</button>
-        <span style="font-size:11px;color:var(--dim)">Scores and full match data from API-Football — whatever competitions it covers today</span>
-      </div>
-      <div id="liveMatchesList" style="margin-bottom:10px"></div>
-      <div id="matchSearchError"></div>
-      <div id="matchResults" style="display:none">
-        <div class="field">
-          <label>Verified Match Facts (edit anything that looks off before using it)</label>
-          <textarea id="verifiedFacts" rows="8" style="font-family:'JetBrains Mono',monospace;font-size:12.5px"></textarea>
-        </div>
-        <div id="matchSources" style="font-size:11px;color:var(--dim);margin-bottom:10px"></div>
-        <button class="btn-outline" id="useFactsBtn">↓ Use These Facts in Match Details Below</button>
-      </div>
+    <div class="auth-note" id="auth-note"></div>
+    <div class="auth-terms">By continuing, you agree to Creator Booth's <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and acknowledge the <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</div>
+  </div>
+</div>
+
+<header>
+  <svg class="hdr-icon" id="menu-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  <svg class="hdr-icon" id="back-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M15 18l-6-6 6-6"/></svg>
+  <span class="hdr-title" id="hdr-title">CREATOR BOOTH</span>
+  <svg class="hdr-icon" id="incognito-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" title="Temporary chat">
+    <path d="M5 20V11a7 7 0 0114 0v9l-2.5-2-2 2-2-2-2 2-2-2L5 20z"/>
+    <circle cx="9.5" cy="11" r=".9" fill="currentColor" stroke="none"/><circle cx="14.5" cy="11" r=".9" fill="currentColor" stroke="none"/>
+  </svg>
+</header>
+<div class="temp-banner" id="temp-banner" style="display:none">Temporary chat — this one won't be saved</div>
+
+<div class="thread" id="thread">
+  <div class="hero" id="hero">
+    <svg class="hero-mark" id="hero-mark" width="34" height="34" viewBox="0 0 32 32" fill="none">
+      <rect x="4" y="16" width="5" height="10" rx="2" fill="currentColor" opacity=".55"/>
+      <rect x="13.5" y="8" width="5" height="18" rx="2" fill="currentColor"/>
+      <rect x="23" y="12" width="5" height="14" rx="2" fill="currentColor" opacity=".55"/>
+      <circle cx="16" cy="4" r="2.4" fill="currentColor"/>
+    </svg>
+    <div class="hero-title" id="hero-title">What are we making today?</div>
+    <div class="hero-sub" id="hero-sub">Search a match, a player, or a topic — I'll gather what I can and draft it.</div>
+  </div>
+</div>
+
+<div class="view" id="settings-view">
+  <div class="settings-card">
+    <span id="settings-email">you@email.com</span>
+    <span class="plan-badge">Free</span>
+  </div>
+
+  <div class="settings-group">
+    <div class="settings-row" id="row-profile">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+      Profile
+      <span class="chev">›</span>
+    </div>
+    <div class="settings-row" id="row-voice">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 10v4M9 6v12M14 3v18M19 8v8"/></svg>
+      Voice
+      <span class="chev">›</span>
     </div>
   </div>
 
-  <!-- CARD 0.5: RESEARCH CHAT -->
-  <div class="card" style="margin-bottom:18px">
-    <div class="card-head">
-      <div class="step-badge" id="badgeChat">💬</div>
-      <div class="card-title">Chat With Your Match Analyst</div>
+  <div class="settings-group">
+    <div class="settings-row" id="row-privacy">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>
+      Privacy
+      <span class="chev">›</span>
     </div>
-    <div class="card-body">
-      <div class="msg-note">
-        Talk this through instead of a single search. It automatically sees whatever's in the Verified Match
-        Facts panel above, so it won't re-ask for anything already found — tell it what you already have, and
-        it'll ask for whatever stats are still missing — possession, pass completion, chances created, big
-        chances, shots on/off target, interceptions, touches, for either team or a specific key player. Attach
-        as many screenshots as you need at once (from Sofascore, WhoScored, etc.) and it'll read the numbers
-        straight off each image and read them back to confirm. You can also upload a stats export directly
-        — an .xlsx or .csv file (e.g. from Gemini/Sheets) — instead of screenshotting it.
-      </div>
-      <div id="chatMessages" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:6px 2px"></div>
-      <div id="chatError"></div>
-      <div id="attachmentsPreview" style="display:none;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
-      <div class="field" style="margin-top:10px">
-        <textarea id="chatInput" rows="2" placeholder="e.g. Spain had 61% possession, here's a screenshot of the rest..."></textarea>
-      </div>
-      <input type="file" id="imageInput" accept="image/*" multiple style="display:none"/>
-      <input type="file" id="dataFileInput" accept=".xlsx,.xls,.csv" multiple style="display:none"/>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="icon-btn" id="attachImageBtn" type="button" title="Attach screenshot(s)">📷</button>
-        <button class="icon-btn" id="attachFileBtn" type="button" title="Attach a stats file (.xlsx / .csv)">📊</button>
-        <button class="btn-primary" id="chatSendBtn" style="flex:1">Send</button>
-      </div>
-      <button class="btn-outline" id="useChatBtn" style="margin-top:10px">↓ Use This Conversation in Match Details Below</button>
+    <div class="settings-row" id="row-help">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M9 10c0-1.7 1.3-3 3-3s3 1.3 3 3-3 2-3 4M12 17.5v.01"/></svg>
+      Help &amp; FAQ
+      <span class="chev">›</span>
     </div>
   </div>
 
-  <div class="grid">
-
-    <!-- CARD 1: CONFIG -->
-    <div class="card">
-      <div class="card-head">
-        <div class="step-badge" id="badge1">1</div>
-        <div class="card-title">Configure &amp; Draft</div>
-      </div>
-      <div class="card-body">
-        <div class="field">
-          <label>Host Persona</label>
-          <select id="personaSelect">
-            <option value="theo">Tactical Theo (Sharp, analytical, highly opinionated)</option>
-            <option value="marcus">Coach Marcus (Direct, aggressive, former coach style)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Video Mode</label>
-          <select id="modeSelect">
-            <option value="var">Referee/VAR Controversy</option>
-            <option value="prematch">Pre-Match Prediction &amp; Starting XI</option>
-            <option value="halftime">Half-Time Breakdown (In-Game Analysis)</option>
-            <option value="fulltime">Full-Time Match Review (Result &amp; Player Performances)</option>
-            <option value="postmatch">Post-Match Formation &amp; Performance Breakdown</option>
-            <option value="ultimatexi">Ultimate XI Selection (World Cup / UCL / League Starts)</option>
-            <option value="transfer">Transfer Analysis (Move, Fee &amp; Impact)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Tone</label>
-          <select id="toneSelect">
-            <option value="opinionated">Opinionated — bold, controversial verdict (default)</option>
-            <option value="neutral">Neutral — analyze only, no forced stance</option>
-          </select>
-        </div>
-        <div class="field">
-          <label id="durationLabel">Target Duration — 90s</label>
-          <div class="range-wrap">
-            <input type="range" id="durationSlider" min="0" max="3" step="1" value="1"/>
-            <div class="range-ticks"><span>60s</span><span>90s</span><span>120s</span><span>180s</span></div>
-          </div>
-        </div>
-        <div class="field">
-          <label id="teamDetailsLabel">Team / Match Details</label>
-          <textarea id="teamDetails" rows="4" placeholder="e.g. Arsenal vs Real Madrid, UCL Quarter-Final 2nd leg. Saka, Odegaard, Bellingham, Vinicius..."></textarea>
-        </div>
-        <div class="field">
-          <label id="tacticalContextLabel">Tactical Context / Lineup Details</label>
-          <textarea id="tacticalContext" rows="4" placeholder="e.g. Arteta expected 4-3-3 with Rice dropping deep; Ancelotti's 4-4-2 diamond vs Bellingham as false 9..."></textarea>
-        </div>
-        <div id="draftError"></div>
-        <button class="btn-primary" id="draftBtn">✨ 1. Draft Script</button>
-      </div>
+  <div class="settings-group">
+    <div class="settings-row danger" id="row-logout">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      Log out
     </div>
-
-    <!-- CARD 2: SANDBOX -->
-    <div class="card">
-      <div class="card-head">
-        <div class="step-badge" id="badge2">2</div>
-        <div class="card-title">Editable Script Sandbox</div>
-      </div>
-      <div class="card-body">
-        <div class="empty-state" id="sandboxEmpty">
-          <div class="big">📝</div>
-          <div style="font-size:13px;font-weight:600;color:var(--dim2)">Complete step 1 to unlock the sandbox.</div>
-          <div style="font-size:11.5px">Your drafted script will land here, fully editable.</div>
-        </div>
-        <div id="sandboxFull" style="display:none">
-          <textarea id="scriptBox" rows="20"></textarea>
-          <div class="counts" style="margin-top:8px">
-            <span id="wordCount">0 words</span>
-            <span id="charCount">0 characters</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CARD 3: VOICE -->
-    <div class="card">
-      <div class="card-head">
-        <div class="step-badge" id="badge3">3</div>
-        <div class="card-title">Voice Generator</div>
-      </div>
-      <div class="card-body">
-        <div class="empty-state" id="voiceEmpty">
-          <div class="big">🎙️</div>
-          <div style="font-size:13px;font-weight:600;color:var(--dim2)">Write or generate a script first.</div>
-        </div>
-        <fieldset id="voiceFieldset" disabled>
-          <div class="field">
-            <label>Voice</label>
-            <select id="voiceSelect">
-              <option value="en-GB-RyanNeural">Ryan — British, composed pundit</option>
-              <option value="en-US-ChristopherNeural">Christopher — American, hyped sports style</option>
-              <option value="en-US-GuyNeural">Guy — American, deep broadcast tone</option>
-              <option value="en-AU-WilliamNeural">William — Australian, gravelly analyst</option>
-            </select>
-          </div>
-          <div class="field">
-            <label id="rateLabel">Speech Rate — 0%</label>
-            <div class="range-wrap">
-              <input type="range" id="rateSlider" min="-10" max="15" step="1" value="0"/>
-              <div class="range-ticks"><span>-10%</span><span>0</span><span>+15%</span></div>
-            </div>
-          </div>
-          <div class="field">
-            <label>Pronunciation fixes (optional)</label>
-            <textarea id="pronunciationFixes" rows="3" placeholder="One per line: word=how it sounds&#10;e.g. Szoboszlai=Show-boss-lie&#10;semi=sem-ee"></textarea>
-            <div style="font-size:12px;color:var(--dim2);margin-top:4px;">Applies to all voice engines, including the browser fallback. Use this for names or terms that come out mispronounced (e.g. "semi" read as "sem-eye").</div>
-          </div>
-          <button class="btn-primary" id="voiceBtn">🎙 2. Generate Voiceover</button>
-          <button class="btn-outline" id="copyTTSBtn" type="button" style="margin-top:8px;">📋 Copy Script for External TTS</button>
-        </fieldset>
-        <div id="voiceError"></div>
-        <div id="engineNote"></div>
-        <div id="playerBox" style="display:none"></div>
-      </div>
-    </div>
-
   </div>
+</div>
 
-  </div><!-- /scriptBoothView -->
+<div class="view" id="profile-view">
+  <div class="field-label">Full name</div>
+  <input class="field-input" id="profile-fullname" placeholder="Your name">
+  <div class="field-label">What should we call you?</div>
+  <input class="field-input" id="profile-nickname" placeholder="Preferred name">
+  <button class="primary-btn" id="save-profile-btn">Update Profile</button>
 
-</main>
+  <div class="section-label">Script preferences</div>
+  <div class="field-label" style="margin-top:0">What should Creator Booth consider when writing your scripts?</div>
+  <textarea class="field-textarea" id="profile-preferences" placeholder="e.g. keep it punchy, avoid transfer rumors, always mention the manager's reaction…"></textarea>
+  <button class="primary-btn" id="save-prefs-btn">Save Preferences</button>
 
-<footer>Script drafting and live football data are fetched through this site's own backend (Vercel serverless functions), so no API key ever sits in your browser. Voiceover synthesis still runs client-side.</footer>
+  <div class="section-label">Account actions</div>
+  <div class="settings-row danger" id="row-delete-account" style="border-radius:12px">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6"/></svg>
+    Delete Account
+  </div>
+</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-/* ---------------------------------------------------------------- */
-/* Safe storage — real localStorage when available, in-memory otherwise */
-/* ---------------------------------------------------------------- */
-var memStore = {};
-function lsGet(k){ try{ var v=localStorage.getItem(k); return v===null?'':v; }catch(e){ return memStore[k]||''; } }
-function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){ memStore[k]=v; } }
+<div class="composer">
+  <div class="composer-card">
+    <div class="banner" id="session-banner">
+      <span>Not signed in — chats save on this device.</span>
+      <span class="x" id="banner-close">✕</span>
+    </div>
+    <textarea id="input" rows="1" placeholder="Real Madrid latest signing…"></textarea>
+    <div class="composer-controls">
+      <button class="icon-btn" title="Attach / options">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <div class="mode-pill-wrap">
+        <button class="mode-pill" id="mode-pill" type="button">
+          <span class="mp-icon" id="mode-pill-icon">⚽</span>
+          <span id="mode-pill-label">Football</span>
+        </button>
+        <div class="mode-menu" id="mode-menu"></div>
+      </div>
+      <div class="spacer"></div>
+      <button class="icon-btn" title="Voice input">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3z"/><path d="M19 11a7 7 0 01-14 0M12 18v3"/></svg>
+      </button>
+      <button class="send-btn" id="send" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
 
-/* ---------------------------------------------------------------- */
-/* Static data                                                       */
-/* ---------------------------------------------------------------- */
-var PERSONAS = {
-  theo:   { label:"Tactical Theo",
-    rule:'If Host is "Tactical Theo": Speak like a sharp, analytical pundit who backs up opinions with tactical structures, formations, and rules. Be highly opinionated, confident, slightly smug, but incredibly smart. Theo is also an unapologetic Barcelona and Messi fan — when Barcelona or Messi are directly part of the match/topic, let that bias genuinely show: give them the benefit of the doubt on close calls, sound more enthusiastic about their qualities, and be sharper/more critical toward their direct rivals or anyone drawing unfavorable comparisons to Messi. This is a personality trait, not permission to bend facts — stay within the CRITICAL fact-accuracy rule below regardless of bias. For matches or topics that do not involve Barcelona or Messi at all, analyze purely on tactical merit with no forced bias or shoehorned mentions.' },
-  marcus: { label:"Coach Marcus",
-    rule:'If Host is "Coach Marcus": Speak like a gritty, blunt, direct former manager. Use passionate, raw, and aggressive language. Take zero prisoners and tell it exactly like it is.' }
-};
-var MODES = {
-  var:        { label:"Referee/VAR Controversy",
-    rule:'For "Referee / VAR": Analyze the specific IFAB rule against exactly what happened on the pitch. Judge the decision strictly on the facts and the letter of the law — the referee may have been right or wrong; do not assume either outcome by default, and let the evidence decide which way the verdict goes.' },
-  prematch:   { label:"Pre-Match Prediction & Starting XI",
-    rule:'For "Pre-Match Prediction & Starting XI": Detail the predicted formations, past matches, head-to-head performance, and justify your starting XI choices.' },
-  postmatch:  { label:"Post-Match Formation & Performance Breakdown",
-    rule:'For "Post-Match Formation": Compare the manager\'s chosen system to previous successful setups, pointing out exactly where the tactical breakdown occurred.' },
-  halftime:   { label:"Half-Time Breakdown (In-Game Analysis)",
-    rule:'For "Half-Time Breakdown": Analyze exactly what has happened in the first half for BOTH sides — what is working, what isn\'t, and the key stats or moments so far. Then prescribe specific, concrete adjustments each team needs to make for the second half (formation tweaks, personnel changes, tactical instructions) to change how the game goes.' },
-  fulltime:   { label:"Full-Time Match Review (Result & Player Performances)",
-    rule:'For "Full-Time Match Review": React to the final score and result, then rate BOTH teams\' overall performance in the game (not just the winning side). If a specific player is named in the inputs to focus on, give a direct personal verdict on that individual\'s performance in this exact match — what they did well, what they got wrong, and a rating out of 10. If no single player is named, naturally call out the standout performer and the biggest underperformer from the match as part of the review.' },
-  transfer:   { label:"Transfer Analysis (Move, Fee & Impact)",
-    rule:'For "Transfer Analysis": Treat the reported transfer (player, fee, clubs, terms) as fact — do not invent figures beyond what is given. Assess the impact on BOTH sides of the deal: what the selling club gains or loses (finances, squad depth, replacement need) and what the buying club gains or risks (system fit, competition for the position, value versus the reported fee, age/injury history if mentioned). Deliver a clear personal verdict on whether the move and the fee make sense for each club.' },
-  ultimatexi: { label:"Ultimate XI Selection (World Cup / UCL / League Starts)",
-    rule:'For "Ultimate XI Selection": Compare performance metrics across different tournament starts (World Cup, League, Champions League) to justify your selections.' }
-};
-var TONES = {
-  opinionated: {
-    label: "Opinionated",
-    verdictRule: 'Do not remain neutral; you MUST take a definitive, bold stance.',
-    verdictBody: '(20% of duration. The host delivers their final personal, highly opinionated judgment. End with a sharp challenge to the audience to drop their own thoughts in the comments if they think you\'re wrong.)'
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = 'https://krmjvfemsufduqdofuqy.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtybWp2ZmVtc3VmZHVxZG9mdXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwMjQ1OTMsImV4cCI6MjEwMDYwMDU5M30.ftTtPul4dCVCBgjB60NH9bdKJJAEWomipYipffRFaK4';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const USER_NAME_FALLBACK = 'there'; // used until a real signed-in name/email is available
+
+/* ------------------------------------------------------------------ */
+/* Modes — one pipeline, six system prompts. Adding a mode = add an    */
+/* entry here; nothing else in the pipeline needs to change.           */
+/* ------------------------------------------------------------------ */
+const MODES = [
+  {
+    id: 'football', icon: '⚽', label: 'Football',
+    placeholder: 'Real Madrid latest signing…',
+    heroSub: "Search a match, a player, or a topic — I'll gather what I can and draft it.",
+    system:
+`You are a football (soccer) short-form video scriptwriter and researcher for a content creator. Write a punchy, spoken-style script (roughly 60-90 seconds read aloud) about the user's request.
+If a block labeled "=== VERIFIED MATCH DATA ===" appears below the request, treat every fact in it as ground truth and never contradict it — it comes straight from a live sports data feed. Use web search to fill in anything that block doesn't cover (transfer news, context, reactions, historical background), and never invent a stat, score, or quote you can't support.
+If you genuinely can't verify something, say so briefly in the script rather than guessing. Return ONLY the spoken script prose — no headers, no markdown, no stage directions unless the user asked for them.`
   },
-  neutral: {
-    label: "Neutral",
-    verdictRule: 'Stay analytical and even-handed — weigh the strongest points on each side fairly rather than forcing a dramatic take.',
-    verdictBody: '(20% of duration. The host gives a level-headed closing summary: what the evidence/stats actually support, and what remains genuinely uncertain or debatable. No forced controversy — if the facts point clearly one way, say so plainly; if they don\'t, say that too instead of manufacturing a strong opinion.)'
+  {
+    id: 'story', icon: '📖', label: 'Story',
+    placeholder: 'A story about a lighthouse keeper who…',
+    heroSub: "Give me a premise, a character, or a mood — I'll draft a short narrative script.",
+    system:
+`You are a short-form narrative scriptwriter. Turn the user's premise into a vivid, spoken-style short story or video script (roughly 60-90 seconds read aloud), with a clear hook in the first line, a strong sense of voice, and a satisfying turn or ending. Return ONLY the script prose — no headers, no markdown.`
+  },
+  {
+    id: 'secret', icon: '🕵️', label: 'Secret Web Tools',
+    placeholder: 'An underrated tool for editing video on a phone…',
+    heroSub: "Ask about a task, and I'll research an obscure, underrated tool for it.",
+    system:
+`You are a researcher who surfaces genuinely obscure, underrated web tools and apps that most people have never heard of — not the top 3 everyone already knows. Use web search to find a real, current, verifiable tool matching the user's request (confirm it still exists and works). Write the result as a punchy spoken-style script: what the tool is, the one thing it does better than the obvious choice, and a quick how-to-use walkthrough. Never invent a tool name or feature. If you can't verify something is real and current, say so. Return ONLY the script prose — no headers, no markdown.`
+  },
+  {
+    id: 'aiGuides', icon: '🤖', label: 'Hidden AI / Prompting Guides',
+    placeholder: 'How to get better code out of Claude…',
+    heroSub: "Ask how to prompt a specific AI model or task, and I'll draft a guide script.",
+    system:
+`You are an expert prompt engineer creating short, practical spoken-style scripts that teach viewers how to get better results from AI models (Claude, ChatGPT, Gemini, etc.) for a specific task. Use web search to make sure any model names, features, or UI details you mention are current — these change fast and you should not rely on stale memory for them. Give 2-4 concrete, actionable tips illustrated with a short example prompt. Return ONLY the script prose — no headers, no markdown.`
+  },
+  {
+    id: 'conspiracy', icon: '🏛️', label: 'Conspiracy/History',
+    placeholder: 'Who really invented the light bulb…',
+    heroSub: '"Who really invented X" style deep-dives — fact-checked, not sensationalized.',
+    system:
+`You are a history researcher making "who really invented/discovered/did X" style spoken-style scripts. Use web search to verify names, dates, and claims. Clearly distinguish well-established historical fact from disputed or contested claims — if a popular story is a myth or oversimplification, say so and explain what the actual record shows. Do not present unfounded conspiracy theories as fact. The goal is a genuinely surprising, well-sourced story, not sensationalism. Return ONLY the script prose — no headers, no markdown.`
+  },
+  {
+    id: 'aiNews', icon: '📰', label: 'AI News Roundup',
+    placeholder: 'What changed with ChatGPT memory this month…',
+    heroSub: "Ask about a recent AI product change, and I'll draft a roundup with alternatives.",
+    system:
+`You are writing a short spoken-style "AI news roundup" script. Use web search to find real, current, dated news about the product change the user is asking about (e.g. a feature being removed, changed, or deprecated). Confirm what actually happened and when, then suggest up to 3 real, current alternative tools or workarounds. Never invent a news event, date, or alternative product — if you can't verify something happened, say so plainly instead of guessing. Return ONLY the script prose — no headers, no markdown.`
   }
-};
-var DURATIONS = [60,90,120,180];
+];
+let currentModeId = 'football';
+function currentMode(){ return MODES.find(m => m.id === currentModeId) || MODES[0]; }
 
-/* ---------------------------------------------------------------- */
-/* Helpers                                                           */
-/* ---------------------------------------------------------------- */
-function formatTimestamp(totalSeconds){
-  var m = Math.floor(totalSeconds/60);
-  var s = Math.round(totalSeconds%60).toString().padStart(2,'0');
-  return m+':'+s;
+function pickGreeting(){
+  const name = (currentUser?.email ? currentUser.email.split('@')[0] : USER_NAME_FALLBACK);
+  const hour = new Date().getHours();
+  const timeGreetings = hour < 12
+    ? [`Morning, ${name}`, `Coffee and scripts, ${name}?`]
+    : hour < 17
+      ? [`Afternoon, ${name}`, `Back for more, ${name}?`]
+      : [`Evening, ${name}`, `${name} returns`];
+  const generic = ['Time to brainstorm', 'What are we making today?', 'Ready when you are'];
+  const isReturning = chats.some(c => c.title !== 'New chat');
+  const pool = (isReturning && Math.random() < 0.65) ? timeGreetings : generic;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
-function getTimings(duration){
-  // No hook section anymore — a pre-recorded intro clip plays before this script starts,
-  // so the analysis itself now begins at 0:00. Verdict still gets the same ~20% share.
-  var analysisEnd = duration*0.8;
-  return { analysisStart: formatTimestamp(0), verdictStart: formatTimestamp(analysisEnd) };
+
+function refreshGreeting(){
+  const el = document.getElementById('hero-title');
+  if (el) el.textContent = pickGreeting();
+  const sub = document.getElementById('hero-sub');
+  if (sub) sub.textContent = currentMode().heroSub;
 }
-/* Primary (optional) engine: ElevenLabs, via our own /api/elevenlabs proxy.
-   Best quality, and the only one of the two with a real pronunciation dictionary
-   (for player names, "semi-final", etc.) and tone control. Falls through to
-   Google Cloud TTS automatically if it's not configured, or if its free 10k
-   characters/month quota is used up. */
-function synthesizeElevenLabsTTS(text){
-  return fetch('/api/elevenlabs', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({ text: text })
-  }).then(function(res){
-    if(!res.ok){
-      return res.json().catch(function(){ return {}; }).then(function(err){
-        throw new Error((err && err.error) || ('ElevenLabs request failed ('+res.status+')'));
-      });
-    }
-    return res.blob();
+
+// --- DOM refs ---
+const drawer = document.getElementById('drawer');
+const overlay = document.getElementById('overlay');
+const menuBtn = document.getElementById('menu-btn');
+const drawerChats = document.getElementById('drawer-chats');
+const drawerAccount = document.getElementById('drawer-account');
+const newChatBtn = document.getElementById('new-chat-btn');
+const thread = document.getElementById('thread');
+const hero = document.getElementById('hero');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+const banner = document.getElementById('session-banner');
+const bannerClose = document.getElementById('banner-close');
+
+menuBtn.addEventListener('click', () => { drawer.classList.add('open'); overlay.classList.add('open'); });
+overlay.addEventListener('click', () => { drawer.classList.remove('open'); overlay.classList.remove('open'); });
+bannerClose.addEventListener('click', () => {
+  banner.classList.add('closing');
+  setTimeout(() => banner.remove(), 300);
+});
+
+// --- View switching: chat / settings / profile ---
+const backBtn = document.getElementById('back-btn');
+const hdrTitleEl = document.getElementById('hdr-title');
+const settingsView = document.getElementById('settings-view');
+const profileView = document.getElementById('profile-view');
+const composerEl = document.querySelector('.composer');
+
+function showView(name){
+  const isChat = name === 'chat';
+  thread.style.display = isChat ? 'flex' : 'none';
+  composerEl.style.display = isChat ? 'flex' : 'none';
+  if (banner) banner.style.display = (isChat && !signedIn) ? 'flex' : 'none';
+  settingsView.classList.toggle('open', name === 'settings');
+  profileView.classList.toggle('open', name === 'profile');
+  menuBtn.style.display = isChat ? 'block' : 'none';
+  backBtn.style.display = isChat ? 'none' : 'block';
+  hdrTitleEl.textContent = name === 'settings' ? 'Settings' : name === 'profile' ? 'Profile' : 'CREATOR BOOTH';
+  document.getElementById('incognito-btn').style.display = isChat ? 'block' : 'none';
+}
+backBtn.addEventListener('click', () => showView(profileView.classList.contains('open') ? 'settings' : 'chat'));
+
+document.getElementById('row-profile').addEventListener('click', () => {
+  document.getElementById('profile-fullname').value = localStorage.getItem('cb_fullname') || '';
+  document.getElementById('profile-nickname').value = localStorage.getItem('cb_nickname') || '';
+  document.getElementById('profile-preferences').value = localStorage.getItem('cb_prefs') || '';
+  showView('profile');
+});
+['row-voice','row-privacy','row-help'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(){
+    const original = this.querySelector('.chev').textContent;
+    this.querySelector('.chev').textContent = 'soon';
+    setTimeout(() => { this.querySelector('.chev').textContent = original; }, 1200);
   });
-}
+});
 
-/* Backup engine: Google Cloud Text-to-Speech, via our own /api/google-tts proxy.
-   Stays free within 1M characters/month for Neural2 voices, but (unlike
-   ElevenLabs) Google requires a billing account with a card on file to turn the
-   API on at all — see the Settings panel note for setup details. */
-var GOOGLE_TTS_VOICE_MAP = {
-  'en-GB-RyanNeural':        { languageCode:'en-GB', name:'en-GB-Neural2-B' },
-  'en-US-ChristopherNeural': { languageCode:'en-US', name:'en-US-Neural2-D' },
-  'en-US-GuyNeural':         { languageCode:'en-US', name:'en-US-Neural2-J' },
-  'en-AU-WilliamNeural':     { languageCode:'en-AU', name:'en-AU-Neural2-B' }
-};
-function synthesizeGoogleTTS(text, voiceId, ratePercent){
-  var cfg = GOOGLE_TTS_VOICE_MAP[voiceId] || GOOGLE_TTS_VOICE_MAP['en-US-ChristopherNeural'];
-  return fetch('/api/google-tts', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({
-      text: text,
-      languageCode: cfg.languageCode,
-      voiceName: cfg.name,
-      speakingRate: 1 + (ratePercent||0)/100
-    })
-  }).then(function(res){
-    return res.json().then(function(data){
-      if(!res.ok) throw new Error(data.error || ('Google TTS request failed ('+res.status+')'));
-      var byteChars = atob(data.audioContent);
-      var byteNumbers = new Array(byteChars.length);
-      for(var i=0; i<byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
-      return new Blob([new Uint8Array(byteNumbers)], { type:'audio/mpeg' });
+// --- Mode pill: tap opens a picker; picking a mode updates the pipeline ---
+const modePill = document.getElementById('mode-pill');
+const modeMenu = document.getElementById('mode-menu');
+const modePillIcon = document.getElementById('mode-pill-icon');
+const modePillLabel = document.getElementById('mode-pill-label');
+
+function renderModeMenu(){
+  modeMenu.innerHTML = '';
+  MODES.forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'mode-menu-item' + (m.id === currentModeId ? ' active' : '');
+    btn.innerHTML = `<span class="mi-icon">${m.icon}</span><span>${m.label}</span>`;
+    btn.addEventListener('click', () => {
+      currentModeId = m.id;
+      modePillIcon.textContent = m.icon;
+      modePillLabel.textContent = m.label;
+      input.placeholder = m.placeholder;
+      if (!thread.querySelector('.msg')) refreshGreeting();
+      modeMenu.classList.remove('open');
+      renderModeMenu();
     });
+    modeMenu.appendChild(btn);
   });
 }
+renderModeMenu();
+modePill.addEventListener('click', (e) => {
+  e.stopPropagation();
+  modeMenu.classList.toggle('open');
+});
+document.addEventListener('click', (e) => {
+  if (!modeMenu.contains(e.target) && e.target !== modePill) modeMenu.classList.remove('open');
+});
 
-/* Picks a male-leaning voice from whatever the browser's Web Speech API
-   exposes — voice availability varies wildly by device/browser, and very
-   few expose gender in a structured way, so this is a best-effort heuristic. */
-function pickBrowserMaleVoice(){
-  var voices = window.speechSynthesis.getVoices() || [];
-  var enVoices = voices.filter(function(v){ return v.lang && v.lang.toLowerCase().indexOf('en')===0; });
-  if(!enVoices.length) return voices[0] || null;
-  var preferred = ['male','ryan','guy','christopher','david','daniel','mark','alex','fred','george','oliver','arthur','tom','james','matthew','brian','russell','justin','joey'];
-  var avoid = ['female','zira','samantha','victoria','karen','moira','tessa','fiona','sara','susan','allison','ava','zoe','kate','amy','emma','joanna','salli','kimberly','nicole','ivy'];
-  var scored = enVoices.map(function(v){
-    var name = v.name.toLowerCase();
-    return { v:v, avoid: avoid.some(function(a){ return name.indexOf(a)!==-1; }), preferred: preferred.some(function(p){ return name.indexOf(p)!==-1; }) };
-  });
-  var pick = scored.filter(function(s){ return s.preferred && !s.avoid; })[0] ||
-             scored.filter(function(s){ return !s.avoid; })[0] ||
-             scored[0];
-  return pick ? pick.v : null;
-}
-
-/* Strips the visual [0:00 - THE HOOK]-style section headers out of the script
-   before sending it to any TTS engine — those are sandbox-only markers, not
-   spoken lines. Matches the bracket wherever it falls on a line (not just
-   when it's alone on its own line), since the model doesn't always put a
-   line break right after it — that gap was why voiceover sometimes read
-   "The hook 0:00" out loud instead of skipping it. */
-function stripScriptMarkup(text){
-  return text.replace(/\[[^\]\n]*\]/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-}
-
-/* Parses the "word=replacement" lines from the pronunciation-fixes box and
-   swaps each whole-word match (case-insensitive) in the script text with the
-   respelled version, so TTS engines say it the way the user actually wants —
-   this matters most for foreign player names and terms like "semi" that
-   generic TTS models often get wrong. Applied identically for every engine
-   (ElevenLabs, Google TTS, browser fallback) since all three read the same
-   `speakable` string. */
-function applyPronunciationFixes(text){
-  var raw = (pronunciationFixes.value || '').split('\n');
-  raw.forEach(function(line){
-    var idx = line.indexOf('=');
-    if(idx === -1) return;
-    var find = line.slice(0, idx).trim();
-    var replace = line.slice(idx+1).trim();
-    if(!find || !replace) return;
-    var escaped = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    var re = new RegExp('\\b'+escaped+'\\b', 'gi');
-    text = text.replace(re, replace);
-  });
-  return text;
-}
-
-/* ---------------------------------------------------------------- */
-/* DOM refs                                                          */
-/* ---------------------------------------------------------------- */
-var $ = function(id){ return document.getElementById(id); };
-var settingsBtn = $('settingsBtn'), settingsPanel = $('settings-panel');
-var testFootballKeyBtn = $('testFootballKeyBtn'), footballKeyStatus = $('footballKeyStatus');
-var personaSelect = $('personaSelect'), modeSelect = $('modeSelect'), toneSelect = $('toneSelect'), durationSlider = $('durationSlider'), durationLabel = $('durationLabel');
-var teamDetails = $('teamDetails'), tacticalContext = $('tacticalContext'), draftBtn = $('draftBtn'), draftError = $('draftError');
-var sandboxEmpty = $('sandboxEmpty'), sandboxFull = $('sandboxFull'), scriptBox = $('scriptBox'), wordCount = $('wordCount'), charCount = $('charCount');
-var voiceEmpty = $('voiceEmpty'), voiceFieldset = $('voiceFieldset'), voiceSelect = $('voiceSelect'), rateSlider = $('rateSlider'), rateLabel = $('rateLabel'), pronunciationFixes = $('pronunciationFixes');
-var voiceBtn = $('voiceBtn'), voiceError = $('voiceError'), engineNote = $('engineNote'), playerBox = $('playerBox'), copyTTSBtn = $('copyTTSBtn');
-var badge1=$('badge1'), badge2=$('badge2'), badge3=$('badge3'), stage1=$('stage1'), stage2=$('stage2'), stage3=$('stage3');
-var matchQuery=$('matchQuery'), matchDate=$('matchDate'), matchSearchBtn=$('matchSearchBtn'), matchSearchError=$('matchSearchError');
-var matchResults=$('matchResults'), verifiedFacts=$('verifiedFacts'), matchSources=$('matchSources'), useFactsBtn=$('useFactsBtn');
-var liveMatchesBtn=$('liveMatchesBtn'), liveMatchesList=$('liveMatchesList');
-var chatMessages=$('chatMessages'), chatError=$('chatError'), chatInput=$('chatInput'), chatSendBtn=$('chatSendBtn'), useChatBtn=$('useChatBtn');
-var attachImageBtn=$('attachImageBtn'), imageInput=$('imageInput'), attachFileBtn=$('attachFileBtn'), dataFileInput=$('dataFileInput'), attachmentsPreview=$('attachmentsPreview');
-var clearDataBtn=$('clearDataBtn');
-var projectSelect=$('projectSelect'), newProjectBtn=$('newProjectBtn'), renameProjectBtn=$('renameProjectBtn'), deleteProjectBtn=$('deleteProjectBtn');
-
-var state = {
-  audioUrl: null,
-  usingFallback: false,
-  isPlaying: false,
-  audioEl: null,
-  utterance: null
-};
-
-/* ---------------------------------------------------------------- */
-/* Whole-workspace autosave (so nothing needs redoing on reload)      */
-/* ---------------------------------------------------------------- */
-var WORKSPACE_KEY = 'mdsb_workspace_v1'; // legacy single-slot key, used only for migration
-var PROJECTS_KEY = 'mdsb_projects_v1';
-var ACTIVE_PROJECT_KEY = 'mdsb_active_project_v1';
-
-function debounce(fn, wait){
-  var t;
-  return function(){
-    var args = arguments;
-    clearTimeout(t);
-    t = setTimeout(function(){ fn.apply(null, args); }, wait);
-  };
-}
-
-function sanitizeChatForStorage(history){
-  return history.map(function(msg){
-    return {
-      role: msg.role,
-      parts: msg.parts.map(function(p){
-        if(p.text) return { text: p.text };
-        return { text: '[attachment — not restored after reload]' };
-      })
-    };
-  });
-}
-
-/* ---- Project list helpers ---- */
-function getProjectList(){
-  try{ return JSON.parse(lsGet(PROJECTS_KEY) || '[]'); }catch(e){ return []; }
-}
-function saveProjectList(list){ lsSet(PROJECTS_KEY, JSON.stringify(list)); }
-function genProjectId(){ return 'p' + Date.now() + Math.random().toString(36).slice(2,7); }
-function projectDataKey(id){ return 'mdsb_project_' + id; }
-function getActiveProjectId(){ return lsGet(ACTIVE_PROJECT_KEY) || ''; }
-function setActiveProjectId(id){ lsSet(ACTIVE_PROJECT_KEY, id); }
-
-function renderProjectSelect(){
-  var list = getProjectList();
-  var activeId = getActiveProjectId();
-  projectSelect.innerHTML = '';
-  list.forEach(function(p){
-    var opt = document.createElement('option');
-    opt.value = p.id;
-    opt.textContent = p.name;
-    if(p.id === activeId) opt.selected = true;
-    projectSelect.appendChild(opt);
-  });
-}
-
-/* Clears every field back to a blank state — run before loading a project's
-   saved data so nothing from the previous project lingers on screen. */
-function resetFormFields(){
-  personaSelect.selectedIndex = 0;
-  modeSelect.selectedIndex = 0;
-  toneSelect.selectedIndex = 0;
-  voiceSelect.selectedIndex = 0;
-  durationSlider.value = 1;
-  durationLabel.textContent = 'Target Duration — '+DURATIONS[1]+'s';
-  rateSlider.value = 0;
-  rateLabel.textContent = 'Speech Rate — 0%';
-  teamDetails.value = '';
-  tacticalContext.value = '';
-  pronunciationFixes.value = '';
-  matchQuery.value = '';
-  verifiedFacts.value = '';
-  matchSources.innerHTML = '';
-  matchResults.style.display = 'none';
-  scriptBox.value = '';
-  updateCounts();
-  sandboxEmpty.style.display = '';
-  sandboxFull.style.display = 'none';
-  voiceEmpty.style.display = '';
-  voiceFieldset.disabled = true;
-  playerBox.style.display = 'none';
-  playerBox.innerHTML = '';
-  badge1.classList.remove('done'); badge1.textContent = '1';
-  badge2.classList.remove('done'); badge2.textContent = '2';
-  badge3.classList.remove('done'); badge3.textContent = '3';
-  stage1.classList.remove('done'); stage2.classList.remove('done'); stage3.classList.remove('done');
-  chatHistory = [];
-  chatMessages.innerHTML = '';
-  clearMatchSearchError();
-  clearChatError();
-  clearDraftError();
-  voiceError.innerHTML = '';
-  engineNote.innerHTML = '';
-  applyFieldConfig();
-}
-
-function collectStatePayload(){
-  return {
-    persona: personaSelect.value,
-    mode: modeSelect.value,
-    tone: toneSelect.value,
-    durationIdx: durationSlider.value,
-    teamDetails: teamDetails.value,
-    tacticalContext: tacticalContext.value,
-    script: scriptBox.value,
-    voice: voiceSelect.value,
-    rate: rateSlider.value,
-    pronunciationFixes: pronunciationFixes.value,
-    matchQuery: matchQuery.value,
-    verifiedFacts: verifiedFacts.value,
-    matchSourcesHTML: matchSources.innerHTML,
-    matchResultsVisible: matchResults.style.display === 'block',
-    chatHistory: sanitizeChatForStorage(chatHistory || [])
-  };
-}
-
-function applyStatePayload(s){
-  if(s.persona) personaSelect.value = s.persona;
-  if(s.mode) modeSelect.value = s.mode;
-  if(s.tone) toneSelect.value = s.tone;
-  if(s.durationIdx !== undefined){
-    durationSlider.value = s.durationIdx;
-    durationLabel.textContent = 'Target Duration — '+DURATIONS[Number(s.durationIdx)]+'s';
-  }
-  if(s.teamDetails) teamDetails.value = s.teamDetails;
-  if(s.tacticalContext) tacticalContext.value = s.tacticalContext;
-  if(s.voice) voiceSelect.value = s.voice;
-  if(s.pronunciationFixes) pronunciationFixes.value = s.pronunciationFixes;
-  if(s.rate !== undefined){
-    rateSlider.value = s.rate;
-    rateLabel.textContent = 'Speech Rate — '+(Number(s.rate)>0?'+':'')+s.rate+'%';
-  }
-  if(s.matchQuery) matchQuery.value = s.matchQuery;
-  if(s.verifiedFacts){
-    verifiedFacts.value = s.verifiedFacts;
-    matchSources.innerHTML = s.matchSourcesHTML || '';
-    matchResults.style.display = 'block';
-  }
-  applyFieldConfig();
-  if(s.script){
-    scriptBox.value = s.script;
-    updateCounts();
-    unlockSandbox();
-  }
-  if(s.chatHistory && s.chatHistory.length){
-    chatHistory = s.chatHistory;
-    chatHistory.forEach(function(msg){
-      var text = msg.parts.map(function(p){ return p.text || ''; }).join(' ');
-      renderChatMessage(msg.role === 'user' ? 'user' : 'model', text, [], []);
-    });
-  }
-}
-
-function saveWorkspace(){
-  try{
-    var activeId = getActiveProjectId();
-    if(!activeId) return;
-    var payload = collectStatePayload();
-    lsSet(projectDataKey(activeId), JSON.stringify(payload));
-    var list = getProjectList();
-    var entry = list.filter(function(p){ return p.id === activeId; })[0];
-    if(entry){
-      entry.updatedAt = Date.now();
-      // Auto-name a still-untitled project from whatever the host typed first
-      if(/^Untitled/.test(entry.name)){
-        var guess = (payload.matchQuery || payload.teamDetails || '').trim().split('\n')[0].slice(0, 40);
-        if(guess) entry.name = guess;
-      }
-      saveProjectList(list);
-      renderProjectSelect();
-    }
-  }catch(e){ /* storage full or unavailable — silently skip */ }
-}
-var debouncedSaveWorkspace = debounce(saveWorkspace, 700);
-
-function loadProject(id){
-  resetFormFields();
-  var raw = lsGet(projectDataKey(id));
-  if(raw){
-    var s;
-    try{ s = JSON.parse(raw); }catch(e){ s = null; }
-    if(s) applyStatePayload(s);
-  }
-  setActiveProjectId(id);
-  renderProjectSelect();
-}
-
-function createProject(name){
-  var list = getProjectList();
-  var id = genProjectId();
-  list.push({ id: id, name: name || ('Untitled Project ' + (list.length + 1)), updatedAt: Date.now() });
-  saveProjectList(list);
-  lsSet(projectDataKey(id), '');
-  loadProject(id);
-}
-
-function deleteProject(id){
-  var list = getProjectList();
-  list = list.filter(function(p){ return p.id !== id; });
-  saveProjectList(list);
-  try{ localStorage.removeItem(projectDataKey(id)); }catch(e){}
-  if(list.length){
-    loadProject(list[0].id);
+document.getElementById('row-logout').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  showView('chat');
+});
+document.getElementById('row-delete-account').addEventListener('click', async () => {
+  if (!confirm('Delete all your saved chats? This cannot be undone.')) return;
+  if (currentUser){
+    await supabase.from('chats').delete().eq('user_id', currentUser.id); // messages cascade via FK
   } else {
-    createProject('Untitled Project 1');
+    localStorage.removeItem('cb_guest_chats');
+  }
+  chats = [];
+  currentChatId = null;
+  await createChat();
+  showView('chat');
+  await openChat(currentChatId);
+});
+document.getElementById('save-profile-btn').addEventListener('click', () => {
+  localStorage.setItem('cb_fullname', document.getElementById('profile-fullname').value);
+  localStorage.setItem('cb_nickname', document.getElementById('profile-nickname').value);
+  const btn = document.getElementById('save-profile-btn');
+  btn.classList.add('ready'); btn.textContent = 'Saved';
+  setTimeout(() => { btn.classList.remove('ready'); btn.textContent = 'Update Profile'; }, 1400);
+});
+document.getElementById('save-prefs-btn').addEventListener('click', () => {
+  localStorage.setItem('cb_prefs', document.getElementById('profile-preferences').value);
+  const btn = document.getElementById('save-prefs-btn');
+  btn.classList.add('ready'); btn.textContent = 'Saved';
+  setTimeout(() => { btn.classList.remove('ready'); btn.textContent = 'Save Preferences'; }, 1400);
+});
+
+// --- Incognito / temporary chat toggle ---
+let temporaryMode = false;
+const incognitoBtn = document.getElementById('incognito-btn');
+const tempBanner = document.getElementById('temp-banner');
+incognitoBtn.addEventListener('click', () => {
+  temporaryMode = !temporaryMode;
+  incognitoBtn.classList.toggle('active', temporaryMode);
+  tempBanner.style.display = temporaryMode ? 'block' : 'none';
+});
+
+// --- Data layer: Supabase for signed-in users, localStorage fallback for guests ---
+let currentUser = null;
+let signedIn = false;
+let chats = [];              // sidebar list: [{id, title}]
+let currentChatId = null;
+let currentChatTitle = 'New chat';
+
+function loadGuestChats(){ return JSON.parse(localStorage.getItem('cb_guest_chats') || '[]'); }
+function saveGuestChats(list){ localStorage.setItem('cb_guest_chats', JSON.stringify(list)); }
+
+async function createChat(){
+  if (currentUser){
+    const { data, error } = await supabase.from('chats').insert({ user_id: currentUser.id }).select('id,title').single();
+    if (error){ console.error(error); return null; }
+    currentChatId = data.id; currentChatTitle = data.title;
+    await refreshChatList();
+    return data;
+  } else {
+    const list = loadGuestChats();
+    const chat = { id: 'g' + Date.now(), title: 'New chat', messages: [] };
+    list.unshift(chat);
+    saveGuestChats(list);
+    currentChatId = chat.id; currentChatTitle = chat.title;
+    await refreshChatList();
+    return chat;
   }
 }
 
-function renameProject(id, newName){
-  var list = getProjectList();
-  var entry = list.filter(function(p){ return p.id === id; })[0];
-  if(entry && newName && newName.trim()){
-    entry.name = newName.trim();
-    saveProjectList(list);
-    renderProjectSelect();
+newChatBtn.addEventListener('click', async () => {
+  await createChat();
+  thread.querySelectorAll('.msg').forEach(el => el.remove());
+  hero.style.display = 'flex';
+  refreshGreeting();
+  drawer.classList.remove('open'); overlay.classList.remove('open');
+});
+
+function renderAccountArea(){
+  const emailEl = document.getElementById('settings-email');
+  if (emailEl) emailEl.textContent = signedIn ? currentUser.email : 'Guest — not signed in';
+  if (signedIn){
+    const label = (currentUser.email || '?')[0].toUpperCase();
+    drawerAccount.innerHTML = `
+      <div class="account-row">
+        <div class="avatar">${label}</div>
+        <div class="account-name">${currentUser.email}</div>
+        <svg class="hdr-icon" id="settings-gear" style="width:17px;height:17px;cursor:pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </div>`;
+    if (banner) banner.style.display = 'none';
+    document.getElementById('settings-gear').addEventListener('click', () => { drawer.classList.remove('open'); overlay.classList.remove('open'); showView('settings'); });
+    return;
   }
+  if (banner) banner.style.display = 'flex';
+  drawerAccount.innerHTML = `<button class="signin-btn" id="open-signin">Sign in</button>`;
+  document.getElementById('open-signin').addEventListener('click', () => {
+    drawer.classList.remove('open'); overlay.classList.remove('open');
+    openAuthView();
+  });
 }
 
-/* One-time migration from the old single-workspace storage, and startup load */
-function initProjects(){
-  var list = getProjectList();
-  if(!list.length){
-    var legacyRaw = lsGet(WORKSPACE_KEY);
-    if(legacyRaw){
-      var id = genProjectId();
-      var name = 'Imported Session';
-      try{
-        var parsed = JSON.parse(legacyRaw);
-        var guess = (parsed.matchQuery || parsed.teamDetails || '').trim().split('\n')[0].slice(0, 40);
-        if(guess) name = guess;
-      }catch(e){}
-      list = [{ id: id, name: name, updatedAt: Date.now() }];
-      saveProjectList(list);
-      lsSet(projectDataKey(id), legacyRaw);
-      setActiveProjectId(id);
-    } else {
-      var freshId = genProjectId();
-      list = [{ id: freshId, name: 'Untitled Project 1', updatedAt: Date.now() }];
-      saveProjectList(list);
-      lsSet(projectDataKey(freshId), '');
-      setActiveProjectId(freshId);
-    }
+// --- Full-screen auth take-over (Google + email magic link) ---
+const authView = document.getElementById('auth-view');
+const authClose = document.getElementById('auth-close');
+const authEmailInput = document.getElementById('auth-email-input');
+const authEmailSend = document.getElementById('auth-email-send');
+const authNote = document.getElementById('auth-note');
+
+function openAuthView(){
+  authNote.textContent = '';
+  authEmailInput.value = '';
+  authEmailSend.disabled = true;
+  authView.classList.add('open');
+}
+function closeAuthView(){ authView.classList.remove('open'); }
+
+authClose.addEventListener('click', closeAuthView);
+authEmailInput.addEventListener('input', () => { authEmailSend.disabled = authEmailInput.value.trim().length === 0; });
+authEmailInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !authEmailSend.disabled) authEmailSend.click(); });
+
+document.getElementById('auth-google-btn').addEventListener('click', async () => {
+  await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+});
+authEmailSend.addEventListener('click', async () => {
+  const email = authEmailInput.value.trim();
+  if (!email) return;
+  authEmailSend.disabled = true;
+  const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } });
+  authNote.textContent = error ? error.message : 'Check your email for a sign-in link.';
+  authEmailSend.disabled = false;
+});
+
+async function refreshChatList(){
+  if (currentUser){
+    const { data } = await supabase.from('chats').select('id,title')
+      .eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    chats = data || [];
+  } else {
+    chats = loadGuestChats().map(c => ({ id: c.id, title: c.title }));
   }
-  var activeId = getActiveProjectId();
-  if(!list.filter(function(p){ return p.id === activeId; }).length){
-    activeId = list[0].id;
-    setActiveProjectId(activeId);
+  drawerChats.innerHTML = '';
+  chats.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'drawer-chat' + (c.id === currentChatId ? ' active' : '');
+    el.textContent = c.title;
+    el.onclick = () => openChat(c.id);
+    drawerChats.appendChild(el);
+  });
+}
+
+async function openChat(chatId){
+  currentChatId = chatId;
+  thread.querySelectorAll('.msg').forEach(el => el.remove());
+  let messages = [];
+  if (currentUser){
+    const chatRow = chats.find(c => c.id === chatId);
+    currentChatTitle = chatRow ? chatRow.title : 'New chat';
+    const { data } = await supabase.from('messages').select('*').eq('chat_id', chatId).order('created_at', { ascending: true });
+    messages = data || [];
+  } else {
+    const list = loadGuestChats();
+    const chat = list.find(c => c.id === chatId);
+    currentChatTitle = chat ? chat.title : 'New chat';
+    messages = chat ? chat.messages : [];
   }
-  renderProjectSelect();
-  resetFormFields();
-  var raw = lsGet(projectDataKey(activeId));
-  if(raw){
-    var s;
-    try{ s = JSON.parse(raw); }catch(e){ s = null; }
-    if(s) applyStatePayload(s);
+  hero.style.display = messages.length ? 'none' : 'flex';
+  if (!messages.length) refreshGreeting();
+  messages.forEach(m => {
+    if (m.role === 'user') renderUserBubble(m.content);
+    else renderAssistantBubble(m.content, m.media || []);
+  });
+  await refreshChatList();
+  drawer.classList.remove('open'); overlay.classList.remove('open');
+  scrollDown();
+}
+
+async function saveMessage(role, content, media = []){
+  if (temporaryMode) return;
+  if (!currentChatId) await createChat();
+
+  if (currentUser){
+    await supabase.from('messages').insert({ chat_id: currentChatId, role, content, media });
+    if (role === 'user' && currentChatTitle === 'New chat'){
+      currentChatTitle = content.slice(0, 40);
+      await supabase.from('chats').update({ title: currentChatTitle }).eq('id', currentChatId);
+    }
+  } else {
+    const list = loadGuestChats();
+    const chat = list.find(c => c.id === currentChatId);
+    if (!chat) return;
+    chat.messages.push({ role, content, media });
+    if (role === 'user' && chat.title === 'New chat'){ chat.title = content.slice(0, 40); currentChatTitle = chat.title; }
+    saveGuestChats(list);
   }
+  await refreshChatList();
 }
 
-projectSelect.addEventListener('change', function(){
-  saveWorkspace();
-  loadProject(projectSelect.value);
-});
-newProjectBtn.addEventListener('click', function(){
-  saveWorkspace();
-  var name = prompt('Name this new project (e.g. the match or show it\'s for):', '');
-  createProject(name);
-});
-renameProjectBtn.addEventListener('click', function(){
-  var list = getProjectList();
-  var current = list.filter(function(p){ return p.id === getActiveProjectId(); })[0];
-  var name = prompt('Rename project:', current ? current.name : '');
-  if(name !== null) renameProject(getActiveProjectId(), name);
-});
-deleteProjectBtn.addEventListener('click', function(){
-  var list = getProjectList();
-  var current = list.filter(function(p){ return p.id === getActiveProjectId(); })[0];
-  if(confirm('Delete "'+(current?current.name:'this project')+'"? This can\'t be undone.')){
-    deleteProject(getActiveProjectId());
-  }
+supabase.auth.onAuthStateChange(async (_event, session) => {
+  currentUser = session?.user || null;
+  signedIn = !!currentUser;
+  if (signedIn) closeAuthView();
+  renderAccountArea();
+  chats = [];
+  currentChatId = null;
+  await refreshChatList();
+  if (!chats.length) await createChat();
+  else currentChatId = chats[0].id;
+  await openChat(currentChatId);
 });
 
-clearDataBtn.addEventListener('click', function(){
-  if(!confirm('This will delete ALL saved projects on this device — not just the current one. Continue?')) return;
-  try{
-    var list = getProjectList();
-    list.forEach(function(p){ localStorage.removeItem(projectDataKey(p.id)); });
-    localStorage.removeItem(PROJECTS_KEY);
-    localStorage.removeItem(ACTIVE_PROJECT_KEY);
-    localStorage.removeItem(WORKSPACE_KEY);
-    localStorage.removeItem('mdsb_gemini_key');
-    localStorage.removeItem('mdsb_football_key');
-  }catch(e){}
-  memStore = {};
-  location.reload();
-});
+// --- Rendering ---
+function scrollDown(){ thread.scrollTop = thread.scrollHeight; }
 
-/* ---------------------------------------------------------------- */
-/* Settings panel                                                    */
-/* ---------------------------------------------------------------- */
-settingsBtn.addEventListener('click', function(){ settingsPanel.classList.toggle('open'); });
-
-function setFootballKeyStatus(kind, msg){
-  var cls = kind === 'ok' ? 'msg-note' : 'msg-error';
-  var icon = kind === 'ok' ? '✅' : '⚠️';
-  footballKeyStatus.innerHTML = '<div class="'+cls+'">'+icon+' <span>'+msg+'</span></div>';
+function addUserMsg(text){
+  hero.style.display = 'none';
+  renderUserBubble(text);
+  scrollDown();
+}
+function renderUserBubble(text){
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = `<div class="bubble-user"></div>`;
+  div.querySelector('.bubble-user').textContent = text;
+  thread.appendChild(div);
+}
+function renderAssistantBubble(text, media){
+  const div = document.createElement('div');
+  div.className = 'msg assistant';
+  const mediaHtml = (media || []).map(m => `<div class="sources"><span>${escapeHtml(m.label || '')}</span></div>`).join('');
+  div.innerHTML = `<div class="bubble-assistant">${escapeHtml(text)}</div>${mediaHtml}`;
+  thread.appendChild(div);
 }
 
-/* Pings our own /api routes (not the upstream providers directly) so this
-   also verifies the Vercel deployment has each provider's env var(s) set.
-   Each check does a minimal real call (a few words of text) rather than a
-   true no-op "ping", since none of these providers expose a free status
-   endpoint — so this uses a tiny sliver of each service's quota. */
-function checkApiFootball(){
-  return fetch('/api/football/status').then(function(res){
-    return res.json().then(function(data){ return { ok: res.ok, status: res.status, data: data }; });
-  }).then(function(result){
-    if(!result.ok) throw new Error((result.data && result.data.error) || ('status '+result.status));
-    var acct = result.data && result.data.response;
-    if(acct && acct.subscription){
-      var plan = acct.subscription.plan || 'Unknown plan';
-      var remaining = (acct.requests && (acct.requests.limit_day - acct.requests.current));
-      var limit = acct.requests && acct.requests.limit_day;
-      var quotaMsg = (remaining!=null && limit!=null) ? (' ('+remaining+'/'+limit+' left today)') : '';
-      return 'API-Football OK — "'+plan+'" plan.'+quotaMsg;
-    }
-    return 'API-Football reachable.';
+function addPipeline(){
+  const div = document.createElement('div');
+  div.className = 'msg assistant';
+  div.innerHTML = `<div class="pipeline"><span class="dot"></span><span class="stage">Reading your request…</span></div>`;
+  thread.appendChild(div);
+  scrollDown();
+  return div.querySelector('.stage');
+}
+function setStage(stageEl, text){ stageEl.style.opacity = 0; setTimeout(()=>{ stageEl.textContent = text; stageEl.style.opacity = 1; }, 150); }
+function replacePipelineWithResult(pipelineMsgEl, html){ pipelineMsgEl.innerHTML = html; scrollDown(); }
+
+function addChips(container, options){
+  const wrap = document.createElement('div');
+  wrap.className = 'chips';
+  options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.innerHTML = `<span class="num">${i+1}</span><span>${opt.label}</span>`;
+    btn.onclick = () => opt.action();
+    wrap.appendChild(btn);
   });
+  container.appendChild(wrap);
+  scrollDown();
 }
 
-function checkGemini(){
-  return fetch('/api/gemini', {
-    method:'POST', headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({ contents:[{ role:'user', parts:[{ text:'Reply with the single word OK.' }] }] })
-  }).then(function(res){
-    if(res.ok) return 'Gemini OK.';
-    return res.json().catch(function(){ return {}; }).then(function(err){
-      throw new Error((err && err.error && err.error.message) || ('status '+res.status));
-    });
-  });
-}
+function escapeHtml(s){ const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 
-function checkGroq(){
-  return fetch('/api/groq', {
-    method:'POST', headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({ messages:[{ role:'user', content:'Reply with the single word OK.' }] })
-  }).then(function(res){
-    if(res.ok) return 'Groq OK (chat fallback ready).';
-    return res.json().catch(function(){ return {}; }).then(function(err){
-      throw new Error((err && err.error && err.error.message) || ('status '+res.status));
-    });
-  });
-}
-
-function checkElevenLabs(){
-  return fetch('/api/elevenlabs', {
-    method:'POST', headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({ text:'Hi' })
-  }).then(function(res){
-    if(res.ok) return 'ElevenLabs OK.';
-    return res.json().catch(function(){ return {}; }).then(function(err){
-      throw new Error((err && err.error) || ('status '+res.status));
-    });
-  });
-}
-
-function checkGoogleTTS(){
-  return fetch('/api/google-tts', {
-    method:'POST', headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({ text:'Hi' })
-  }).then(function(res){
-    if(res.ok) return 'Google Cloud TTS OK.';
-    return res.json().catch(function(){ return {}; }).then(function(err){
-      throw new Error((err && err.error) || ('status '+res.status));
-    });
-  });
-}
-
-testFootballKeyBtn.addEventListener('click', function(){
-  testFootballKeyBtn.disabled = true;
-  var originalIcon = testFootballKeyBtn.textContent;
-  testFootballKeyBtn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:2px"></span>';
-  footballKeyStatus.innerHTML = '<div class="msg-note">⏳ <span>Checking all server APIs…</span></div>';
-
-  var checks = [
-    { label: 'API-Football', run: checkApiFootball },
-    { label: 'Gemini', run: checkGemini },
-    { label: 'Groq', run: checkGroq },
-    { label: 'ElevenLabs', run: checkElevenLabs },
-    { label: 'Google Cloud TTS', run: checkGoogleTTS }
-  ];
-
-  Promise.all(checks.map(function(c){
-    return c.run()
-      .then(function(msg){ return { ok: true, line: '✅ '+msg }; })
-      .catch(function(e){ return { ok: false, line: '⚠️ '+c.label+': '+(e.message || 'unreachable') }; });
-  })).then(function(results){
-    footballKeyStatus.innerHTML = results.map(function(r){
-      return '<div class="'+(r.ok ? 'msg-note' : 'msg-error')+'">'+r.line+'</div>';
-    }).join('');
-  }).finally(function(){
-    testFootballKeyBtn.disabled = false;
-    testFootballKeyBtn.textContent = originalIcon;
-  });
-});
-
-/* ---------------------------------------------------------------- */
-/* Card 0: Real match data lookup (Gemini + Google Search grounding)  */
-/* ---------------------------------------------------------------- */
-function showMatchSearchError(msg){ matchSearchError.innerHTML = '<div class="msg-error">⚠️ <span>'+msg+'</span></div>'; }
-function clearMatchSearchError(){ matchSearchError.innerHTML=''; }
-
-// Pulls the full HARD DATA block (score, scorers, cards, subs, team stats, formations)
-// for one already-identified fixture, straight from API-Football (api-sports.io).
-// Costs 3 requests against the 100/day free quota (statistics, events, lineups).
-function fetchApiFootballFixtureFacts(fixture, dateStr){
-  var fixtureId = fixture && fixture.fixture && fixture.fixture.id;
-  if(!fixtureId) return Promise.resolve(null);
-
-  var statsCall = fetch('/api/football/fixtures/statistics?fixture='+fixtureId)
-    .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
-  var eventsCall = fetch('/api/football/fixtures/events?fixture='+fixtureId)
-    .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
-  var lineupsCall = fetch('/api/football/fixtures/lineups?fixture='+fixtureId)
-    .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
-
-  return Promise.all([statsCall, eventsCall, lineupsCall]).then(function(results){
-    var statsData = results[0], eventsData = results[1], lineupsData = results[2];
-    var home = fixture.teams.home.name, away = fixture.teams.away.name;
-    var goalsHome = fixture.goals && fixture.goals.home, goalsAway = fixture.goals && fixture.goals.away;
-    var comp = (fixture.league && fixture.league.name) || '';
-    var statusShort = (fixture.fixture && fixture.fixture.status && fixture.fixture.status.short) || '';
-
-    var lines = [];
-    lines.push('=== HARD DATA from API-Football (fixture #'+fixtureId+') ===');
-    lines.push('Competition & date: '+comp+', '+dateStr);
-    lines.push('Status: '+statusShort);
-    if(goalsHome != null && goalsAway != null){
-      lines.push('Final/current score (hard data, API-Football): '+home+' '+goalsHome+' - '+goalsAway+' '+away);
-    }
-
-    var events = (eventsData && eventsData.response) || [];
-    function minuteOf(e){
-      var t = e.time || {};
-      return t.elapsed + (t.extra ? ('+'+t.extra) : '');
-    }
-    if(events.length){
-      var goals = events.filter(function(e){ return e.type === 'Goal'; });
-      var cards = events.filter(function(e){ return e.type === 'Card'; });
-      var subs = events.filter(function(e){ return e.type === 'subst'; });
-
-      if(goals.length){
-        lines.push('Scorers (hard data): ' + goals.map(function(e){
-          return (e.player && e.player.name || '?') + ' (' + (e.team && e.team.name) + ", " + minuteOf(e) + "')" + (e.detail ? ' ['+e.detail+']' : '');
-        }).join('; '));
-      }
-      if(cards.length){
-        lines.push('Cards / bookings (hard data): ' + cards.map(function(e){
-          return (e.player && e.player.name || '?') + ' (' + (e.team && e.team.name) + ", " + minuteOf(e) + "', " + (e.detail || 'Card') + ')';
-        }).join('; '));
-      } else {
-        lines.push('Cards / bookings (hard data): none recorded.');
-      }
-      if(subs.length){
-        lines.push('Substitutions (hard data): ' + subs.map(function(e){
-          var onName = e.assist && e.assist.name;
-          var offName = e.player && e.player.name;
-          return (e.team && e.team.name) + ' ' + minuteOf(e) + "': " + (onName ? onName+' ON' : '') + (offName ? (onName ? ', ' : '') + offName+' OFF' : '');
-        }).join('; '));
-      }
-    }
-
-    var statsArr = (statsData && statsData.response) || [];
-    var wantedStats = ['Ball Possession','Total passes','Passes accurate','Shots on Goal','Shots off Goal','Total Shots','Corner Kicks','Fouls','Offsides','Yellow Cards','Red Cards'];
-    if(statsArr.length){
-      statsArr.forEach(function(teamStat){
-        var teamName = (teamStat.team && teamStat.team.name) || '';
-        var s = teamStat.statistics || [];
-        var picked = s.filter(function(st){ return wantedStats.indexOf(st.type) >= 0 && st.value != null; });
-        if(picked.length){
-          lines.push(teamName+' stats (hard data): '+picked.map(function(st){ return st.type+': '+st.value; }).join(', '));
-        }
-      });
-    }
-
-    var lineupsArr = (lineupsData && lineupsData.response) || [];
-    if(lineupsArr.length){
-      lineupsArr.forEach(function(teamLineup){
-        var teamName = (teamLineup.team && teamLineup.team.name) || '';
-        if(teamLineup.formation) lines.push(teamName+' formation (hard data): '+teamLineup.formation);
-      });
-    }
-
-    return lines.join('\n');
-  });
-}
-
-// Finds a fixture matching the query text on a given date, then pulls its full hard-data
-// block. Costs 1 extra request to locate the fixture, on top of the 3 above.
-// Silent fallback to null on any miss/error — Gemini's web search still runs regardless.
-function lookupApiFootballFacts(dateStr, queryText){
-  if(!dateStr) return Promise.resolve(null);
-  return fetch('/api/football/fixtures?date='+dateStr)
-    .then(function(res){ return res.ok ? res.json() : null; })
-    .then(function(data){
-      var fixtures = (data && data.response) || [];
-      if(!fixtures.length) return null;
-      var q = queryText.toLowerCase();
-      var hit = fixtures.find(function(f){
-        var home = ((f.teams && f.teams.home && f.teams.home.name) || '').toLowerCase();
-        var away = ((f.teams && f.teams.away && f.teams.away.name) || '').toLowerCase();
-        return (home && q.indexOf(home) >= 0) || (away && q.indexOf(away) >= 0);
-      });
-      if(!hit) return null;
-      return fetchApiFootballFixtureFacts(hit, dateStr);
-    })
-    .catch(function(){ return null; });
-}
-
-matchSearchBtn.addEventListener('click', function(){
-  clearMatchSearchError();
-  var q = matchQuery.value.trim();
-  if(!q){ showMatchSearchError('Type a match, player, or incident to search for.'); return; }
-  var dateStr = matchDate.value;
-
-  matchSearchBtn.disabled = true;
-  matchSearchBtn.innerHTML = '<span class="spinner" style="border-color:rgba(166,255,46,.3);border-top-color:var(--neon)"></span>';
-
-  var apiFootballLookup = lookupApiFootballFacts(dateStr, q);
-
-  var prompt = "Search the web for real, current facts about: \""+q+"\".\n\n" +
-"If this query is about a player transfer, move, or contract negotiation, return ONLY a plain-text factual report with these fields (omit any you genuinely cannot find — never invent a value):\n" +
-"- Player name, age, position\n- Clubs involved (selling club and buying club)\n- Reported or confirmed fee, and whether it's confirmed, in-progress, or just rumored\n- Contract length / terms, release clause, or add-ons if reported\n" +
-"- Official confirmation status (medical booked, here-we-go, official announcement, still speculation, etc.) and as of what date\n- Reason for the move / club need, if reported\n- Any other notable context mentioned in sources\n\n" +
-"Otherwise, treat this as a match query and return ONLY a plain-text factual report with these fields (omit any you genuinely cannot find — never invent a value):\n" +
-"- Competition & date\n- Final score (or current score if in progress)\n- Scorers with minutes\n- Cards / bookings with minutes\n- Any referee or VAR decisions, with the minute, what happened, and what the replay/rule showed\n" +
-"- Starting lineups or formations, if reported\n" +
-"- Team stats for BOTH sides if reported anywhere: possession %, passes completed/attempted (pass completion %), chances created, big chances created, shots on target, shots off target, interceptions, total touches\n" +
-"- Key player stats if reported: for the standout players on each side, their individual possession/touches, passes completed, chances created, big chances created, shots on/off target, and interceptions\n" +
-"- Any other notable stats mentioned in sources\n\n" +
-"If this query is about a foul, penalty, handball, offside, red/yellow card, or any other refereeing or VAR decision, ALSO add a field:\n" +
-"- Relevant Law of the Game: search for and quote the actual current IFAB Laws of the Game rule (the law number and its real wording or an accurate summary of it) that governs this exact situation, so the decision can be judged against the real rule rather than a general impression of it.\n\n" +
-"Rules: state only what your sources actually report. If sources disagree, note the disagreement instead of picking one, and flag if reports are still just speculation rather than confirmed. If you cannot find real information on this, say so plainly instead of guessing.";
-
-  // Note: if Gemini's quota is out, this falls back to Groq — but Groq has no
-  // web-search tool, so the fallback answer comes from the model's own training
-  // data rather than live sources (no source links, and it may be out of date).
-  var usedFallbackSearch = false;
-  var geminiSearch = callAI({
-    contents:[{ role:'user', parts:[{ text: prompt }] }],
-    tools:[{ google_search:{} }]
-  }).then(function(result){
-    usedFallbackSearch = (result.provider === 'groq');
-    return result.data;
-  });
-
-  Promise.all([geminiSearch, apiFootballLookup]).then(function(results){
-    var data = results[0], apiFootballText = results[1];
-    var cand = data && data.candidates && data.candidates[0];
-    var parts = cand && cand.content && cand.content.parts;
-    var text = parts ? parts.map(function(p){ return p.text||''; }).join('') : '';
-    if(!text.trim() && !apiFootballText) throw new Error('No results came back for that search.');
-
-    // API-Football's structured data (score, scorers, cards, subs, stats, formations) is the
-    // most reliable, so it goes first. Gemini's web search fills in anything hard data can't
-    // cover (VAR detail, IFAB law text, narrative context, transfer news) and is labeled as
-    // needing manual verification.
-    verifiedFacts.value = (apiFootballText ? apiFootballText+'\n\n' : '') +
-      (text.trim() ? '=== From web search (verify before using) ===\n'+text.trim() : '');
-
-    var chunks = (cand && cand.groundingMetadata && cand.groundingMetadata.groundingChunks) || [];
-    var sourceNote = apiFootballText ? 'Score, cards, subs, and stats verified via API-Football. ' : '';
-    if(chunks.length){
-      var links = chunks.map(function(c){
-        var w = c.web || {};
-        return '<a href="'+(w.uri||'#')+'" target="_blank" rel="noopener" style="color:var(--neon)">'+(w.title||w.uri||'source')+'</a>';
-      });
-      matchSources.innerHTML = sourceNote + 'Sources: '+links.join(' &middot; ');
-    } else if(usedFallbackSearch){
-      matchSources.innerHTML = sourceNote +
-        "Gemini's quota is used up, so this came from the backup AI (Groq) without live web search — it's from the model's training data, not fresh sources. Verify carefully before using.";
-    } else {
-      matchSources.innerHTML = sourceNote
-        ? sourceNote + (text.trim() ? 'No additional source links came back from the web search.' : '')
-        : 'No source links were returned — treat this summary with extra caution and verify manually.';
-    }
-    matchResults.style.display = 'block';
-    saveWorkspace();
-  }).catch(function(e){
-    showMatchSearchError(e.message || 'Something went wrong while searching.');
-  }).finally(function(){
-    matchSearchBtn.disabled = false;
-    matchSearchBtn.innerHTML = '🔎 Search';
-  });
-});
-
-/* ---------------------------------------------------------------- */
-/* Live Matches Today (API-Football — every competition it covers)   */
-/* ---------------------------------------------------------------- */
-var STATUS_LABEL = {
-  '1H':'LIVE', '2H':'LIVE', 'HT':'HT', 'ET':'LIVE', 'P':'LIVE', 'LIVE':'LIVE',
-  'FT':'FT', 'AET':'FT', 'PEN':'FT',
-  'NS':'Scheduled', 'TBD':'Scheduled', 'PST':'Postponed', 'CANC':'Cancelled'
-};
-
-liveMatchesBtn.addEventListener('click', function(){
-  liveMatchesBtn.disabled = true;
-  var originalLabel = liveMatchesBtn.textContent;
-  liveMatchesBtn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:2px"></span>';
-  liveMatchesList.innerHTML = '<div class="msg-note">⏳ <span>Loading today\'s matches…</span></div>';
-
-  var today = new Date().toISOString().slice(0,10);
-
-  fetch('/api/football/fixtures?date='+today).then(function(res){
-    return res.json().then(function(data){ return { ok: res.ok, status: res.status, data: data }; });
-  }).then(function(result){
-    if(!result.ok){
-      throw new Error((result.data && result.data.error) || ('Request failed with status '+result.status));
-    }
-    var fixtures = (result.data && result.data.response) || [];
-    if(!fixtures.length){
-      liveMatchesList.innerHTML = '<div class="msg-note">No matches found today (or they haven\'t kicked off yet). Try the search box above for anything else.</div>';
-      return;
-    }
-    liveMatchesList.innerHTML = '';
-    fixtures.slice(0, 20).forEach(function(f){
-      var home = f.teams && f.teams.home && f.teams.home.name || 'Home';
-      var away = f.teams && f.teams.away && f.teams.away.name || 'Away';
-      var comp = f.league && f.league.name || '';
-      var goalsHome = f.goals && f.goals.home, goalsAway = f.goals && f.goals.away;
-      var scoreStr = (goalsHome!=null && goalsAway!=null) ? (goalsHome+' – '+goalsAway) : 'vs';
-      var statusShort = (f.fixture && f.fixture.status && f.fixture.status.short) || '';
-      var statusLabel = STATUS_LABEL[statusShort] || statusShort;
-      var kickoff = (f.fixture && f.fixture.date) ? new Date(f.fixture.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-
-      var chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'live-match-chip';
-      chip.innerHTML =
-        '<span>'+home+' '+scoreStr+' '+away+'<br><span style="color:var(--dim);font-size:10px">'+comp+'</span></span>' +
-        '<span class="lm-status">'+statusLabel+(kickoff && statusLabel==='Scheduled' ? ' · '+kickoff : '')+'</span>';
-
-      chip.addEventListener('click', function(){
-        matchQuery.value = home+' vs '+away+' ('+comp+', '+today+')';
-        matchDate.value = today;
-        chip.disabled = true;
-        liveMatchesList.querySelectorAll('.live-match-chip').forEach(function(c){ c.disabled = true; });
-        matchSources.innerHTML = '<span class="spinner" style="width:11px;height:11px;border-width:2px"></span> Pulling full match data from API-Football…';
-        matchResults.style.display = 'block';
-        verifiedFacts.value = '';
-
-        fetchApiFootballFixtureFacts(f, today).then(function(factsText){
-          verifiedFacts.value = factsText || ('Competition & date: '+comp+', '+today+'\nStatus: '+statusLabel+'\nScore: '+home+' '+scoreStr+' '+away);
-          matchSources.innerHTML = 'Source: <a href="https://www.api-football.com" target="_blank" rel="noopener" style="color:var(--neon)">API-Football</a> — for VAR detail, IFAB law text, or transfer context, use the Search box above.';
-          saveWorkspace();
-        }).catch(function(){
-          matchSources.innerHTML = 'Could not pull full match detail — try the Search box above instead.';
-        }).finally(function(){
-          liveMatchesList.querySelectorAll('.live-match-chip').forEach(function(c){ c.disabled = false; });
-          matchQuery.scrollIntoView({ behavior:'smooth', block:'center' });
-        });
-      });
-
-      liveMatchesList.appendChild(chip);
-    });
-  }).catch(function(e){
-    liveMatchesList.innerHTML = '<div class="msg-error">⚠️ <span>'+(e.message || 'Could not load live matches.')+'</span></div>';
-  }).finally(function(){
-    liveMatchesBtn.disabled = false;
-    liveMatchesBtn.textContent = originalLabel;
-  });
-});
-
-useFactsBtn.addEventListener('click', function(){
-  var existing = teamDetails.value.trim();
-  var facts = verifiedFacts.value.trim();
-  teamDetails.value = existing ? (existing+'\n\n[Verified facts]\n'+facts) : facts;
-  teamDetails.scrollIntoView({ behavior:'smooth', block:'center' });
-  teamDetails.focus();
-});
-
-/* ---------------------------------------------------------------- */
-/* Research chat (multimodal, with screenshot upload)                 */
-/* ---------------------------------------------------------------- */
-/* ---------------------------------------------------------------- */
-/* Chat tools — gives the research chat real, live access to        */
-/* API-Football for pre-match analytics (form, head-to-head) and     */
-/* specific past/present match facts, via Gemini function calling.   */
-/* ---------------------------------------------------------------- */
-var CHAT_TOOLS = [{
-  functionDeclarations: [
-    {
-      name: 'get_team_recent_form',
-      description: "Get a football team's most recent finished matches — dates, opponents, scores, competitions — to assess current form. Call this for BOTH teams whenever the user wants a preview, analysis, or prediction of an upcoming or hypothetical match.",
-      parameters: {
-        type: 'OBJECT',
-        properties: {
-          team_name: { type: 'STRING', description: 'The team name, e.g. "Arsenal" or "Real Madrid".' },
-          count: { type: 'INTEGER', description: 'How many recent matches to pull (default 5, max 10).' }
-        },
-        required: ['team_name']
-      }
-    },
-    {
-      name: 'get_head_to_head',
-      description: "Get the head-to-head match history between two football teams — every past meeting with dates, scores, and competition. Call this whenever the user wants a preview or prediction of a match between two specific teams.",
-      parameters: {
-        type: 'OBJECT',
-        properties: {
-          team_a: { type: 'STRING' },
-          team_b: { type: 'STRING' },
-          count: { type: 'INTEGER', description: 'How many past meetings to pull (default 10, max 15).' }
-        },
-        required: ['team_a', 'team_b']
-      }
-    },
-    {
-      name: 'get_match_facts',
-      description: "Get the full hard data (score, scorers, cards, subs, team stats, formations) for a SPECIFIC match between two teams on a known date. Only use this for a match you are confident has already kicked off or finished — for a future match that hasn't happened yet, use get_team_recent_form and get_head_to_head instead.",
-      parameters: {
-        type: 'OBJECT',
-        properties: {
-          team_a: { type: 'STRING' },
-          team_b: { type: 'STRING' },
-          date: { type: 'STRING', description: 'The match date in YYYY-MM-DD format.' }
-        },
-        required: ['team_a', 'team_b', 'date']
-      }
-    }
-  ]
-}];
-
-// Resolves a team name to its API-Football team ID (cached per session to save quota).
-var teamIdCache = {};
-function resolveTeamId(name){
-  var key = (name || '').trim().toLowerCase();
-  if(!key) return Promise.resolve(null);
-  if(teamIdCache[key]) return Promise.resolve(teamIdCache[key]);
-  return fetch('/api/football/teams?search='+encodeURIComponent(name))
-    .then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(data){
-      var arr = (data && data.response) || [];
-      if(!arr.length) return null;
-      var team = arr[0].team;
-      if(!team || !team.id) return null;
-      var resolved = { id: team.id, name: team.name };
-      teamIdCache[key] = resolved;
-      return resolved;
-    })
-    .catch(function(){ return null; });
-}
-
-function summarizeFixtureList(fixtures){
-  return fixtures.map(function(f){
-    var home = f.teams && f.teams.home && f.teams.home.name || '?';
-    var away = f.teams && f.teams.away && f.teams.away.name || '?';
-    var gh = f.goals && f.goals.home, ga = f.goals && f.goals.away;
-    var date = (f.fixture && f.fixture.date) ? f.fixture.date.slice(0,10) : '?';
-    var comp = (f.league && f.league.name) || '';
-    var result = (gh != null && ga != null) ? (home+' '+gh+'-'+ga+' '+away) : (home+' vs '+away+' (no score yet)');
-    return date+': '+result+' ('+comp+')';
-  });
-}
-
-function toolGetTeamRecentForm(args){
-  var count = Math.min(Math.max(parseInt(args.count, 10) || 5, 1), 10);
-  return resolveTeamId(args.team_name).then(function(team){
-    if(!team) return { error: 'Could not find a team matching "'+args.team_name+'".' };
-    return fetch('/api/football/fixtures?team='+team.id+'&last='+count)
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(data){
-        var fixtures = (data && data.response) || [];
-        if(!fixtures.length) return { team: team.name, recent_matches: [], note: 'No recent finished matches found.' };
-        return { team: team.name, recent_matches: summarizeFixtureList(fixtures) };
-      });
-  }).catch(function(){ return { error: 'Lookup failed — try again.' }; });
-}
-
-function toolGetHeadToHead(args){
-  var count = Math.min(Math.max(parseInt(args.count, 10) || 10, 1), 15);
-  return Promise.all([resolveTeamId(args.team_a), resolveTeamId(args.team_b)]).then(function(teams){
-    var a = teams[0], b = teams[1];
-    if(!a || !b) return { error: 'Could not find one or both teams: "'+args.team_a+'", "'+args.team_b+'".' };
-    return fetch('/api/football/fixtures/headtohead?h2h='+a.id+'-'+b.id+'&last='+count)
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(data){
-        var fixtures = (data && data.response) || [];
-        if(!fixtures.length) return { team_a: a.name, team_b: b.name, head_to_head: [], note: 'No past meetings found.' };
-        return { team_a: a.name, team_b: b.name, head_to_head: summarizeFixtureList(fixtures) };
-      });
-  }).catch(function(){ return { error: 'Lookup failed — try again.' }; });
-}
-
-function toolGetMatchFacts(args){
-  if(!args.date) return Promise.resolve({ error: 'A date (YYYY-MM-DD) is required.' });
-  return fetch('/api/football/fixtures?date='+args.date)
-    .then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(data){
-      var fixtures = (data && data.response) || [];
-      var qa = (args.team_a || '').toLowerCase(), qb = (args.team_b || '').toLowerCase();
-      var hit = fixtures.find(function(f){
-        var home = ((f.teams && f.teams.home && f.teams.home.name) || '').toLowerCase();
-        var away = ((f.teams && f.teams.away && f.teams.away.name) || '').toLowerCase();
-        var aMatches = qa && (home.indexOf(qa) >= 0 || away.indexOf(qa) >= 0);
-        var bMatches = qb && (home.indexOf(qb) >= 0 || away.indexOf(qb) >= 0);
-        return aMatches && bMatches;
-      });
-      if(!hit) return { error: 'No fixture found for "'+args.team_a+'" vs "'+args.team_b+'" on '+args.date+'.' };
-      return fetchApiFootballFixtureFacts(hit, args.date).then(function(text){
-        return { match_facts: text || 'Fixture found, but no detailed stats/events are available for it yet.' };
-      });
-    })
-    .catch(function(){ return { error: 'Lookup failed — try again.' }; });
-}
-
-function executeToolCall(name, args){
-  args = args || {};
-  if(name === 'get_team_recent_form') return toolGetTeamRecentForm(args);
-  if(name === 'get_head_to_head') return toolGetHeadToHead(args);
-  if(name === 'get_match_facts') return toolGetMatchFacts(args);
-  return Promise.resolve({ error: 'Unknown tool: '+name });
-}
-
-/* ---------------------------------------------------------------- */
-/* Gemini → Groq automatic fallback (free, no card, when Gemini's    */
-/* free-tier quota runs out). Groq is OpenAI-compatible, so this      */
-/* converts our Gemini-shaped request/response into that format and   */
-/* back, transparently, so calling code doesn't need to know which    */
-/* provider actually answered.                                        */
-/* ---------------------------------------------------------------- */
-// NOTE: llama-3.3-70b-versatile was deprecated by Groq (announced June 17, 2026).
-// openai/gpt-oss-120b is their recommended replacement — comparable general-purpose/
-// tool-use performance, current and actively served.
-var GROQ_MODEL = 'openai/gpt-oss-120b';
+/* ------------------------------------------------------------------ */
+/* Gemini → Groq automatic fallback (ported from the deployed backend  */
+/* logic). Groq has no built-in web-search tool, so a fallback answer  */
+/* has no grounding — that's surfaced to the user, not hidden.         */
+/* ------------------------------------------------------------------ */
+const GROQ_MODEL = 'openai/gpt-oss-120b';
 
 function geminiToolsToOpenAI(tools){
-  if(!tools || !tools.length) return undefined;
-  var decls = [];
-  tools.forEach(function(t){ (t.functionDeclarations || []).forEach(function(d){ decls.push(d); }); });
-  if(!decls.length) return undefined;
-  return decls.map(function(d){
-    return { type:'function', function: { name: d.name, description: d.description, parameters: d.parameters } };
-  });
+  if (!tools || !tools.length) return undefined;
+  const decls = [];
+  tools.forEach(t => (t.functionDeclarations || []).forEach(d => decls.push(d)));
+  if (!decls.length) return undefined;
+  return decls.map(d => ({ type: 'function', function: { name: d.name, description: d.description, parameters: d.parameters } }));
 }
 
 function geminiContentsToOpenAIMessages(systemText, contents){
-  var messages = [];
-  if(systemText) messages.push({ role:'system', content: systemText });
-  var lastToolCallIds = null;
-
-  (contents || []).forEach(function(turn){
-    var parts = turn.parts || [];
-    var calls = parts.filter(function(p){ return p.functionCall; });
-    var responses = parts.filter(function(p){ return p.functionResponse; });
-
-    if(calls.length){
-      lastToolCallIds = calls.map(function(_, i){ return 'call_'+i; });
-      var textPart = parts.filter(function(p){ return p.text; }).map(function(p){ return p.text; }).join('');
-      messages.push({
-        role: 'assistant',
-        content: textPart || null,
-        tool_calls: calls.map(function(c, i){
-          return { id: lastToolCallIds[i], type:'function', function:{ name: c.functionCall.name, arguments: JSON.stringify(c.functionCall.args || {}) } };
-        })
-      });
-    } else if(responses.length){
-      responses.forEach(function(r, i){
-        messages.push({
-          role: 'tool',
-          tool_call_id: (lastToolCallIds && lastToolCallIds[i]) || ('call_'+i),
-          content: JSON.stringify(r.functionResponse.response)
-        });
-      });
-    } else {
-      // Images (inline_data) aren't supported by the Groq fallback model — dropped silently,
-      // since callAI() only falls back for image-free requests in the first place.
-      var role = turn.role === 'model' ? 'assistant' : 'user';
-      var textParts = parts.filter(function(p){ return p.text; }).map(function(p){ return p.text; }).join('\n');
-      messages.push({ role: role, content: textParts });
-    }
+  const messages = [];
+  if (systemText) messages.push({ role: 'system', content: systemText });
+  (contents || []).forEach(turn => {
+    const parts = turn.parts || [];
+    const role = turn.role === 'model' ? 'assistant' : 'user';
+    const textParts = parts.filter(p => p.text).map(p => p.text).join('\n');
+    messages.push({ role, content: textParts });
   });
   return messages;
 }
 
 function openAIResponseToGeminiShape(data){
-  var choice = data && data.choices && data.choices[0];
-  var msg = choice && choice.message;
-  if(!msg) return { candidates: [] };
-  var parts = [];
-  if(msg.tool_calls && msg.tool_calls.length){
-    msg.tool_calls.forEach(function(tc){
-      var args = {};
-      try{ args = JSON.parse(tc.function.arguments || '{}'); }catch(e){}
-      parts.push({ functionCall: { name: tc.function.name, args: args } });
-    });
-  }
-  if(msg.content) parts.push({ text: msg.content });
-  return { candidates: [{ content: { parts: parts } }] };
+  const choice = data && data.choices && data.choices[0];
+  const msg = choice && choice.message;
+  if (!msg) return { candidates: [] };
+  const parts = [];
+  if (msg.content) parts.push({ text: msg.content });
+  return { candidates: [{ content: { parts } }] };
 }
 
-// Drop-in replacement for a raw fetch('/api/gemini', ...) call: tries Gemini first,
-// and — only for text-only requests, since the fallback model has no vision — falls
-// back to Groq automatically on ANY Gemini failure (quota/rate-limit, deprecated/
-// invalid model, outage, etc — not just 429s, since a bad model string or a Google
-// outage should fail over just as readily as hitting a quota). Resolves to
-// { data: <gemini-shaped response>, provider: 'gemini'|'groq' } either way, or rejects
-// with a combined error message if both providers fail.
+// Drop-in replacement for a raw fetch('/api/gemini', ...) call: tries Gemini first
+// (with whatever tools/system_instruction were requested — including google_search
+// grounding), and falls back to Groq automatically on ANY Gemini failure. Groq drops
+// the grounding tool silently (it doesn't support it), so a Groq-sourced answer comes
+// from the model's training data rather than live search — flagged via `provider`.
 function callAI(requestBody){
-  var hasImages = (requestBody.contents || []).some(function(t){
-    return (t.parts || []).some(function(p){ return p.inline_data; });
-  });
-
   return fetch('/api/gemini', {
-    method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(requestBody)
-  }).then(function(res){
-    if(res.ok) return res.json().then(function(data){ return { data: data, provider: 'gemini' }; });
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody)
+  }).then(res => {
+    if (res.ok) return res.json().then(data => ({ data, provider: 'gemini' }));
 
-    return res.json().catch(function(){ return {}; }).then(function(err){
-      var geminiMsg = (err && err.error && err.error.message) || ('status '+res.status);
-      if(hasImages) throw new Error(geminiMsg); // Groq fallback model has no vision — nothing to fall back to
-
-      var systemText = requestBody.system_instruction && requestBody.system_instruction.parts &&
-        requestBody.system_instruction.parts.map(function(p){ return p.text; }).join('\n');
-      var messages = geminiContentsToOpenAIMessages(systemText, requestBody.contents);
-      var openAITools = geminiToolsToOpenAI(requestBody.tools);
+    return res.json().catch(() => ({})).then(err => {
+      const geminiMsg = (err && err.error && err.error.message) || ('status ' + res.status);
+      const systemText = requestBody.system_instruction && requestBody.system_instruction.parts &&
+        requestBody.system_instruction.parts.map(p => p.text).join('\n');
+      const messages = geminiContentsToOpenAIMessages(systemText, requestBody.contents);
+      const openAITools = geminiToolsToOpenAI(requestBody.tools);
 
       return fetch('/api/groq', {
-        method:'POST', headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ model: GROQ_MODEL, messages: messages, tools: openAITools })
-      }).then(function(res2){
-        if(!res2.ok){
-          return res2.json().catch(function(){ return {}; }).then(function(err2){
-            var groqMsg = (err2 && err2.error && (err2.error.message || err2.error)) || res2.status;
-            throw new Error('Gemini: '+geminiMsg+' — backup (Groq) also failed: '+groqMsg);
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: GROQ_MODEL, messages, tools: openAITools })
+      }).then(res2 => {
+        if (!res2.ok){
+          return res2.json().catch(() => ({})).then(err2 => {
+            const groqMsg = (err2 && err2.error && (err2.error.message || err2.error)) || res2.status;
+            throw new Error('Gemini: ' + geminiMsg + ' — backup (Groq) also failed: ' + groqMsg);
           });
         }
-        return res2.json().then(function(data2){
-          return { data: openAIResponseToGeminiShape(data2), provider: 'groq' };
-        });
+        return res2.json().then(data2 => ({ data: openAIResponseToGeminiShape(data2), provider: 'groq' }));
       });
     });
   });
 }
 
-var CHAT_SYSTEM_PROMPT =
-"You are a meticulous football analytics research assistant helping a content creator gather ACCURATE " +
-"match and player facts before they write a video script. A wrong stat here can genuinely hurt their " +
-"credibility with their audience, so precision matters more than speed.\n\n" +
-"Prioritize confirming these, for both teams and especially any key/standout players the user mentions:\n" +
-"possession %, passes completed/attempted (pass completion %), chances created, big chances created, " +
-"shots on target, shots off target, interceptions, and total touches.\n\n" +
-"Rules:\n" +
-"- You HAVE live API access in this chat via tools: get_team_recent_form (a team's recent results/form), " +
-"get_head_to_head (past meetings between two teams), and get_match_facts (full hard data — score, scorers, " +
-"cards, subs, stats, formations — for one SPECIFIC match once you know its date). Use them, don't guess. " +
-"Whenever the user wants a preview, prediction, or pre-match analysis of an upcoming or hypothetical match, " +
-"automatically call get_team_recent_form for BOTH teams and get_head_to_head, without waiting to be asked — " +
-"that combination of current form plus past meetings is the basis for any real prediction. Only call " +
-"get_match_facts for a match you're confident has already kicked off or finished; never call it for a match " +
-"that hasn't happened yet.\n" +
-"- Trust the real current date given to you below over anything from your own training. A fixture in 2026 or " +
-"later is not automatically 'in the future' or 'unavailable' just because it's after your training cutoff — " +
-"check the real date given to you, and use the tools to find out what's actually happened, rather than " +
-"assuming or refusing.\n" +
-"- If a tool comes back with an error or no data, say plainly what's missing rather than inventing it, and " +
-"suggest the user try the search box in the 'Find Real Match Data' card above as a fallback.\n" +
-"- If the user gives you one or more screenshots, read the exact numbers as shown in each image and read them " +
-"back to the user to confirm you read them correctly — never assume or estimate a number you can't actually see.\n" +
-"- If the user uploads spreadsheet/CSV data, treat the rows and columns as authoritative source data and " +
-"summarize what you found from it before asking anything else.\n" +
-"- If something is missing, ask a short, specific follow-up question for exactly what's missing rather than " +
-"a vague 'tell me more'.\n" +
-"- Never invent a statistic. If you don't have it and the user doesn't provide it, say it's missing.\n" +
-"- Keep responses short and conversational, like a colleague double-checking notes, not an essay.\n" +
-"- If the user asks for a summary or says they're ready, respond with a clean, structured recap of every " +
-"confirmed fact and stat gathered so far, organized by team then key players, ready to paste into a script.\n\n" +
-"WRITING THE ACTUAL SCRIPT — only do this when the user explicitly asks you to write, draft, or generate a script " +
-"(not just recap facts). This covers requests that don't fit the single-match Draft Script tool, e.g. multi-match " +
-"recaps like 'World Cup Match Day 3 recap' covering several games (and things like the opening ceremony) in one script.\n" +
-"- Persona: Tactical Theo — sharp, analytical, confident, backs opinions with tactical detail, always lands on a " +
-"real stance rather than staying neutral, unless the user tells you otherwise in the same message. Theo is also " +
-"an unapologetic Barcelona/Messi fan — let that bias show naturally when Barcelona or Messi are actually part of " +
-"the content (benefit of the doubt on close calls, sharper on their rivals), but never at the expense of the " +
-"fact-accuracy rules above, and never forced into content that has nothing to do with them.\n" +
-"- Ask the user for target duration (seconds) if they haven't given one, and use ~150 words per minute of spoken " +
-"audio to size the script.\n" +
-"- A pre-recorded, reusable lip-synced clip already plays BEFORE the script (host's signature opener + name card) " +
-"and another already plays AFTER it (sign-off + call-to-action). So: never write a greeting, welcome line, or " +
-"'welcome back' framing, and never write a closing sign-off or 'thanks for watching' / follow-comment CTA — those " +
-"are already handled by the pre-recorded clips.\n" +
-"- Structure: begin IMMEDIATELY with the headline/result stated as breaking news (e.g. 'Argentina has just beaten " +
-"England 2-1 to reach the World Cup Final'), move through the analysis/breakdown of everything covered (each match " +
-"or moment gets its own beat, in the order most compelling for the video — not necessarily chronological), and " +
-"close with a clear personal verdict or ranking as the final substantive content — not a wrap-up line.\n" +
-"- Use bracketed section labels with timestamps, e.g. [0:00 - THE ANALYSIS] then [X:XX - MY VERDICT], the same way " +
-"the Draft Script tool does, so the output drops straight into the Script Sandbox without reformatting.\n" +
-"- Only use facts actually confirmed earlier in this conversation or given in the Verified Match Facts context — " +
-"never invent a score, scorer, or incident that wasn't actually provided.\n" +
-"- Output the script as its own clearly separated block so the user can copy just that part into the sandbox.";
+/* ------------------------------------------------------------------ */
+/* Football mode context: reuses the API-Football proxy to pull real,  */
+/* hard match data for today's fixtures when the user's request        */
+/* mentions a team playing today, and feeds it to Gemini as ground     */
+/* truth alongside its own web search. Best-effort — if nothing        */
+/* matches, Gemini's search grounding still runs on its own.           */
+/* ------------------------------------------------------------------ */
+function todayDateStr(){ return new Date().toISOString().slice(0, 10); }
 
-var chatHistory = [];
-var pendingAttachments = []; // { kind:'image', name, mime, base64, previewUrl } | { kind:'file', name, content }
+function summarizeFixtureList(fixtures){
+  return fixtures.map(f => {
+    const home = (f.teams && f.teams.home && f.teams.home.name) || '?';
+    const away = (f.teams && f.teams.away && f.teams.away.name) || '?';
+    const gh = f.goals && f.goals.home, ga = f.goals && f.goals.away;
+    const date = (f.fixture && f.fixture.date) ? f.fixture.date.slice(0, 10) : '?';
+    const comp = (f.league && f.league.name) || '';
+    const result = (gh != null && ga != null) ? `${home} ${gh}-${ga} ${away}` : `${home} vs ${away} (no score yet)`;
+    return `${date}: ${result} (${comp})`;
+  });
+}
 
-function renderChatMessage(role, text, imgUrls, fileNames){
-  var div = document.createElement('div');
-  var isUser = role === 'user';
-  div.style.cssText = 'max-width:88%;padding:9px 12px;border-radius:10px;font-size:12.8px;line-height:1.55;white-space:pre-wrap;' +
-    (isUser
-      ? 'align-self:flex-end;background:rgba(166,255,46,.10);border:1px solid var(--border2);'
-      : 'align-self:flex-start;background:rgba(0,0,0,.35);border:1px solid var(--border);');
-  if(imgUrls && imgUrls.length){
-    var row = document.createElement('div');
-    row.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px';
-    imgUrls.forEach(function(url){
-      var img = document.createElement('img');
-      img.src = url;
-      img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:8px';
-      row.appendChild(img);
+async function fetchApiFootballFixtureFacts(fixture, dateStr){
+  const fixtureId = fixture && fixture.fixture && fixture.fixture.id;
+  if (!fixtureId) return null;
+
+  const [statsData, eventsData] = await Promise.all([
+    fetch('/api/football/fixtures/statistics?fixture=' + fixtureId).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch('/api/football/fixtures/events?fixture=' + fixtureId).then(r => r.ok ? r.json() : null).catch(() => null)
+  ]);
+
+  const home = fixture.teams.home.name, away = fixture.teams.away.name;
+  const goalsHome = fixture.goals && fixture.goals.home, goalsAway = fixture.goals && fixture.goals.away;
+  const comp = (fixture.league && fixture.league.name) || '';
+  const statusShort = (fixture.fixture && fixture.fixture.status && fixture.fixture.status.short) || '';
+
+  const lines = [`Competition & date: ${comp}, ${dateStr}`, `Status: ${statusShort}`];
+  if (goalsHome != null && goalsAway != null) lines.push(`Score: ${home} ${goalsHome} - ${goalsAway} ${away}`);
+
+  const events = (eventsData && eventsData.response) || [];
+  const minuteOf = e => { const t = e.time || {}; return t.elapsed + (t.extra ? '+' + t.extra : ''); };
+  const goals = events.filter(e => e.type === 'Goal');
+  const cards = events.filter(e => e.type === 'Card');
+  if (goals.length) lines.push('Scorers: ' + goals.map(e => `${(e.player && e.player.name) || '?'} (${e.team && e.team.name}, ${minuteOf(e)}')`).join('; '));
+  if (cards.length) lines.push('Cards: ' + cards.map(e => `${(e.player && e.player.name) || '?'} (${e.team && e.team.name}, ${minuteOf(e)}', ${e.detail || 'Card'})`).join('; '));
+
+  const statsArr = (statsData && statsData.response) || [];
+  const wantedStats = ['Ball Possession', 'Total Shots', 'Shots on Goal', 'Corner Kicks', 'Fouls', 'Yellow Cards', 'Red Cards'];
+  statsArr.forEach(teamStat => {
+    const teamName = (teamStat.team && teamStat.team.name) || '';
+    const picked = (teamStat.statistics || []).filter(st => wantedStats.indexOf(st.type) >= 0 && st.value != null);
+    if (picked.length) lines.push(`${teamName} stats: ` + picked.map(st => `${st.type}: ${st.value}`).join(', '));
+  });
+
+  return lines.join('\n');
+}
+
+async function gatherFootballContext(queryText){
+  try {
+    const dateStr = todayDateStr();
+    const res = await fetch('/api/football/fixtures?date=' + dateStr);
+    if (!res.ok) return '';
+    const data = await res.json();
+    const fixtures = (data && data.response) || [];
+    if (!fixtures.length) return '';
+    const q = queryText.toLowerCase();
+    const hit = fixtures.find(f => {
+      const home = ((f.teams && f.teams.home && f.teams.home.name) || '').toLowerCase();
+      const away = ((f.teams && f.teams.away && f.teams.away.name) || '').toLowerCase();
+      return (home && q.indexOf(home) >= 0) || (away && q.indexOf(away) >= 0);
     });
-    div.appendChild(row);
+    if (!hit) return '';
+    const facts = await fetchApiFootballFixtureFacts(hit, dateStr);
+    return facts ? '=== VERIFIED MATCH DATA (from API-Football, today\'s fixtures) ===\n' + facts : '';
+  } catch (e) {
+    return '';
   }
-  if(fileNames && fileNames.length){
-    var fdiv = document.createElement('div');
-    fdiv.style.cssText = 'font-size:11px;color:var(--dim2);margin-bottom:4px';
-    fdiv.textContent = fileNames.map(function(n){ return '📊 '+n; }).join('  ');
-    div.appendChild(fdiv);
-  }
-  if(text){
-    var span = document.createElement('span');
-    span.textContent = text;
-    div.appendChild(span);
-  }
-  chatMessages.appendChild(div);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-  return div;
 }
 
-function showChatError(msg){ chatError.innerHTML = '<div class="msg-error">⚠️ <span>'+msg+'</span></div>'; }
-function clearChatError(){ chatError.innerHTML=''; }
-
-function renderAttachmentPreviews(){
-  attachmentsPreview.innerHTML = '';
-  if(pendingAttachments.length === 0){ attachmentsPreview.style.display = 'none'; return; }
-  attachmentsPreview.style.display = 'flex';
-  pendingAttachments.forEach(function(att, idx){
-    var chip = document.createElement('div');
-    chip.style.cssText = 'display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.35);border:1px solid var(--border2);border-radius:8px;padding:4px 8px;font-size:11px;color:var(--dim2)';
-    if(att.kind === 'image'){
-      var img = document.createElement('img');
-      img.src = att.previewUrl;
-      img.style.cssText = 'width:26px;height:26px;object-fit:cover;border-radius:4px';
-      chip.appendChild(img);
-    } else {
-      var icon = document.createElement('span'); icon.textContent = '📊'; chip.appendChild(icon);
-    }
-    var label = document.createElement('span'); label.textContent = att.name; chip.appendChild(label);
-    var rm = document.createElement('button');
-    rm.type = 'button'; rm.textContent = '✕';
-    rm.style.cssText = 'background:none;border:none;color:var(--dim);cursor:pointer;font-size:11px;padding:0 2px';
-    rm.addEventListener('click', function(){ pendingAttachments.splice(idx,1); renderAttachmentPreviews(); });
-    chip.appendChild(rm);
-    attachmentsPreview.appendChild(chip);
-  });
+function buildSourcesHtml(chunks, usedFallback){
+  if (chunks && chunks.length){
+    const links = chunks.slice(0, 5).map(c => {
+      const w = c.web || {};
+      const label = escapeHtml(w.title || w.uri || 'source');
+      return `<span><a href="${w.uri || '#'}" target="_blank" rel="noopener">${label}</a></span>`;
+    });
+    return `<div class="sources">${links.join('')}</div>`;
+  }
+  if (usedFallback){
+    return `<div class="sources"><span>⚠ Backup AI used — no live web search this time, verify facts before using</span></div>`;
+  }
+  return '';
 }
 
-attachImageBtn.addEventListener('click', function(){ imageInput.click(); });
-attachFileBtn.addEventListener('click', function(){ dataFileInput.click(); });
+/* ------------------------------------------------------------------ */
+/* Real pipeline: mode's system prompt + Gemini with Google Search      */
+/* grounding + (football mode only) verified match data as context.    */
+/* ------------------------------------------------------------------ */
+async function runPipeline(userText){
+  const stageEl = addPipeline();
+  const pipelineMsg = stageEl.closest('.msg');
+  const mode = currentMode();
 
-imageInput.addEventListener('change', function(){
-  var files = Array.prototype.slice.call(imageInput.files || []);
-  if(!files.length) return;
-  files.forEach(function(file){
-    var reader = new FileReader();
-    reader.onload = function(e){
-      var dataUrl = e.target.result;
-      pendingAttachments.push({
-        kind: 'image', name: file.name, mime: file.type || 'image/png',
-        base64: dataUrl.split(',')[1], previewUrl: dataUrl
-      });
-      renderAttachmentPreviews();
-    };
-    reader.readAsDataURL(file);
-  });
-  imageInput.value = '';
-});
+  let footballContext = '';
+  if (mode.id === 'football'){
+    setStage(stageEl, 'Checking live match data…');
+    footballContext = await gatherFootballContext(userText);
+  }
+  setStage(stageEl, 'Searching for context…');
 
-dataFileInput.addEventListener('change', function(){
-  var files = Array.prototype.slice.call(dataFileInput.files || []);
-  if(!files.length) return;
-  clearChatError();
-  files.forEach(function(file){
-    var isCsv = /\.csv$/i.test(file.name);
-    var reader = new FileReader();
-    reader.onerror = function(){ showChatError('Could not read "'+file.name+'".'); };
-    if(isCsv){
-      reader.onload = function(e){
-        pendingAttachments.push({ kind:'file', name:file.name, content: e.target.result });
-        renderAttachmentPreviews();
-      };
-      reader.readAsText(file);
-    } else {
-      reader.onload = function(e){
-        try{
-          var data = new Uint8Array(e.target.result);
-          var wb = XLSX.read(data, { type:'array' });
-          var content = wb.SheetNames.map(function(name){
-            return 'Sheet: '+name+'\n'+XLSX.utils.sheet_to_csv(wb.Sheets[name]);
-          }).join('\n\n');
-          pendingAttachments.push({ kind:'file', name:file.name, content: content });
-          renderAttachmentPreviews();
-        }catch(err){
-          showChatError('Could not parse "'+file.name+'" — is it a valid .xlsx/.xls file?');
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    }
-  });
-  dataFileInput.value = '';
-});
+  const promptText = footballContext ? `${footballContext}\n\nUser request: ${userText}` : userText;
 
-function sendChatMessage(){
-  clearChatError();
-  var text = chatInput.value.trim();
-  if(!text && pendingAttachments.length === 0) return;
-
-  var images = pendingAttachments.filter(function(a){ return a.kind === 'image'; });
-  var files = pendingAttachments.filter(function(a){ return a.kind === 'file'; });
-
-  var fileBlocks = files.map(function(f){ return '[Data from uploaded file: '+f.name+']\n'+f.content; }).join('\n\n');
-  var combinedText = [text, fileBlocks].filter(Boolean).join('\n\n');
-
-  var userParts = [];
-  images.forEach(function(img){ userParts.push({ inline_data: { mime_type: img.mime, data: img.base64 } }); });
-  if(combinedText) userParts.push({ text: combinedText });
-
-  renderChatMessage('user', text, images.map(function(i){ return i.previewUrl; }), files.map(function(f){ return f.name; }));
-  var historyLenBeforeSend = chatHistory.length;
-  chatHistory.push({ role:'user', parts: userParts });
-
-  chatInput.value = '';
-  var hadAttachments = pendingAttachments.length > 0;
-  pendingAttachments = [];
-  renderAttachmentPreviews();
-
-  chatSendBtn.disabled = true;
-  chatSendBtn.innerHTML = '<span class="spinner"></span>';
-  var thinkingBubble = renderChatMessage('model', 'Thinking…');
-
-  var searchContext = verifiedFacts.value.trim();
-  var todayStr = new Date().toISOString().slice(0,10);
-  var systemPrompt = CHAT_SYSTEM_PROMPT +
-    "\n\nToday's real date is " + todayStr + ". Trust this completely, over any date you'd otherwise assume.\n" +
-    (searchContext
-      ? "\n[Real match facts already found via the search tool above — treat these as already-confirmed, no need to re-ask for them:]\n" + searchContext
-      : '');
-
-  function fail(e){
-    thinkingBubble.remove();
-    chatHistory.length = historyLenBeforeSend; // roll back the whole turn so retry is clean
-    showChatError((e.message || 'Something went wrong.') + (hadAttachments ? ' (try resending the attachment(s))' : ''));
-    chatSendBtn.disabled = false;
-    chatSendBtn.innerHTML = 'Send';
+  let resultText = '';
+  let chunks = [];
+  let usedFallback = false;
+  let errorMsg = '';
+  try {
+    setStage(stageEl, 'Drafting your script…');
+    const { data, provider } = await callAI({
+      contents: [{ role: 'user', parts: [{ text: promptText }] }],
+      system_instruction: { parts: [{ text: mode.system }] },
+      tools: [{ google_search: {} }]
+    });
+    usedFallback = provider === 'groq';
+    const cand = data && data.candidates && data.candidates[0];
+    const parts = cand && cand.content && cand.content.parts;
+    resultText = parts ? parts.map(p => p.text || '').join('') : '';
+    chunks = (cand && cand.groundingMetadata && cand.groundingMetadata.groundingChunks) || [];
+    if (!resultText.trim()) throw new Error('No response came back — try rephrasing your request.');
+  } catch (e) {
+    errorMsg = e.message || 'Something went wrong.';
   }
 
-  function runTurn(depth){
-    callAI({
-      system_instruction: { parts:[{ text: systemPrompt }] },
-      contents: chatHistory,
-      tools: CHAT_TOOLS
-    }).then(function(result){
-      var data = result.data;
-      var cand = data && data.candidates && data.candidates[0];
-      var parts = (cand && cand.content && cand.content.parts) || [];
-      var calls = parts.filter(function(p){ return p.functionCall; });
+  setStage(stageEl, 'Polishing…');
+  await new Promise(r => setTimeout(r, 200));
 
-      if(result.provider === 'groq' && depth === 0){
-        var span0 = thinkingBubble.querySelector('span');
-        if(span0) span0.textContent = "Gemini's daily quota is used up — answering via backup AI instead…";
-      }
-
-      if(calls.length && depth < 2){
-        chatHistory.push({ role:'model', parts: parts });
-        var span = thinkingBubble.querySelector('span');
-        if(span) span.textContent = 'Checking API-Football (' + calls.map(function(c){ return c.functionCall.name; }).join(', ') + ')…';
-
-        Promise.all(calls.map(function(c){
-          return executeToolCall(c.functionCall.name, c.functionCall.args).then(function(result){
-            return { functionResponse: { name: c.functionCall.name, response: result } };
-          });
-        })).then(function(responseParts){
-          chatHistory.push({ role:'function', parts: responseParts });
-          runTurn(depth + 1);
-        }).catch(fail);
-        return;
-      }
-
-      var replyText = parts.map(function(p){ return p.text || ''; }).join('');
-      if(!replyText.trim()) throw new Error('No reply came back.');
-      thinkingBubble.remove();
-      renderChatMessage('model', replyText.trim());
-      chatHistory.push({ role:'model', parts:[{ text: replyText.trim() }] });
-      saveWorkspace();
-      chatSendBtn.disabled = false;
-      chatSendBtn.innerHTML = 'Send';
-    }).catch(fail);
-  }
-
-  runTurn(0);
-}
-
-chatSendBtn.addEventListener('click', sendChatMessage);
-chatInput.addEventListener('keydown', function(e){
-  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendChatMessage(); }
-});
-
-useChatBtn.addEventListener('click', function(){
-  if(chatHistory.length === 0){
-    showChatError('Chat with the analyst first — there\'s nothing to bring over yet.');
+  if (errorMsg){
+    replacePipelineWithResult(pipelineMsg, `<div class="err">${escapeHtml(errorMsg)}</div>`);
     return;
   }
-  var lines = chatHistory.map(function(msg){
-    var label = msg.role === 'user' ? 'You' : 'Analyst';
-    var textParts = msg.parts.filter(function(p){ return p.text; }).map(function(p){ return p.text; }).join(' ');
-    var hadImage = msg.parts.some(function(p){ return p.inline_data; });
-    return label+': '+(textParts || '')+(hadImage ? ' [screenshot attached]' : '');
-  });
-  var transcript = lines.join('\n');
-  var existing = teamDetails.value.trim();
-  teamDetails.value = existing ? (existing+'\n\n[Research chat transcript]\n'+transcript) : ('[Research chat transcript]\n'+transcript);
-  teamDetails.scrollIntoView({ behavior:'smooth', block:'center' });
-  teamDetails.focus();
+
+  const sourcesHtml = buildSourcesHtml(chunks, usedFallback);
+  replacePipelineWithResult(pipelineMsg, `<div class="bubble-assistant">${escapeHtml(resultText)}</div>${sourcesHtml}`);
+  saveMessage('assistant', resultText, []);
+
+  addChips(pipelineMsg, [
+    { label: 'This feels off — let me refine it', action: () => { input.placeholder = 'e.g. focus more on the winger, less on the manager…'; input.focus(); } },
+    { label: 'Try a completely different angle', action: () => input.focus() },
+    { label: 'Something else', action: () => input.focus() }
+  ]);
+}
+
+function submit(){
+  const text = input.value.trim();
+  if (!text) return;
+  addUserMsg(text);
+  saveMessage('user', text);
+  input.value = '';
+  input.style.height = 'auto';
+  sendBtn.disabled = true;
+  runPipeline(text);
+}
+
+input.addEventListener('input', () => {
+  sendBtn.disabled = input.value.trim().length === 0;
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 110) + 'px';
 });
+// Enter always makes a new line here — this is a script-writing tool, people type multi-line prompts.
+// Sending only happens via the send button, intentionally.
+sendBtn.addEventListener('click', submit);
 
-/* ---------------------------------------------------------------- */
-/* Mode-aware field labels & placeholders                             */
-/* ---------------------------------------------------------------- */
-var teamDetailsLabel = $('teamDetailsLabel'), tacticalContextLabel = $('tacticalContextLabel');
-var FIELD_CONFIG = {
-  transfer: {
-    teamLabel: "Transfer Details (Player, Clubs, Fee, Terms)",
-    teamPlaceholder: "e.g. Player X, moving from Club A to Club B, reported fee £60m, 5-year deal...",
-    ctxLabel: "Squad Fit / Context",
-    ctxPlaceholder: "e.g. Club B needs a left-footed 8 after selling their last one; Club A's academy has a ready replacement..."
-  },
-  fulltime: {
-    teamLabel: "Match Result & Team/Player Details",
-    teamPlaceholder: "e.g. Arsenal 3-1 Chelsea. Focus player: Bukayo Saka (2 goals, 1 assist)...",
-    ctxLabel: "Tactical Context / Lineup Details",
-    ctxPlaceholder: "e.g. Arsenal played 4-3-3, dominated the middle third from the 30th minute onward..."
-  },
-  halftime: {
-    teamLabel: "Match & First-Half Score/Stats",
-    teamPlaceholder: "e.g. Spain 1-0 France at half-time. Yamal causing problems down the right...",
-    ctxLabel: "Tactical Context / Lineup Details",
-    ctxPlaceholder: "e.g. Spain in a 4-3-3 pressing high; France sitting in a mid-block 4-2-3-1..."
-  },
-  _default: {
-    teamLabel: "Team / Match Details",
-    teamPlaceholder: "e.g. Arsenal vs Real Madrid, UCL Quarter-Final 2nd leg. Saka, Odegaard, Bellingham, Vinicius...",
-    ctxLabel: "Tactical Context / Lineup Details",
-    ctxPlaceholder: "e.g. Arteta expected 4-3-3 with Rice dropping deep; Ancelotti's 4-4-2 diamond vs Bellingham as false 9..."
-  }
-};
-function applyFieldConfig(){
-  var cfg = FIELD_CONFIG[modeSelect.value] || FIELD_CONFIG._default;
-  teamDetailsLabel.textContent = cfg.teamLabel;
-  teamDetails.placeholder = cfg.teamPlaceholder;
-  tacticalContextLabel.textContent = cfg.ctxLabel;
-  tacticalContext.placeholder = cfg.ctxPlaceholder;
-}
-modeSelect.addEventListener('change', function(){ applyFieldConfig(); saveWorkspace(); });
-applyFieldConfig();
-personaSelect.addEventListener('change', saveWorkspace);
-voiceSelect.addEventListener('change', saveWorkspace);
-
-/* ---------------------------------------------------------------- */
-/* Duration + rate labels                                            */
-/* ---------------------------------------------------------------- */
-function currentDuration(){ return DURATIONS[Number(durationSlider.value)]; }
-durationSlider.addEventListener('input', function(){
-  durationLabel.textContent = 'Target Duration — '+currentDuration()+'s';
-  debouncedSaveWorkspace();
-});
-rateSlider.addEventListener('input', function(){
-  var r = Number(rateSlider.value);
-  rateLabel.textContent = 'Speech Rate — '+(r>0?'+':'')+r+'%';
-  debouncedSaveWorkspace();
-});
-teamDetails.addEventListener('input', debouncedSaveWorkspace);
-tacticalContext.addEventListener('input', debouncedSaveWorkspace);
-matchQuery.addEventListener('input', debouncedSaveWorkspace);
-pronunciationFixes.addEventListener('input', debouncedSaveWorkspace);
-
-/* ---------------------------------------------------------------- */
-/* Stage 1: Draft script via Gemini                                   */
-/* ---------------------------------------------------------------- */
-function showDraftError(msg){ draftError.innerHTML = '<div class="msg-error">⚠️ <span>'+msg+'</span></div>'; }
-function clearDraftError(){ draftError.innerHTML=''; }
-
-function setDrafting(on){
-  draftBtn.disabled = on;
-  draftBtn.innerHTML = on ? '<span class="spinner"></span> Drafting…' : '✨ 1. Draft Script';
-}
-
-function unlockSandbox(){
-  sandboxEmpty.style.display='none';
-  sandboxFull.style.display='block';
-  badge1.classList.add('done'); badge1.textContent='✓';
-  badge2.classList.add('done'); badge2.textContent='✓';
-  stage1.classList.add('done'); stage2.classList.add('done');
-  voiceEmpty.style.display='none';
-  voiceFieldset.disabled = false;
-}
-
-function updateCounts(){
-  var text = scriptBox.value;
-  var words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  wordCount.textContent = words+' words';
-  charCount.textContent = text.length+' / 1000 characters';
-  charCount.style.color = text.length > 1000 ? '#ff6b6b' : '';
-}
-scriptBox.addEventListener('input', function(){ updateCounts(); debouncedSaveWorkspace(); });
-
-
-draftBtn.addEventListener('click', function(){
-  clearDraftError();
-  var team = teamDetails.value.trim();
-  if(!team){ showDraftError('Add team/match details before drafting.'); return; }
-
-  setDrafting(true);
-  var persona = PERSONAS[personaSelect.value];
-  var mode = MODES[modeSelect.value];
-  var tone = TONES[toneSelect.value] || TONES.opinionated;
-  var duration = currentDuration();
-  var t = getTimings(duration);
-  var targetWords = Math.round(150*(duration/60));
-  var tactical = tacticalContext.value.trim() || "None provided — infer reasonable tactical detail from the match details above.";
-
-  var prompt = "You are an elite, highly opinionated football (soccer) content creator and expert analyst.\n" +
-"Your goal is to write a highly engaging, fast-paced, first-person video script based on the following parameters:\n\n" +
-"[PARAMETERS]\n" +
-"- Host Persona: "+persona.label+"\n" +
-"- Video Mode: "+mode.label+"\n" +
-"- Target Duration: "+duration+" seconds (Aim for ~150 words per minute of spoken audio, roughly "+targetWords+" words total)\n" +
-"- Team / Match Details: "+team+"\n" +
-"- Tactical Context / Lineup Details: "+tactical+"\n\n" +
-"[HOST PERSONA RULES]\n"+persona.rule+"\n\n" +
-"[REUSABLE INTRO/OUTRO RULES]\n" +
-"A pre-recorded, reusable lip-synced clip already plays BEFORE this script starts (host's signature " +
-"opener + name card, e.g. \"Tactical Theo Studio...\") and another pre-recorded clip plays AFTER it ends " +
-"(a sign-off + call-to-action). Because of this:\n" +
-"- Do NOT write any greeting, welcome line, channel/host name introduction, or \"welcome back\" framing.\n" +
-"- Begin the script IMMEDIATELY with the headline/result stated as breaking news — e.g. \"Argentina has " +
-"just beaten England 2-1 to reach the World Cup Final.\" — then move straight into the breakdown.\n" +
-"- Do NOT write any closing sign-off, \"thanks for watching\", or generic call-to-action asking people to " +
-"follow/subscribe/comment at the very end — the pre-recorded outro clip already covers that. The final " +
-"personal verdict below should end on substantive analytical content, not a wrap-up line.\n\n" +
-"[VIDEO MODE RULES & SCRIPT STRUCTURE]\n" +
-"The script must be formatted exactly into 2 clear visual sections with timestamps. Avoid generic filler. Use natural spoken transitions. "+tone.verdictRule+"\n\n" +
-"Format the output strictly as follows:\n\n" +
-"["+t.analysisStart+" - THE ANALYSIS]\n" +
-"(80% of duration. Opens immediately with the headline/result as breaking news per the rules above, then breaks down the core details:\n - "+mode.rule+")\n\n" +
-"["+t.verdictStart+" - MY VERDICT]\n" +
-tone.verdictBody+"\n\n" +
-"Output ONLY the script text with the two bracketed section headings shown above (replace the parenthetical instructions with the actual spoken script content), nothing else — no preamble, no extra notes, no markdown formatting.\n\n" +
-"CRITICAL: Only use scores, stats, minutes, and incidents that are explicitly present in the Team/Match Details or Tactical Context above. Do not invent scorelines, cards, injuries, or quotes that weren't given to you. If a detail you'd want isn't provided, speak in general tactical terms instead of fabricating a specific fact. If a relevant Law of the Game or rule text is present in the input, base your refereeing verdict on that exact rule rather than a general impression of the law.\n\n" +
-"HARD LIMIT: The entire script output — both sections combined, including headings and spaces — must be 1000 characters or fewer. This overrides the target duration/word count above if they conflict; prioritize staying under 1000 characters. Be concise and cut detail rather than running long.\n\n" +
-"PUNCTUATION FOR VOICE PACING: The text-to-speech engine only reacts to two punctuation marks, so use them deliberately: a comma (,) is a short pause that keeps the same energy going, and a period (.) is a longer pause that resets to fresh energy on the next sentence — don't use other punctuation (dashes, semicolons, ellipses) to control pacing. When moving to a new subject or team but you only want a short pause rather than a full energy reset, bridge with \", and\" rather than a bare comma or a period — e.g. \"France in their usual four-three-three, and Spain compact in a back four\" reads as a smooth handoff, while a bare period there would kill the momentum and a bare comma would read as still describing France.";
-
-  callAI({
-    contents:[{ role:'user', parts:[{ text: prompt }] }]
-  }).then(function(result){
-    var data = result.data;
-    var parts = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
-    var text = parts ? parts.map(function(p){ return p.text||''; }).join('') : '';
-    if(!text.trim()) throw new Error('The model returned an empty script.');
-    text = text.trim();
-    var wasTrimmed = false;
-    if(text.length > 1000){
-      var cut = text.slice(0, 1000);
-      var lastSpace = cut.lastIndexOf(' ');
-      if(lastSpace > 800) cut = cut.slice(0, lastSpace); // avoid cutting mid-word if a reasonable break is nearby
-      text = cut.trim();
-      wasTrimmed = true;
-    }
-    scriptBox.value = text;
-    if(result.provider === 'groq'){
-      showDraftError("Gemini's daily quota is used up — this draft came from the backup AI (Groq) instead.");
-    } else if(wasTrimmed){
-      showDraftError('The script ran long, so it was trimmed to fit the 1000-character limit.');
-    }
-    updateCounts();
-    unlockSandbox();
-    saveWorkspace();
-  }).catch(function(e){
-    showDraftError(e.message || 'Something went wrong while drafting the script.');
-  }).finally(function(){
-    setDrafting(false);
-  });
-});
-
-/* ---------------------------------------------------------------- */
-/* Stage 2 -> 3: Voice generation                                     */
-/* ---------------------------------------------------------------- */
-function showVoiceError(msg){ voiceError.innerHTML = '<div class="msg-error">⚠️ <span>'+msg+'</span></div>'; }
-function clearVoiceError(){ voiceError.innerHTML=''; }
-function setVoiceNote(msg){ engineNote.innerHTML = msg ? '<div class="msg-note">✅ <span>'+msg+'</span></div>' : ''; }
-
-function stopPlayback(){
-  if(state.audioEl){ state.audioEl.pause(); state.audioEl.currentTime=0; }
-  if(window.speechSynthesis) window.speechSynthesis.cancel();
-  state.isPlaying = false;
-  var pb = document.getElementById('playPauseBtn');
-  if(pb) pb.textContent = '▶';
-}
-function fmtTime(s){
-  if(!isFinite(s)) return '0:00';
-  var m = Math.floor(s/60), sec = Math.floor(s%60).toString().padStart(2,'0');
-  return m+':'+sec;
-}
-
-function renderPlayer(){
-  playerBox.style.display='flex';
-  var voice = voiceSelect.value;
-  if(state.audioUrl){
-    playerBox.innerHTML =
-      '<audio id="hiddenAudio" src="'+state.audioUrl+'" style="display:none"></audio>'+
-      '<div class="player-row">'+
-        '<button class="play-btn" id="playPauseBtn">▶</button>'+
-        '<div class="seek">'+
-          '<span id="curTime">0:00</span>'+
-          '<input type="range" id="seekSlider" min="0" max="0" step="0.1" value="0" style="flex:1"/>'+
-          '<span id="durTime">0:00</span>'+
-        '</div>'+
-      '</div>'+
-      '<a class="btn-outline" id="downloadBtn" href="'+state.audioUrl+'" download="voiceover-'+voice+'.mp3">⬇ Download Voiceover MP3</a>';
-
-    var audioEl = $('hiddenAudio');
-    state.audioEl = audioEl;
-    var playBtn = $('playPauseBtn'), seek = $('seekSlider'), curTime = $('curTime'), durTime = $('durTime');
-
-    audioEl.addEventListener('loadedmetadata', function(){ seek.max = audioEl.duration; durTime.textContent = fmtTime(audioEl.duration); });
-    audioEl.addEventListener('timeupdate', function(){ seek.value = audioEl.currentTime; curTime.textContent = fmtTime(audioEl.currentTime); });
-    audioEl.addEventListener('ended', function(){ state.isPlaying=false; playBtn.textContent='▶'; });
-    seek.addEventListener('input', function(){ audioEl.currentTime = Number(seek.value); });
-    playBtn.addEventListener('click', function(){
-      if(state.isPlaying){ audioEl.pause(); state.isPlaying=false; playBtn.textContent='▶'; }
-      else{ audioEl.play(); state.isPlaying=true; playBtn.textContent='⏸'; }
-    });
-  } else {
-    playerBox.innerHTML =
-      '<div class="player-row">'+
-        '<button class="play-btn" id="playPauseBtn">▶</button>'+
-        '<div style="flex:1;display:flex;align-items:center;gap:8px">'+
-          '<button class="stop-mini" id="stopBtn">⏹ Stop</button>'+
-          '<span style="font-size:11px;color:var(--dim)">Live browser playback — no fixed timeline</span>'+
-        '</div>'+
-      '</div>'+
-      '<button class="btn-outline disabled" title="Downloading requires the live neural engine, which was not reachable this session.">⬇ Download unavailable in fallback mode</button>';
-
-    var playBtn2 = $('playPauseBtn'), stopBtn = $('stopBtn');
-    playBtn2.addEventListener('click', function(){
-      if(state.isPlaying){
-        window.speechSynthesis.pause(); state.isPlaying=false; playBtn2.textContent='▶';
-      } else if(window.speechSynthesis.paused){
-        window.speechSynthesis.resume(); state.isPlaying=true; playBtn2.textContent='⏸';
-      } else {
-        var utter = new SpeechSynthesisUtterance(state.speakableText || scriptBox.value);
-        utter.rate = Math.min(2, Math.max(0.5, 1 + Number(rateSlider.value)/100));
-        var match = pickBrowserMaleVoice();
-        if(match) utter.voice = match;
-        utter.onend = function(){ state.isPlaying=false; playBtn2.textContent='▶'; };
-        state.utterance = utter;
-        window.speechSynthesis.speak(utter);
-        state.isPlaying = true; playBtn2.textContent='⏸';
-      }
-    });
-    stopBtn.addEventListener('click', stopPlayback);
-  }
-}
-
-copyTTSBtn.addEventListener('click', function(){
-  var speakable = applyPronunciationFixes(stripScriptMarkup(scriptBox.value.trim()));
-  if(!speakable){ return; }
-  var restoreLabel = '📋 Copy Script for External TTS';
-  function flash(label){
-    copyTTSBtn.textContent = label;
-    setTimeout(function(){ copyTTSBtn.textContent = restoreLabel; }, 1800);
-  }
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(speakable).then(function(){
-      flash('✓ Copied — paste into your TTS site');
-    }).catch(function(){
-      flash('Copy failed — select and copy manually');
-    });
-  } else {
-    flash('Clipboard not available — select and copy manually');
-  }
-});
-
-voiceBtn.addEventListener('click', function(){
-  var rawText = scriptBox.value.trim();
-  if(!rawText) return;
-  clearVoiceError(); setVoiceNote('');
-  voiceBtn.disabled = true;
-  voiceBtn.innerHTML = '<span class="spinner"></span> Synthesizing…';
-  stopPlayback();
-  if(state.audioUrl){ URL.revokeObjectURL(state.audioUrl); state.audioUrl=null; }
-  state.usingFallback = false;
-
-  var voice = voiceSelect.value, rate = Number(rateSlider.value);
-  var speakable = applyPronunciationFixes(stripScriptMarkup(rawText));
-  state.speakableText = speakable;
-
-  function finishVoiceGeneration(){
-    renderPlayer();
-    badge3.classList.add('done'); badge3.textContent='✓'; stage3.classList.add('done');
-    saveWorkspace();
-  }
-
-  function tryGoogleThenBrowser(){
-    return synthesizeGoogleTTS(speakable, voice, rate).then(function(blob){
-      state.audioUrl = URL.createObjectURL(blob);
-      state.usingFallback = false;
-      setVoiceNote('ElevenLabs was unavailable this session, so we used Google Cloud Text-to-Speech instead.');
-    }).catch(function(e){
-      console.warn('Google TTS unavailable, falling back:', e.message);
-      state.usingFallback = true;
-      setVoiceNote("ElevenLabs and Google Cloud TTS were both unreachable this session, so we fell back to your browser's built-in voice for playback. Downloading isn't available in fallback mode.");
-    });
-  }
-
-  synthesizeElevenLabsTTS(speakable).then(function(blob){
-    state.audioUrl = URL.createObjectURL(blob);
-    state.usingFallback = false;
-    setVoiceNote('Studio-quality voice via ElevenLabs.');
-  }).catch(function(e){
-    console.warn('ElevenLabs unavailable, falling back:', e.message);
-    return tryGoogleThenBrowser();
-  }).then(function(){
-    finishVoiceGeneration();
-  }).finally(function(){
-    voiceBtn.disabled = false;
-    voiceBtn.innerHTML = '🎙 2. Generate Voiceover';
-  });
-});
-
-window.addEventListener('beforeunload', stopPlayback);
-initProjects();
+// --- Boot ---
+// supabase fires onAuthStateChange once immediately with the current session (or null),
+// and that handler already creates/opens the right chat — nothing else needed here.
+showView('chat');
 </script>
 </body>
 </html>
