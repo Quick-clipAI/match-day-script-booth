@@ -1,8 +1,8 @@
 {
-  "name": "match-day-script-booth",
+  "name": "creator-booth",
   "version": "1.0.0",
   "private": true,
-  "description": "Match Day Script Booth — static frontend + Vercel serverless API routes that proxy Gemini, Groq, API-Football, and voice synthesis so keys never sit in the browser.",
+  "description": "Creator Booth — a mobile-first chat app that drafts short-form video scripts across 6 content modes, using Gemini (with live Google Search grounding) as primary and Groq as an automatic fallback. Static frontend + Vercel serverless API routes so keys never sit in the browser.",
   "scripts": {
     "dev": "vercel dev"
   }

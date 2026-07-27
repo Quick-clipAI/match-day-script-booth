@@ -25,6 +25,8 @@ body{
 header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;flex-shrink:0}
 .hdr-icon{width:22px;height:22px;color:var(--text-dim);cursor:pointer}
 .hdr-title{font-size:13px;font-weight:600;color:var(--text-dim);letter-spacing:.02em}
+.hdr-title-wrap{display:flex;flex-direction:column;align-items:center;gap:1px}
+.hdr-version{font-size:9.5px;color:var(--text-faint);font-family:var(--mono);letter-spacing:.02em}
 
 /* thread */
 .thread{flex:1;overflow-y:auto;padding:0 18px;display:flex;flex-direction:column;gap:22px;scroll-behavior:smooth}
@@ -67,6 +69,14 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 
 .err{font-size:13px;color:#d98a7a;background:#2a1f1c;border:1px solid #4a2f28;border-radius:10px;padding:10px 13px}
 
+.msg-actions{display:flex;gap:2px;margin-top:8px;margin-left:-6px}
+.msg-action-btn{
+  width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  color:var(--text-faint);cursor:pointer;background:transparent;border:none;transition:.15s;
+}
+.msg-action-btn:hover{color:var(--text-dim);background:var(--surface2)}
+.msg-action-btn.copied{color:var(--accent)}
+
 /* sidebar drawer */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;opacity:0;pointer-events:none;transition:.2s}
 .overlay.open{opacity:1;pointer-events:auto}
@@ -86,7 +96,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 .drawer-chat:hover{background:var(--surface2);color:var(--text)}
 .drawer-chat.active{background:var(--surface2);color:var(--text)}
 .drawer-account{border-top:1px solid var(--border-soft);padding-top:12px;margin-top:8px}
-.account-row{display:flex;align-items:center;gap:10px;padding:6px 4px}
+.account-row{display:flex;align-items:center;gap:10px;padding:6px 4px;cursor:pointer;border-radius:9px;transition:.15s}
+.account-row:hover{background:var(--surface3)}
 .avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
 .account-name{flex:1;font-size:13.5px;color:var(--text)}
 .signin-row{display:flex;gap:6px;padding:4px}
@@ -181,17 +192,20 @@ body.incognito .composer-card{border-color:var(--accent-dim)}
 .modal-btn.danger{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 
 /* image attachment preview */
-.attach-preview{display:flex;align-items:center;gap:8px;padding:10px 14px 0}
+.attach-preview{display:flex;align-items:center;gap:8px;padding:10px 14px 0;flex-wrap:wrap}
 .attach-thumb{position:relative;width:52px;height:52px;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
 .attach-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .attach-thumb .x{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer}
-.bubble-user-img{max-width:220px;border-radius:12px;margin-bottom:6px;display:block}
+.bubble-user-imgs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.bubble-user-img{max-width:140px;max-height:140px;border-radius:12px;display:block;object-fit:cover}
+.attach-warn{font-size:11.5px;color:var(--accent);text-align:center;padding:6px 14px 0}
 
 /* settings + profile views */
 .view{flex:1;overflow-y:auto;padding:16px 16px 30px;display:none}
 .view.open{display:block}
 .settings-card{background:var(--surface);border:1px solid var(--border-soft);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
 .plan-badge{background:var(--text);color:var(--bg);font-size:11px;font-weight:700;border-radius:20px;padding:3px 10px}
+.app-version{text-align:center;font-size:11.5px;color:var(--text-faint);margin-top:24px;font-family:var(--mono)}
 .settings-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border-soft);padding:13px 16px;font-size:14px;cursor:pointer;color:var(--text)}
 .settings-row:first-child{border-radius:12px 12px 0 0}
 .settings-row:last-child{border-radius:0 0 12px 12px;border-top:none}
@@ -330,7 +344,10 @@ body.incognito .composer-card{border-color:var(--accent-dim)}
 <header>
   <svg class="hdr-icon" id="menu-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
   <svg class="hdr-icon" id="back-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M15 18l-6-6 6-6"/></svg>
-  <span class="hdr-title" id="hdr-title">CREATOR BOOTH</span>
+  <div class="hdr-title-wrap">
+    <span class="hdr-title" id="hdr-title">CREATOR BOOTH</span>
+    <span class="hdr-version" id="hdr-version"></span>
+  </div>
   <div class="hdr-right" id="hdr-right">
     <svg class="hdr-icon" id="incognito-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" title="Temporary chat">
       <path d="M5 20V11a7 7 0 0114 0v9l-2.5-2-2 2-2-2-2 2-2-2L5 20z"/>
@@ -418,6 +435,8 @@ body.incognito .composer-card{border-color:var(--accent-dim)}
       Log out
     </div>
   </div>
+
+  <div class="app-version" id="settings-app-version"></div>
 </div>
 
 <div class="view" id="profile-view">
@@ -447,7 +466,7 @@ body.incognito .composer-card{border-color:var(--accent-dim)}
     </div>
     <textarea id="input" rows="1" placeholder="Real Madrid latest signing…"></textarea>
     <div class="attach-preview" id="attach-preview" style="display:none"></div>
-    <input type="file" id="attach-file-input" accept="image/*" style="display:none">
+    <input type="file" id="attach-file-input" accept="image/*" multiple style="display:none">
     <div class="composer-controls">
       <button class="icon-btn" id="attach-btn" title="Attach an image">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
@@ -483,50 +502,56 @@ const USER_NAME_FALLBACK = 'there'; // used until a real signed-in name/email is
 /* Modes — one pipeline, six system prompts. Adding a mode = add an    */
 /* entry here; nothing else in the pipeline needs to change.           */
 /* ------------------------------------------------------------------ */
+// The UI renders assistant replies as plain text (no markdown rendering), so every mode's
+// system prompt gets this appended — otherwise the model's own "**bold**" or "# heading"
+// syntax shows up as literal asterisks/hashes instead of formatting.
+const PLAIN_TEXT_NOTE = ' This app displays plain text only — there is no markdown rendering, so never use markdown symbols like ** or # or _ in any response, even for a direct (non-script) answer. Use plain paragraphs, and for lists just put each item on its own line with a plain dash, no bold.';
+
 const MODES = [
   {
     id: 'football', icon: '⚽', label: 'Football',
     placeholder: 'Real Madrid latest signing…',
     heroSub: "Search a match, a player, or a topic — I'll gather what I can and draft it.",
     system:
-`You are a football (soccer) short-form video scriptwriter and researcher for a content creator. Write a punchy, spoken-style script (roughly 60-90 seconds read aloud) about the user's request.
-If a block labeled "=== VERIFIED MATCH DATA ===" appears below the request, treat every fact in it as ground truth and never contradict it — it comes straight from a live sports data feed. Use web search to fill in anything that block doesn't cover (transfer news, context, reactions, historical background), and never invent a stat, score, or quote you can't support.
-If you genuinely can't verify something, say so briefly in the script rather than guessing. Return ONLY the spoken script prose — no headers, no markdown, no stage directions unless the user asked for them.`
+`You are a knowledgeable football (soccer) content assistant for a creator — part scriptwriter, part researcher, part planning help. Match your response to what's actually being asked:
+- If they want a video script about a match/player/topic, write a punchy, spoken-style script (roughly 60-90 seconds read aloud): no headers, no markdown, no stage directions unless asked. If a block labeled "=== VERIFIED MATCH DATA ===" appears below the request, treat every fact in it as ground truth and never contradict it — it's from a live sports data feed. Use web search for anything that block doesn't cover, and never invent a stat, score, or quote you can't support.
+- If they're asking for something else related to their football content — planning a page/channel, setting up a presenter/reporter persona, brainstorming content ideas, technical or platform questions — just help directly and naturally, in whatever format actually fits (plain paragraphs, a short list, etc). Don't force it into script prose, and don't bolt on an unrelated script or "bio" they didn't ask for.
+If you genuinely can't verify a claimed fact, say so plainly rather than guessing, in either mode.` + PLAIN_TEXT_NOTE
   },
   {
     id: 'story', icon: '📖', label: 'Story',
     placeholder: 'A story about a lighthouse keeper who…',
     heroSub: "Give me a premise, a character, or a mood — I'll draft a short narrative script.",
     system:
-`You are a short-form narrative scriptwriter. Turn the user's premise into a vivid, spoken-style short story or video script (roughly 60-90 seconds read aloud), with a clear hook in the first line, a strong sense of voice, and a satisfying turn or ending. Return ONLY the script prose — no headers, no markdown.`
+`You are a short-form narrative assistant for a creator. If they give you a premise, character, or mood, turn it into a vivid, spoken-style short story or video script (roughly 60-90 seconds read aloud), with a clear hook in the first line, a strong sense of voice, and a satisfying turn or ending — no headers, no markdown. If instead they're asking something else about their storytelling (structure advice, brainstorming, format questions), just answer that directly and naturally rather than forcing a script out of it.` + PLAIN_TEXT_NOTE
   },
   {
     id: 'secret', icon: '🕵️', label: 'Secret Web Tools',
     placeholder: 'An underrated tool for editing video on a phone…',
     heroSub: "Ask about a task, and I'll research an obscure, underrated tool for it.",
     system:
-`You are a researcher who surfaces genuinely obscure, underrated web tools and apps that most people have never heard of — not the top 3 everyone already knows. Use web search to find a real, current, verifiable tool matching the user's request (confirm it still exists and works). Write the result as a punchy spoken-style script: what the tool is, the one thing it does better than the obvious choice, and a quick how-to-use walkthrough. Never invent a tool name or feature. If you can't verify something is real and current, say so. Return ONLY the script prose — no headers, no markdown.`
+`You are a researcher who surfaces genuinely obscure, underrated web tools and apps that most people have never heard of — not the top 3 everyone already knows. Use web search to find a real, current, verifiable tool matching the user's request (confirm it still exists and works). Never invent a tool name or feature; if you can't verify something is real and current, say so plainly. If they want this as a video script, write it as punchy spoken-style prose (no headers/markdown): what the tool is, the one thing it does better than the obvious choice, and a quick how-to walkthrough. If they're just asking a direct question (comparing tools, asking how something works), answer directly instead of forcing a script format.` + PLAIN_TEXT_NOTE
   },
   {
     id: 'aiGuides', icon: '🤖', label: 'Hidden AI / Prompting Guides',
     placeholder: 'How to get better code out of Claude…',
     heroSub: "Ask how to prompt a specific AI model or task, and I'll draft a guide script.",
     system:
-`You are an expert prompt engineer creating short, practical spoken-style scripts that teach viewers how to get better results from AI models (Claude, ChatGPT, Gemini, etc.) for a specific task. Use web search to make sure any model names, features, or UI details you mention are current — these change fast and you should not rely on stale memory for them. Give 2-4 concrete, actionable tips illustrated with a short example prompt. Return ONLY the script prose — no headers, no markdown.`
+`You are an expert prompt engineer helping a creator make content about getting better results from AI models. Use web search to make sure any model names, features, or UI details you mention are current — these change fast, don't rely on stale memory for them. If they want this as a video script, write short, practical spoken-style prose (no headers/markdown) with 2-4 concrete, actionable tips and a short example prompt. If they're asking a direct question instead (how does X work, which model is better for Y), just answer it plainly rather than forcing a script.` + PLAIN_TEXT_NOTE
   },
   {
     id: 'conspiracy', icon: '🏛️', label: 'Conspiracy/History',
     placeholder: 'Who really invented the light bulb…',
     heroSub: '"Who really invented X" style deep-dives — fact-checked, not sensationalized.',
     system:
-`You are a history researcher making "who really invented/discovered/did X" style spoken-style scripts. Use web search to verify names, dates, and claims. Clearly distinguish well-established historical fact from disputed or contested claims — if a popular story is a myth or oversimplification, say so and explain what the actual record shows. Do not present unfounded conspiracy theories as fact. The goal is a genuinely surprising, well-sourced story, not sensationalism. Return ONLY the script prose — no headers, no markdown.`
+`You help a creator research and script "who really invented/discovered/did X" style history content. Use web search to verify names, dates, and claims. Clearly distinguish well-established historical fact from disputed or contested claims — if a popular story is a myth or oversimplification, say so and explain what the actual record shows. Do not present unfounded conspiracy theories as fact. If they want a video script, write it as a genuinely surprising, well-sourced spoken-style story (no headers/markdown), not sensationalism. If they're asking a direct research question instead, just answer it plainly.` + PLAIN_TEXT_NOTE
   },
   {
     id: 'aiNews', icon: '📰', label: 'AI News Roundup',
     placeholder: 'What changed with ChatGPT memory this month…',
     heroSub: "Ask about a recent AI product change, and I'll draft a roundup with alternatives.",
     system:
-`You are writing a short spoken-style "AI news roundup" script. Use web search to find real, current, dated news about the product change the user is asking about (e.g. a feature being removed, changed, or deprecated). Confirm what actually happened and when, then suggest up to 3 real, current alternative tools or workarounds. Never invent a news event, date, or alternative product — if you can't verify something happened, say so plainly instead of guessing. Return ONLY the script prose — no headers, no markdown.`
+`You help a creator cover recent AI product news. Use web search to find real, current, dated news about the product change the user is asking about (e.g. a feature being removed, changed, or deprecated). Confirm what actually happened and when. Never invent a news event, date, or alternative product — if you can't verify something happened, say so plainly instead of guessing. If they want a video script, write a short spoken-style "roundup" (no headers/markdown) confirming what happened plus up to 3 real, current alternatives. If they're asking a direct question instead, just answer it plainly.` + PLAIN_TEXT_NOTE
   }
 ];
 let currentModeId = 'football';
@@ -581,6 +606,13 @@ const settingsView = document.getElementById('settings-view');
 const profileView = document.getElementById('profile-view');
 const composerEl = document.querySelector('.composer');
 
+// Single source of truth for the version shown in the header and in Settings.
+// Bump this on every deploy — see README.md's "Versioning" section.
+const APP_VERSION = '1.0.0';
+document.getElementById('hdr-version').textContent = 'v' + APP_VERSION;
+const settingsVersionEl = document.getElementById('settings-app-version');
+if (settingsVersionEl) settingsVersionEl.textContent = 'Creator Booth v' + APP_VERSION;
+
 function showView(name){
   const isChat = name === 'chat';
   thread.style.display = isChat ? 'flex' : 'none';
@@ -591,6 +623,7 @@ function showView(name){
   menuBtn.style.display = isChat ? 'block' : 'none';
   backBtn.style.display = isChat ? 'none' : 'block';
   hdrTitleEl.textContent = name === 'settings' ? 'Settings' : name === 'profile' ? 'Profile' : 'CREATOR BOOTH';
+  document.getElementById('hdr-version').style.display = isChat ? 'block' : 'none';
   document.getElementById('hdr-right').style.display = isChat ? 'flex' : 'none';
   if (isChat) updateHeaderState();
 }
@@ -852,13 +885,13 @@ function renderAccountArea(){
   if (signedIn){
     const label = (currentUser.email || '?')[0].toUpperCase();
     drawerAccount.innerHTML = `
-      <div class="account-row">
+      <div class="account-row" id="account-row">
         <div class="avatar">${label}</div>
         <div class="account-name">${currentUser.email}</div>
-        <svg class="hdr-icon" id="settings-gear" style="width:17px;height:17px;cursor:pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        <svg class="hdr-icon" id="settings-gear" style="width:17px;height:17px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       </div>`;
     if (banner) banner.style.display = 'none';
-    document.getElementById('settings-gear').addEventListener('click', () => { drawer.classList.remove('open'); overlay.classList.remove('open'); showView('settings'); });
+    document.getElementById('account-row').addEventListener('click', () => { drawer.classList.remove('open'); overlay.classList.remove('open'); showView('settings'); });
     return;
   }
   if (banner) banner.style.display = 'flex';
@@ -937,12 +970,14 @@ async function refreshChatList(){
   });
 }
 
+let openChatToken = 0; // stale-response guard: if a newer openChat() call starts before an older one's fetch resolves, the older one's render is dropped
 async function openChat(chatId){
   temporaryMode = false;
   tempBanner.style.display = 'none';
   incognitoBtn.classList.remove('active');
   incognitoHero.style.display = 'none';
   currentChatId = chatId;
+  const myToken = ++openChatToken;
   thread.querySelectorAll('.msg').forEach(el => el.remove());
   let messages = [];
   if (currentUser){
@@ -956,6 +991,7 @@ async function openChat(chatId){
     currentChatTitle = chat ? chat.title : 'New chat';
     messages = chat ? chat.messages : [];
   }
+  if (myToken !== openChatToken) return; // a newer call has since taken over — don't render stale data
   hero.style.display = messages.length ? 'none' : 'flex';
   if (!messages.length) refreshGreeting();
   messages.forEach(m => {
@@ -989,10 +1025,25 @@ async function saveMessage(role, content, media = []){
   await refreshChatList();
 }
 
+// Supabase fires onAuthStateChange more than once for the same signed-in session
+// (INITIAL_SESSION, then SIGNED_IN, then periodic TOKEN_REFRESHED) — if each firing
+// re-ran the full chat-loading flow, overlapping async calls could interleave and
+// double-render every message. Only reload when the user actually changed.
+let lastAuthUserId; // undefined until the first event fires
 supabase.auth.onAuthStateChange(async (_event, session) => {
+  const newUserId = session?.user?.id || null;
   currentUser = session?.user || null;
   signedIn = !!currentUser;
   if (signedIn) closeAuthView();
+
+  if (newUserId === lastAuthUserId){
+    // Same user as last time (e.g. a token refresh) — just keep the account UI in sync,
+    // don't touch the chat list or thread.
+    renderAccountArea();
+    return;
+  }
+  lastAuthUserId = newUserId;
+
   renderAccountArea();
   chats = [];
   currentChatId = null;
@@ -1005,17 +1056,20 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
 // --- Rendering ---
 function scrollDown(){ thread.scrollTop = thread.scrollHeight; }
 
-function addUserMsg(text, imgDataUrl){
+function addUserMsg(text, imgDataUrls){
   hero.style.display = 'none';
   incognitoHero.style.display = 'none';
-  renderUserBubble(text, imgDataUrl);
+  renderUserBubble(text, imgDataUrls);
   updateHeaderState();
   scrollDown();
 }
-function renderUserBubble(text, imgDataUrl){
+function renderUserBubble(text, imgDataUrls){
   const div = document.createElement('div');
   div.className = 'msg user';
-  const imgHtml = imgDataUrl ? `<img class="bubble-user-img" src="${imgDataUrl}">` : '';
+  const imgs = imgDataUrls || [];
+  const imgHtml = imgs.length
+    ? `<div class="bubble-user-imgs">${imgs.map(u => `<img class="bubble-user-img" src="${u}">`).join('')}</div>`
+    : '';
   div.innerHTML = `<div class="bubble-user">${imgHtml}<span class="bubble-user-text"></span></div>`;
   div.querySelector('.bubble-user-text').textContent = text;
   thread.appendChild(div);
@@ -1227,6 +1281,32 @@ async function gatherFootballContext(queryText){
   }
 }
 
+const ICON_COPY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>';
+const ICON_RETRY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 019-9c2.4 0 4.6.9 6.2 2.5L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 01-9 9c-2.4 0-4.6-.9-6.2-2.5L3 16M3 21v-5h5"/></svg>';
+const ICON_SHARE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7l7.4-4.2M8.3 13.3l7.4 4.2"/></svg>';
+
+function wireMsgActions(msgEl, resultText, userText, imageAttachments){
+  const copyBtn = msgEl.querySelector('[data-action="copy"]');
+  const retryBtn = msgEl.querySelector('[data-action="retry"]');
+  const shareBtn = msgEl.querySelector('[data-action="share"]');
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(resultText);
+      copyBtn.classList.add('copied');
+      copyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>';
+      setTimeout(() => { copyBtn.classList.remove('copied'); copyBtn.innerHTML = ICON_COPY; }, 1400);
+    } catch (e) { /* clipboard permission denied — silently ignore, button just won't confirm */ }
+  });
+  retryBtn.addEventListener('click', () => { runPipeline(userText, imageAttachments); });
+  shareBtn.addEventListener('click', async () => {
+    if (navigator.share){
+      try { await navigator.share({ text: resultText }); } catch (e) { /* user cancelled the share sheet */ }
+    } else {
+      try { await navigator.clipboard.writeText(resultText); shareBtn.title = 'Copied — no share sheet on this browser'; } catch (e) {}
+    }
+  });
+}
+
 function buildSourcesHtml(chunks, usedFallback){
   if (chunks && chunks.length){
     const links = chunks.slice(0, 5).map(c => {
@@ -1245,8 +1325,11 @@ function buildSourcesHtml(chunks, usedFallback){
 /* ------------------------------------------------------------------ */
 /* Real pipeline: mode's system prompt + Gemini with Google Search      */
 /* grounding + (football mode only) verified match data as context.    */
+/* imageAttachments is an array of {mimeType, base64, dataUrl} — 0 to   */
+/* MAX_IMAGES per message.                                              */
 /* ------------------------------------------------------------------ */
-async function runPipeline(userText, imageAttachment){
+async function runPipeline(userText, imageAttachments){
+  const images = imageAttachments || [];
   const stageEl = addPipeline();
   const pipelineMsg = stageEl.closest('.msg');
   const mode = currentMode();
@@ -1258,12 +1341,12 @@ async function runPipeline(userText, imageAttachment){
     footballContext = await gatherFootballContext(userText);
     if (footballContext) setStage(stageEl, "Found today's match data — verifying…");
   }
-  if (imageAttachment) setStage(stageEl, 'Looking at your image…');
+  if (images.length) setStage(stageEl, images.length > 1 ? 'Looking at your images…' : 'Looking at your image…');
   setStage(stageEl, 'Searching the web…');
 
   const promptText = footballContext ? `${footballContext}\n\nUser request: ${userText}` : userText;
   const userParts = [];
-  if (imageAttachment) userParts.push({ inline_data: { mime_type: imageAttachment.mimeType, data: imageAttachment.base64 } });
+  images.forEach(img => userParts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } }));
   userParts.push({ text: promptText });
 
   let resultText = '';
@@ -1296,28 +1379,34 @@ async function runPipeline(userText, imageAttachment){
   }
 
   const sourcesHtml = buildSourcesHtml(chunks, usedFallback);
-  replacePipelineWithResult(pipelineMsg, `<div class="bubble-assistant">${escapeHtml(resultText)}</div>${sourcesHtml}`);
+  const actionsHtml = `<div class="msg-actions">
+    <button class="msg-action-btn" data-action="copy" title="Copy">${ICON_COPY}</button>
+    <button class="msg-action-btn" data-action="retry" title="Regenerate">${ICON_RETRY}</button>
+    <button class="msg-action-btn" data-action="share" title="Share">${ICON_SHARE}</button>
+  </div>`;
+  replacePipelineWithResult(pipelineMsg, `<div class="bubble-assistant">${escapeHtml(resultText)}</div>${sourcesHtml}${actionsHtml}`);
+  wireMsgActions(pipelineMsg, resultText, userText, images);
   saveMessage('assistant', resultText, []);
 }
 
 function submit(){
   const text = input.value.trim();
-  if (!text && !pendingImage) return;
-  const imgForBubble = pendingImage ? pendingImage.dataUrl : null;
-  const imgForApi = pendingImage;
-  addUserMsg(text || '(image)', imgForBubble);
+  if (!text && !pendingImages.length) return;
+  const imgsForBubble = pendingImages.map(img => img.dataUrl);
+  const imgsForApi = pendingImages.slice();
+  addUserMsg(text || '(image)', imgsForBubble);
   // Images aren't persisted to storage yet (they're only used for this request) — save a
   // plain-text placeholder so history reloads don't break, and note the limitation to the user.
-  saveMessage('user', text || '(image)', imgForApi ? [{ label: 'Image attached (not saved to history)' }] : []);
+  saveMessage('user', text || '(image)', imgsForApi.length ? [{ label: `${imgsForApi.length} image(s) attached (not saved to history)` }] : []);
   input.value = '';
   input.style.height = 'auto';
-  clearAttachment();
+  clearAttachments();
   sendBtn.disabled = true;
-  runPipeline(text, imgForApi);
+  runPipeline(text, imgsForApi);
 }
 
 input.addEventListener('input', () => {
-  sendBtn.disabled = input.value.trim().length === 0 && !pendingImage;
+  sendBtn.disabled = input.value.trim().length === 0 && pendingImages.length === 0;
   input.style.height = 'auto';
   input.style.height = Math.min(input.scrollHeight, 110) + 'px';
 });
@@ -1325,41 +1414,67 @@ input.addEventListener('input', () => {
 // Sending only happens via the send button, intentionally.
 sendBtn.addEventListener('click', submit);
 
-// --- Image attachment ---
+// --- Image attachment (up to MAX_IMAGES per message) ---
 // Gemini (gemini-2.5-flash) accepts images natively via inline_data. Groq's automatic backup
 // model (openai/gpt-oss-120b) is text-only, so if Gemini is down AND an image is attached, the
 // fallback switches to a vision-capable Groq model (Llama 4 Scout) instead — see callAI below.
-let pendingImage = null; // { mimeType, base64, dataUrl }
+// pendingImages resets after every send, so attaching new images on your NEXT message in the
+// same chat works exactly the same way — this isn't a once-per-chat limit.
+const MAX_IMAGES = 4;
+let pendingImages = []; // [{ mimeType, base64, dataUrl }, ...]
 const attachBtn = document.getElementById('attach-btn');
 const attachFileInput = document.getElementById('attach-file-input');
 const attachPreview = document.getElementById('attach-preview');
 
 attachBtn.addEventListener('click', () => attachFileInput.click());
 attachFileInput.addEventListener('change', () => {
-  const file = attachFileInput.files && attachFileInput.files[0];
-  if (!file) return;
-  if (!file.type.startsWith('image/')){ attachFileInput.value = ''; return; }
-  const reader = new FileReader();
-  reader.onload = () => {
-    const dataUrl = reader.result;
-    const base64 = dataUrl.split(',')[1];
-    pendingImage = { mimeType: file.type, base64, dataUrl };
-    renderAttachPreview();
-    sendBtn.disabled = input.value.trim().length === 0 && !pendingImage;
-  };
-  reader.readAsDataURL(file);
+  const files = Array.from(attachFileInput.files || []).filter(f => f.type.startsWith('image/'));
+  const room = MAX_IMAGES - pendingImages.length;
+  const toAdd = files.slice(0, room);
+  if (files.length > room){
+    authNoteTemp('Up to ' + MAX_IMAGES + ' images per message — extra ones were skipped.');
+  }
+  toAdd.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      const base64 = dataUrl.split(',')[1];
+      pendingImages.push({ mimeType: file.type, base64, dataUrl });
+      renderAttachPreview();
+      sendBtn.disabled = input.value.trim().length === 0 && pendingImages.length === 0;
+    };
+    reader.readAsDataURL(file);
+  });
   attachFileInput.value = '';
 });
-function renderAttachPreview(){
-  if (!pendingImage){ attachPreview.style.display = 'none'; attachPreview.innerHTML = ''; return; }
-  attachPreview.style.display = 'flex';
-  attachPreview.innerHTML = `<div class="attach-thumb"><img src="${pendingImage.dataUrl}"><span class="x" id="attach-remove">✕</span></div>`;
-  document.getElementById('attach-remove').addEventListener('click', clearAttachment);
+function authNoteTemp(msg){
+  // Lightweight inline warning shown briefly above the composer — reuses the attach-preview
+  // area's flow rather than introducing another toast system.
+  const warn = document.createElement('div');
+  warn.className = 'attach-warn';
+  warn.textContent = msg;
+  attachPreview.parentElement.insertBefore(warn, attachPreview);
+  setTimeout(() => warn.remove(), 2600);
 }
-function clearAttachment(){
-  pendingImage = null;
+function renderAttachPreview(){
+  if (!pendingImages.length){ attachPreview.style.display = 'none'; attachPreview.innerHTML = ''; return; }
+  attachPreview.style.display = 'flex';
+  attachPreview.innerHTML = pendingImages.map((img, i) =>
+    `<div class="attach-thumb"><img src="${img.dataUrl}"><span class="x" data-idx="${i}">✕</span></div>`
+  ).join('');
+  attachPreview.querySelectorAll('.x').forEach(x => {
+    x.addEventListener('click', () => removeAttachment(parseInt(x.dataset.idx, 10)));
+  });
+}
+function removeAttachment(idx){
+  pendingImages.splice(idx, 1);
   renderAttachPreview();
-  sendBtn.disabled = input.value.trim().length === 0 && !pendingImage;
+  sendBtn.disabled = input.value.trim().length === 0 && pendingImages.length === 0;
+}
+function clearAttachments(){
+  pendingImages = [];
+  renderAttachPreview();
+  sendBtn.disabled = input.value.trim().length === 0 && pendingImages.length === 0;
 }
 
 // --- Boot ---
