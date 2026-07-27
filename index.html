@@ -15,7 +15,7 @@
   --text:#f2ede4; --text-dim:#948f86; --text-faint:#5f5b54;
   --serif:'Source Serif 4',serif; --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
 }
-html,body{height:100%}
+html,body{height:100%;width:100%}
 body{
   background:var(--bg); color:var(--text); font-family:var(--sans);
   line-height:1.55; display:flex; flex-direction:column; height:100vh; height:100dvh; overflow:hidden;
@@ -144,7 +144,38 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 
 /* header incognito toggle */
 .hdr-icon.active{color:var(--accent)}
+.hdr-right{display:flex;align-items:center;gap:14px}
 .temp-banner{font-size:11.5px;color:var(--accent);text-align:center;padding:6px 0 2px;flex-shrink:0}
+
+body.incognito header{background:rgba(201,100,66,.07)}
+body.incognito .composer-card{border-color:var(--accent-dim)}
+
+.incognito-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding-bottom:60px;color:var(--accent)}
+.incognito-hero-title{font-family:var(--serif);font-weight:500;font-size:22px;color:var(--text)}
+.incognito-hero-sub{font-size:13px;color:var(--text-faint);max-width:260px}
+
+.dots-menu{
+  position:absolute;top:calc(100% + 8px);right:0;background:var(--surface2);border:1px solid var(--border);
+  border-radius:14px;padding:6px;display:none;flex-direction:column;gap:1px;min-width:170px;
+  box-shadow:0 16px 34px -12px rgba(0,0,0,.65);z-index:20;
+}
+.dots-menu.open{display:flex}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:none;align-items:center;justify-content:center;padding:24px}
+.modal-overlay.open{display:flex}
+.modal-card{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:320px;width:100%}
+.modal-msg{font-size:14px;color:var(--text);line-height:1.5;margin-bottom:16px}
+.modal-actions{display:flex;gap:10px}
+.modal-btn{flex:1;border-radius:10px;padding:10px;font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid var(--border)}
+.modal-btn.ghost{background:transparent;color:var(--text-dim)}
+.modal-btn.danger{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+
+/* image attachment preview */
+.attach-preview{display:flex;align-items:center;gap:8px;padding:10px 14px 0}
+.attach-thumb{position:relative;width:52px;height:52px;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.attach-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.attach-thumb .x{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer}
+.bubble-user-img{max-width:220px;border-radius:12px;margin-bottom:6px;display:block}
 
 /* settings + profile views */
 .view{flex:1;overflow-y:auto;padding:16px 16px 30px;display:none}
@@ -168,8 +199,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 .section-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin:20px 0 8px}
 
 /* composer */
-.composer{flex-shrink:0;padding:0 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 65%,transparent)}
+.composer{flex-shrink:0;width:100%;box-sizing:border-box;padding:0 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 65%,transparent)}
 .composer-card{
+  width:100%;box-sizing:border-box;
   background:var(--surface);border:1px solid var(--border);border-radius:22px;overflow:hidden;
 }
 .composer textarea{
@@ -270,10 +302,21 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
   <svg class="hdr-icon" id="menu-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
   <svg class="hdr-icon" id="back-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M15 18l-6-6 6-6"/></svg>
   <span class="hdr-title" id="hdr-title">CREATOR BOOTH</span>
-  <svg class="hdr-icon" id="incognito-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" title="Temporary chat">
-    <path d="M5 20V11a7 7 0 0114 0v9l-2.5-2-2 2-2-2-2 2-2-2L5 20z"/>
-    <circle cx="9.5" cy="11" r=".9" fill="currentColor" stroke="none"/><circle cx="14.5" cy="11" r=".9" fill="currentColor" stroke="none"/>
-  </svg>
+  <div class="hdr-right" id="hdr-right">
+    <svg class="hdr-icon" id="incognito-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" title="Temporary chat">
+      <path d="M5 20V11a7 7 0 0114 0v9l-2.5-2-2 2-2-2-2 2-2-2L5 20z"/>
+      <circle cx="9.5" cy="11" r=".9" fill="currentColor" stroke="none"/><circle cx="14.5" cy="11" r=".9" fill="currentColor" stroke="none"/>
+    </svg>
+    <svg class="hdr-icon" id="header-newchat-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none" title="New chat"><path d="M12 5v14M5 12h14"/></svg>
+    <div class="hdr-dots-wrap" style="position:relative;display:none" id="header-dots-wrap">
+      <svg class="hdr-icon" id="header-dots-btn" viewBox="0 0 24 24" fill="currentColor" title="Chat options"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+      <div class="dots-menu" id="dots-menu">
+        <button class="mode-menu-item" id="dots-rename">Rename chat</button>
+        <button class="mode-menu-item" id="dots-delete" style="color:#d98a7a">Delete chat</button>
+      </div>
+    </div>
+    <svg class="hdr-icon" id="header-delete-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="display:none" title="Delete incognito chat"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6"/></svg>
+  </div>
 </header>
 <div class="temp-banner" id="temp-banner" style="display:none">Temporary chat — this one won't be saved</div>
 
@@ -287,6 +330,24 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
     </svg>
     <div class="hero-title" id="hero-title">What are we making today?</div>
     <div class="hero-sub" id="hero-sub">Search a match, a player, or a topic — I'll gather what I can and draft it.</div>
+  </div>
+  <div class="incognito-hero" id="incognito-hero" style="display:none">
+    <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+      <path d="M5 20V11a7 7 0 0114 0v9l-2.5-2-2 2-2-2-2 2-2-2L5 20z"/>
+      <circle cx="9.5" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="11" r="1" fill="currentColor" stroke="none"/>
+    </svg>
+    <div class="incognito-hero-title">Incognito chat</div>
+    <div class="incognito-hero-sub">This chat won't be saved to your account or this device once it ends.</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-msg" id="modal-msg"></div>
+    <div class="modal-actions">
+      <button class="modal-btn ghost" id="modal-cancel">Cancel</button>
+      <button class="modal-btn danger" id="modal-confirm">Confirm</button>
+    </div>
   </div>
 </div>
 
@@ -356,8 +417,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
       <span class="x" id="banner-close">✕</span>
     </div>
     <textarea id="input" rows="1" placeholder="Real Madrid latest signing…"></textarea>
+    <div class="attach-preview" id="attach-preview" style="display:none"></div>
+    <input type="file" id="attach-file-input" accept="image/*" style="display:none">
     <div class="composer-controls">
-      <button class="icon-btn" title="Attach / options">
+      <button class="icon-btn" id="attach-btn" title="Attach an image">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
       </button>
       <div class="mode-pill-wrap">
@@ -499,7 +562,8 @@ function showView(name){
   menuBtn.style.display = isChat ? 'block' : 'none';
   backBtn.style.display = isChat ? 'none' : 'block';
   hdrTitleEl.textContent = name === 'settings' ? 'Settings' : name === 'profile' ? 'Profile' : 'CREATOR BOOTH';
-  document.getElementById('incognito-btn').style.display = isChat ? 'block' : 'none';
+  document.getElementById('hdr-right').style.display = isChat ? 'flex' : 'none';
+  if (isChat) updateHeaderState();
 }
 backBtn.addEventListener('click', () => showView(profileView.classList.contains('open') ? 'settings' : 'chat'));
 
@@ -581,14 +645,131 @@ document.getElementById('save-prefs-btn').addEventListener('click', () => {
   setTimeout(() => { btn.classList.remove('ready'); btn.textContent = 'Save Preferences'; }, 1400);
 });
 
-// --- Incognito / temporary chat toggle ---
+// --- Reusable confirmation modal (replaces browser confirm() for a consistent look) ---
+const modalOverlay = document.getElementById('modal-overlay');
+const modalMsg = document.getElementById('modal-msg');
+const modalCancel = document.getElementById('modal-cancel');
+const modalConfirm = document.getElementById('modal-confirm');
+function confirmDialog(message, confirmLabel){
+  modalMsg.textContent = message;
+  modalConfirm.textContent = confirmLabel || 'Confirm';
+  modalOverlay.classList.add('open');
+  return new Promise((resolve) => {
+    function cleanup(result){
+      modalOverlay.classList.remove('open');
+      modalCancel.removeEventListener('click', onCancel);
+      modalConfirm.removeEventListener('click', onConfirm);
+      resolve(result);
+    }
+    function onCancel(){ cleanup(false); }
+    function onConfirm(){ cleanup(true); }
+    modalCancel.addEventListener('click', onCancel);
+    modalConfirm.addEventListener('click', onConfirm);
+  });
+}
+
+// --- Incognito / temporary chat ---
 let temporaryMode = false;
 const incognitoBtn = document.getElementById('incognito-btn');
 const tempBanner = document.getElementById('temp-banner');
-incognitoBtn.addEventListener('click', () => {
-  temporaryMode = !temporaryMode;
-  incognitoBtn.classList.toggle('active', temporaryMode);
-  tempBanner.style.display = temporaryMode ? 'block' : 'none';
+const incognitoHero = document.getElementById('incognito-hero');
+const headerNewChatBtn = document.getElementById('header-newchat-btn');
+const headerDotsWrap = document.getElementById('header-dots-wrap');
+const headerDotsBtn = document.getElementById('header-dots-btn');
+const dotsMenu = document.getElementById('dots-menu');
+const headerDeleteBtn = document.getElementById('header-delete-btn');
+
+function hasMessages(){ return thread.querySelectorAll('.msg').length > 0; }
+
+// Header shows one of three states: ghost toggle (empty thread) / +&dots (normal chat, has messages) / +&trash (incognito chat, has messages)
+function updateHeaderState(){
+  const started = hasMessages();
+  incognitoBtn.style.display = started ? 'none' : 'block';
+  headerNewChatBtn.style.display = started ? 'block' : 'none';
+  headerDotsWrap.style.display = (started && !temporaryMode) ? 'block' : 'none';
+  headerDeleteBtn.style.display = (started && temporaryMode) ? 'block' : 'none';
+  document.body.classList.toggle('incognito', temporaryMode);
+}
+
+function showIncognitoHero(){
+  hero.style.display = 'none';
+  incognitoHero.style.display = 'flex';
+}
+function showNormalHero(){
+  incognitoHero.style.display = 'none';
+  hero.style.display = 'flex';
+  refreshGreeting();
+}
+
+incognitoBtn.addEventListener('click', async () => {
+  // Starting incognito always begins a brand new chat, per Claude's own behavior.
+  temporaryMode = true;
+  currentChatId = null;
+  thread.querySelectorAll('.msg').forEach(el => el.remove());
+  tempBanner.style.display = 'block';
+  incognitoBtn.classList.add('active');
+  showIncognitoHero();
+  updateHeaderState();
+  drawer.classList.remove('open'); overlay.classList.remove('open');
+});
+
+async function exitIncognitoToNormalChat(){
+  temporaryMode = false;
+  tempBanner.style.display = 'none';
+  incognitoBtn.classList.remove('active');
+  thread.querySelectorAll('.msg').forEach(el => el.remove());
+  await createChat();
+  showNormalHero();
+  updateHeaderState();
+}
+
+async function clearIncognitoStayIncognito(){
+  currentChatId = null;
+  thread.querySelectorAll('.msg').forEach(el => el.remove());
+  showIncognitoHero();
+  updateHeaderState();
+}
+
+headerNewChatBtn.addEventListener('click', async () => {
+  if (!temporaryMode){
+    await createChat();
+    thread.querySelectorAll('.msg').forEach(el => el.remove());
+    showNormalHero();
+    updateHeaderState();
+    return;
+  }
+  const ok = await confirmDialog("Starting a new chat will delete this incognito conversation — it was never saved. Continue?", 'Start new chat');
+  if (ok) await exitIncognitoToNormalChat();
+});
+
+headerDeleteBtn.addEventListener('click', async () => {
+  const ok = await confirmDialog('Delete this incognito conversation? This can\'t be undone.', 'Delete');
+  if (ok) await clearIncognitoStayIncognito();
+});
+
+headerDotsBtn.addEventListener('click', (e) => { e.stopPropagation(); dotsMenu.classList.toggle('open'); });
+document.addEventListener('click', (e) => { if (!dotsMenu.contains(e.target) && e.target !== headerDotsBtn) dotsMenu.classList.remove('open'); });
+
+document.getElementById('dots-rename').addEventListener('click', async () => {
+  dotsMenu.classList.remove('open');
+  const next = window.prompt('Rename chat', currentChatTitle || '');
+  if (!next || !next.trim()) return;
+  currentChatTitle = next.trim();
+  if (currentUser) await supabase.from('chats').update({ title: currentChatTitle }).eq('id', currentChatId);
+  else { const list = loadGuestChats(); const c = list.find(c => c.id === currentChatId); if (c){ c.title = currentChatTitle; saveGuestChats(list); } }
+  await refreshChatList();
+});
+document.getElementById('dots-delete').addEventListener('click', async () => {
+  dotsMenu.classList.remove('open');
+  const ok = await confirmDialog('Delete this chat? This can\'t be undone.', 'Delete');
+  if (!ok) return;
+  if (currentUser) await supabase.from('chats').delete().eq('id', currentChatId);
+  else { const list = loadGuestChats().filter(c => c.id !== currentChatId); saveGuestChats(list); }
+  currentChatId = null;
+  await createChat();
+  thread.querySelectorAll('.msg').forEach(el => el.remove());
+  showNormalHero();
+  updateHeaderState();
 });
 
 // --- Data layer: Supabase for signed-in users, localStorage fallback for guests ---
@@ -620,10 +801,19 @@ async function createChat(){
 }
 
 newChatBtn.addEventListener('click', async () => {
+  if (temporaryMode){
+    const ok = await confirmDialog("Starting a new chat will delete this incognito conversation — it was never saved. Continue?", 'Start new chat');
+    if (!ok) return;
+    temporaryMode = false;
+    tempBanner.style.display = 'none';
+    incognitoBtn.classList.remove('active');
+  }
   await createChat();
   thread.querySelectorAll('.msg').forEach(el => el.remove());
+  incognitoHero.style.display = 'none';
   hero.style.display = 'flex';
   refreshGreeting();
+  updateHeaderState();
   drawer.classList.remove('open'); overlay.classList.remove('open');
 });
 
@@ -700,6 +890,10 @@ async function refreshChatList(){
 }
 
 async function openChat(chatId){
+  temporaryMode = false;
+  tempBanner.style.display = 'none';
+  incognitoBtn.classList.remove('active');
+  incognitoHero.style.display = 'none';
   currentChatId = chatId;
   thread.querySelectorAll('.msg').forEach(el => el.remove());
   let messages = [];
@@ -721,6 +915,7 @@ async function openChat(chatId){
     else renderAssistantBubble(m.content, m.media || []);
   });
   await refreshChatList();
+  updateHeaderState();
   drawer.classList.remove('open'); overlay.classList.remove('open');
   scrollDown();
 }
@@ -762,16 +957,19 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
 // --- Rendering ---
 function scrollDown(){ thread.scrollTop = thread.scrollHeight; }
 
-function addUserMsg(text){
+function addUserMsg(text, imgDataUrl){
   hero.style.display = 'none';
-  renderUserBubble(text);
+  incognitoHero.style.display = 'none';
+  renderUserBubble(text, imgDataUrl);
+  updateHeaderState();
   scrollDown();
 }
-function renderUserBubble(text){
+function renderUserBubble(text, imgDataUrl){
   const div = document.createElement('div');
   div.className = 'msg user';
-  div.innerHTML = `<div class="bubble-user"></div>`;
-  div.querySelector('.bubble-user').textContent = text;
+  const imgHtml = imgDataUrl ? `<img class="bubble-user-img" src="${imgDataUrl}">` : '';
+  div.innerHTML = `<div class="bubble-user">${imgHtml}<span class="bubble-user-text"></span></div>`;
+  div.querySelector('.bubble-user-text').textContent = text;
   thread.appendChild(div);
 }
 function renderAssistantBubble(text, media){
@@ -785,7 +983,7 @@ function renderAssistantBubble(text, media){
 function addPipeline(){
   const div = document.createElement('div');
   div.className = 'msg assistant';
-  div.innerHTML = `<div class="pipeline"><span class="dot"></span><span class="stage">Reading your request…</span></div>`;
+  div.innerHTML = `<div class="pipeline"><span class="dot"></span><span class="stage">Thinking…</span></div>`;
   thread.appendChild(div);
   scrollDown();
   return div.querySelector('.stage');
@@ -815,6 +1013,13 @@ function escapeHtml(s){ const d = document.createElement('div'); d.textContent =
 /* has no grounding — that's surfaced to the user, not hidden.         */
 /* ------------------------------------------------------------------ */
 const GROQ_MODEL = 'openai/gpt-oss-120b';
+// Only 2 Groq models currently support vision (image input): Llama 4 Scout / Maverick.
+// Used only as the fallback when Gemini fails AND the request includes an image.
+const GROQ_VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+
+function requestHasImage(contents){
+  return (contents || []).some(turn => (turn.parts || []).some(p => p.inline_data));
+}
 
 function geminiToolsToOpenAI(tools){
   if (!tools || !tools.length) return undefined;
@@ -830,8 +1035,22 @@ function geminiContentsToOpenAIMessages(systemText, contents){
   (contents || []).forEach(turn => {
     const parts = turn.parts || [];
     const role = turn.role === 'model' ? 'assistant' : 'user';
-    const textParts = parts.filter(p => p.text).map(p => p.text).join('\n');
-    messages.push({ role, content: textParts });
+    const imageParts = parts.filter(p => p.inline_data);
+    if (imageParts.length){
+      // OpenAI-compatible vision format: content is an array mixing text and image_url blocks.
+      // NOTE: this sends the image as a base64 data: URI. Groq's docs show hosted-URL examples;
+      // if their API rejects inline base64, this fallback path will surface that as an error
+      // rather than silently mishandling the image.
+      const contentArr = [];
+      parts.forEach(p => {
+        if (p.text) contentArr.push({ type: 'text', text: p.text });
+        if (p.inline_data) contentArr.push({ type: 'image_url', image_url: { url: `data:${p.inline_data.mime_type};base64,${p.inline_data.data}` } });
+      });
+      messages.push({ role, content: contentArr });
+    } else {
+      const textParts = parts.filter(p => p.text).map(p => p.text).join('\n');
+      messages.push({ role, content: textParts });
+    }
   });
   return messages;
 }
@@ -862,15 +1081,18 @@ function callAI(requestBody){
         requestBody.system_instruction.parts.map(p => p.text).join('\n');
       const messages = geminiContentsToOpenAIMessages(systemText, requestBody.contents);
       const openAITools = geminiToolsToOpenAI(requestBody.tools);
+      const hasImage = requestHasImage(requestBody.contents);
+      const fallbackModel = hasImage ? GROQ_VISION_MODEL : GROQ_MODEL;
 
       return fetch('/api/groq', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: GROQ_MODEL, messages, tools: openAITools })
+        body: JSON.stringify({ model: fallbackModel, messages, tools: openAITools })
       }).then(res2 => {
         if (!res2.ok){
           return res2.json().catch(() => ({})).then(err2 => {
             const groqMsg = (err2 && err2.error && (err2.error.message || err2.error)) || res2.status;
-            throw new Error('Gemini: ' + geminiMsg + ' — backup (Groq) also failed: ' + groqMsg);
+            const imgNote = hasImage ? ' (including the attached image)' : '';
+            throw new Error('Gemini: ' + geminiMsg + ' — backup (Groq) also failed' + imgNote + ': ' + groqMsg);
           });
         }
         return res2.json().then(data2 => ({ data: openAIResponseToGeminiShape(data2), provider: 'groq' }));
@@ -976,28 +1198,34 @@ function buildSourcesHtml(chunks, usedFallback){
 /* Real pipeline: mode's system prompt + Gemini with Google Search      */
 /* grounding + (football mode only) verified match data as context.    */
 /* ------------------------------------------------------------------ */
-async function runPipeline(userText){
+async function runPipeline(userText, imageAttachment){
   const stageEl = addPipeline();
   const pipelineMsg = stageEl.closest('.msg');
   const mode = currentMode();
 
   let footballContext = '';
   if (mode.id === 'football'){
-    setStage(stageEl, 'Checking live match data…');
+    // Checked silently — for a casual message like "hi" there's nothing to find, and the
+    // stage label shouldn't claim we're doing football research when we might not be.
     footballContext = await gatherFootballContext(userText);
+    if (footballContext) setStage(stageEl, "Found today's match data — verifying…");
   }
-  setStage(stageEl, 'Searching for context…');
+  if (imageAttachment) setStage(stageEl, 'Looking at your image…');
+  setStage(stageEl, 'Searching the web…');
 
   const promptText = footballContext ? `${footballContext}\n\nUser request: ${userText}` : userText;
+  const userParts = [];
+  if (imageAttachment) userParts.push({ inline_data: { mime_type: imageAttachment.mimeType, data: imageAttachment.base64 } });
+  userParts.push({ text: promptText });
 
   let resultText = '';
   let chunks = [];
   let usedFallback = false;
   let errorMsg = '';
   try {
-    setStage(stageEl, 'Drafting your script…');
+    setStage(stageEl, 'Putting it together…');
     const { data, provider } = await callAI({
-      contents: [{ role: 'user', parts: [{ text: promptText }] }],
+      contents: [{ role: 'user', parts: userParts }],
       system_instruction: { parts: [{ text: mode.system }] },
       tools: [{ google_search: {} }]
     });
@@ -1022,33 +1250,69 @@ async function runPipeline(userText){
   const sourcesHtml = buildSourcesHtml(chunks, usedFallback);
   replacePipelineWithResult(pipelineMsg, `<div class="bubble-assistant">${escapeHtml(resultText)}</div>${sourcesHtml}`);
   saveMessage('assistant', resultText, []);
-
-  addChips(pipelineMsg, [
-    { label: 'This feels off — let me refine it', action: () => { input.placeholder = 'e.g. focus more on the winger, less on the manager…'; input.focus(); } },
-    { label: 'Try a completely different angle', action: () => input.focus() },
-    { label: 'Something else', action: () => input.focus() }
-  ]);
 }
 
 function submit(){
   const text = input.value.trim();
-  if (!text) return;
-  addUserMsg(text);
-  saveMessage('user', text);
+  if (!text && !pendingImage) return;
+  const imgForBubble = pendingImage ? pendingImage.dataUrl : null;
+  const imgForApi = pendingImage;
+  addUserMsg(text || '(image)', imgForBubble);
+  // Images aren't persisted to storage yet (they're only used for this request) — save a
+  // plain-text placeholder so history reloads don't break, and note the limitation to the user.
+  saveMessage('user', text || '(image)', imgForApi ? [{ label: 'Image attached (not saved to history)' }] : []);
   input.value = '';
   input.style.height = 'auto';
+  clearAttachment();
   sendBtn.disabled = true;
-  runPipeline(text);
+  runPipeline(text, imgForApi);
 }
 
 input.addEventListener('input', () => {
-  sendBtn.disabled = input.value.trim().length === 0;
+  sendBtn.disabled = input.value.trim().length === 0 && !pendingImage;
   input.style.height = 'auto';
   input.style.height = Math.min(input.scrollHeight, 110) + 'px';
 });
 // Enter always makes a new line here — this is a script-writing tool, people type multi-line prompts.
 // Sending only happens via the send button, intentionally.
 sendBtn.addEventListener('click', submit);
+
+// --- Image attachment ---
+// Gemini (gemini-2.5-flash) accepts images natively via inline_data. Groq's automatic backup
+// model (openai/gpt-oss-120b) is text-only, so if Gemini is down AND an image is attached, the
+// fallback switches to a vision-capable Groq model (Llama 4 Scout) instead — see callAI below.
+let pendingImage = null; // { mimeType, base64, dataUrl }
+const attachBtn = document.getElementById('attach-btn');
+const attachFileInput = document.getElementById('attach-file-input');
+const attachPreview = document.getElementById('attach-preview');
+
+attachBtn.addEventListener('click', () => attachFileInput.click());
+attachFileInput.addEventListener('change', () => {
+  const file = attachFileInput.files && attachFileInput.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')){ attachFileInput.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result;
+    const base64 = dataUrl.split(',')[1];
+    pendingImage = { mimeType: file.type, base64, dataUrl };
+    renderAttachPreview();
+    sendBtn.disabled = input.value.trim().length === 0 && !pendingImage;
+  };
+  reader.readAsDataURL(file);
+  attachFileInput.value = '';
+});
+function renderAttachPreview(){
+  if (!pendingImage){ attachPreview.style.display = 'none'; attachPreview.innerHTML = ''; return; }
+  attachPreview.style.display = 'flex';
+  attachPreview.innerHTML = `<div class="attach-thumb"><img src="${pendingImage.dataUrl}"><span class="x" id="attach-remove">✕</span></div>`;
+  document.getElementById('attach-remove').addEventListener('click', clearAttachment);
+}
+function clearAttachment(){
+  pendingImage = null;
+  renderAttachPreview();
+  sendBtn.disabled = input.value.trim().length === 0 && !pendingImage;
+}
 
 // --- Boot ---
 // supabase fires onAuthStateChange once immediately with the current session (or null),
