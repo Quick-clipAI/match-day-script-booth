@@ -111,6 +111,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
   padding:calc(20px + env(safe-area-inset-top)) 28px calc(26px + env(safe-area-inset-bottom));
 }
 .auth-view.open{display:flex}
+#auth-screen-main,#auth-screen-checkemail{flex:1;display:flex;flex-direction:column;min-height:0}
 .auth-close{align-self:flex-start;width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);cursor:pointer;flex-shrink:0;margin-bottom:6px}
 .auth-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:22px}
 .auth-mark{color:var(--accent)}
@@ -141,6 +142,15 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 .auth-note{font-size:12px;color:var(--text-dim);text-align:center;min-height:16px}
 .auth-terms{font-size:11.5px;color:var(--text-faint);text-align:center;line-height:1.6}
 .auth-terms a{color:var(--text-dim);text-decoration:underline}
+
+.check-email-title{font-size:16px;font-weight:600;color:var(--text);max-width:280px}
+.check-email-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 18px;
+  width:100%;max-width:300px;font-size:13.5px;color:var(--text-dim);display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.check-email-address{font-weight:700;color:var(--text);word-break:break-all;margin-top:2px}
+.check-email-sender{font-size:12.5px;color:var(--text-faint);max-width:290px;line-height:1.55}
+.check-email-sender strong{color:var(--text-dim)}
 
 /* header incognito toggle */
 .hdr-icon.active{color:var(--accent)}
@@ -271,32 +281,51 @@ body.incognito .composer-card{border-color:var(--accent-dim)}
 
 <div class="auth-view" id="auth-view">
   <svg class="auth-close" id="auth-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-  <div class="auth-hero">
-    <svg class="auth-mark" width="40" height="40" viewBox="0 0 32 32" fill="none">
-      <rect x="4" y="16" width="5" height="10" rx="2" fill="currentColor" opacity=".55"/>
-      <rect x="13.5" y="8" width="5" height="18" rx="2" fill="currentColor"/>
-      <rect x="23" y="12" width="5" height="14" rx="2" fill="currentColor" opacity=".55"/>
-      <circle cx="16" cy="4" r="2.4" fill="currentColor"/>
-    </svg>
-    <div class="auth-brand">Creator Booth</div>
-    <div class="auth-tagline">Research-backed scripts, drafted in seconds</div>
-  </div>
-  <div class="auth-bottom">
-    <button class="auth-google-btn" id="auth-google-btn" type="button">
-      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.6 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3c-7.7 0-14.4 4.4-17.7 10.7z"/><path fill="#4CAF50" d="M24 45c5.5 0 10.4-1.9 14.2-5.1l-6.6-5.4C29.6 36.3 27 37 24 37c-5.3 0-9.7-3.4-11.3-8.1l-6.6 5.1C9.5 40.5 16.2 45 24 45z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.4l6.6 5.4C40.9 36 44 30.5 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>
-      Continue with Google
-    </button>
-    <div class="auth-divider">OR</div>
-    <div class="auth-email-row">
-      <input id="auth-email-input" type="email" placeholder="Enter your email">
-      <button class="auth-email-send" id="auth-email-send" disabled type="button">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-      </button>
+
+  <div id="auth-screen-main">
+    <div class="auth-hero">
+      <svg class="auth-mark" width="40" height="40" viewBox="0 0 32 32" fill="none">
+        <rect x="4" y="16" width="5" height="10" rx="2" fill="currentColor" opacity=".55"/>
+        <rect x="13.5" y="8" width="5" height="18" rx="2" fill="currentColor"/>
+        <rect x="23" y="12" width="5" height="14" rx="2" fill="currentColor" opacity=".55"/>
+        <circle cx="16" cy="4" r="2.4" fill="currentColor"/>
+      </svg>
+      <div class="auth-brand">Creator Booth</div>
+      <div class="auth-tagline">Research-backed scripts, drafted in seconds</div>
     </div>
-    <div class="auth-note" id="auth-note"></div>
-    <div class="auth-terms">By continuing, you agree to Creator Booth's <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and acknowledge the <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</div>
+    <div class="auth-bottom">
+      <button class="auth-google-btn" id="auth-google-btn" type="button">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.6 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3c-7.7 0-14.4 4.4-17.7 10.7z"/><path fill="#4CAF50" d="M24 45c5.5 0 10.4-1.9 14.2-5.1l-6.6-5.4C29.6 36.3 27 37 24 37c-5.3 0-9.7-3.4-11.3-8.1l-6.6 5.1C9.5 40.5 16.2 45 24 45z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.4l6.6 5.4C40.9 36 44 30.5 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>
+        Continue with Google
+      </button>
+      <div class="auth-divider">OR</div>
+      <div class="auth-email-row">
+        <input id="auth-email-input" type="email" placeholder="Enter your email">
+        <button class="auth-email-send" id="auth-email-send" disabled type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </div>
+      <div class="auth-note" id="auth-note"></div>
+      <div class="auth-terms">By continuing, you agree to Creator Booth's <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and acknowledge the <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</div>
+    </div>
+  </div>
+
+  <div id="auth-screen-checkemail" style="display:none">
+    <div class="auth-hero" style="gap:16px">
+      <div class="check-email-title">Check your email to finish signing in</div>
+      <div class="check-email-card">
+        <div>We sent a sign-in link to</div>
+        <div class="check-email-address" id="check-email-address"></div>
+        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="margin-top:6px">
+          <rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M3 6.5l9 6.5 9-6.5"/>
+        </svg>
+      </div>
+      <div class="check-email-sender">This email comes from <strong>Supabase Auth</strong>, our sign-in provider — that's expected. Check spam/junk if it doesn't show up within a minute or two.</div>
+      <div class="back-link" id="check-email-back">Use a different email</div>
+    </div>
   </div>
 </div>
+
 
 <header>
   <svg class="hdr-icon" id="menu-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -846,11 +875,17 @@ const authClose = document.getElementById('auth-close');
 const authEmailInput = document.getElementById('auth-email-input');
 const authEmailSend = document.getElementById('auth-email-send');
 const authNote = document.getElementById('auth-note');
+const authScreenMain = document.getElementById('auth-screen-main');
+const authScreenCheckEmail = document.getElementById('auth-screen-checkemail');
+const checkEmailAddress = document.getElementById('check-email-address');
+const checkEmailBack = document.getElementById('check-email-back');
 
 function openAuthView(){
   authNote.textContent = '';
   authEmailInput.value = '';
   authEmailSend.disabled = true;
+  authScreenMain.style.display = 'flex';
+  authScreenCheckEmail.style.display = 'none';
   authView.classList.add('open');
 }
 function closeAuthView(){ authView.classList.remove('open'); }
@@ -858,6 +893,11 @@ function closeAuthView(){ authView.classList.remove('open'); }
 authClose.addEventListener('click', closeAuthView);
 authEmailInput.addEventListener('input', () => { authEmailSend.disabled = authEmailInput.value.trim().length === 0; });
 authEmailInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !authEmailSend.disabled) authEmailSend.click(); });
+checkEmailBack.addEventListener('click', () => {
+  authScreenCheckEmail.style.display = 'none';
+  authScreenMain.style.display = 'flex';
+  authEmailInput.focus();
+});
 
 document.getElementById('auth-google-btn').addEventListener('click', async () => {
   await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
@@ -867,8 +907,16 @@ authEmailSend.addEventListener('click', async () => {
   if (!email) return;
   authEmailSend.disabled = true;
   const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } });
-  authNote.textContent = error ? error.message : 'Check your email for a sign-in link.';
-  authEmailSend.disabled = false;
+  if (error){
+    authNote.textContent = error.message;
+    authEmailSend.disabled = false;
+    return;
+  }
+  // Full-screen confirmation, same pattern as Claude's own "check your email" screen —
+  // rather than a small note buried under the input.
+  checkEmailAddress.textContent = email;
+  authScreenMain.style.display = 'none';
+  authScreenCheckEmail.style.display = 'flex';
 });
 
 async function refreshChatList(){
