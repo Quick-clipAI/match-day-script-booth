@@ -190,6 +190,13 @@ body.incognito .composer-card{border-color:var(--accent-dim)}
 .modal-btn{flex:1;border-radius:10px;padding:10px;font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid var(--border)}
 .modal-btn.ghost{background:transparent;color:var(--text-dim)}
 .modal-btn.danger{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.export-actions{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.export-option-btn{
+  display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:11px 13px;font-size:13.5px;color:var(--text);cursor:pointer;text-align:left;width:100%;
+}
+.export-option-btn:hover{border-color:var(--accent-dim);background:var(--surface3)}
+.export-option-btn.done{color:var(--accent);border-color:var(--accent-dim)}
 
 /* image attachment preview */
 .attach-preview{display:flex;align-items:center;gap:8px;padding:10px 14px 0;flex-wrap:wrap}
@@ -353,6 +360,7 @@ body.incognito .composer-card{border-color:var(--accent-dim)}
       <path d="M5 20V11a7 7 0 0114 0v9l-2.5-2-2 2-2-2-2 2-2-2L5 20z"/>
       <circle cx="9.5" cy="11" r=".9" fill="currentColor" stroke="none"/><circle cx="14.5" cy="11" r=".9" fill="currentColor" stroke="none"/>
     </svg>
+    <svg class="hdr-icon" id="header-export-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none" title="Export chat"><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 9l5-5 5 5M12 4v12"/></svg>
     <svg class="hdr-icon" id="header-newchat-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none" title="New chat"><path d="M12 5v14M5 12h14"/></svg>
     <div class="hdr-dots-wrap" style="position:relative;display:none" id="header-dots-wrap">
       <svg class="hdr-icon" id="header-dots-btn" viewBox="0 0 24 24" fill="currentColor" title="Chat options"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
@@ -365,6 +373,25 @@ body.incognito .composer-card{border-color:var(--accent-dim)}
   </div>
 </header>
 <div class="temp-banner" id="temp-banner" style="display:none">Temporary chat — this one won't be saved</div>
+
+<div class="modal-overlay" id="export-modal-overlay">
+  <div class="modal-card">
+    <div class="modal-msg">Export this chat</div>
+    <div class="export-actions">
+      <button class="export-option-btn" id="export-copy-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>
+        Copy to clipboard
+      </button>
+      <button class="export-option-btn" id="export-pdf-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M12 18v-6M9.5 15.5L12 18l2.5-2.5"/></svg>
+        Download as PDF
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn ghost" id="export-cancel-btn" style="flex:1">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <div class="thread" id="thread">
   <div class="hero" id="hero">
@@ -608,7 +635,7 @@ const composerEl = document.querySelector('.composer');
 
 // Single source of truth for the version shown in the header and in Settings.
 // Bump this on every deploy — see README.md's "Versioning" section.
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 document.getElementById('hdr-version').textContent = 'v' + APP_VERSION;
 const settingsVersionEl = document.getElementById('settings-app-version');
 if (settingsVersionEl) settingsVersionEl.textContent = 'Creator Booth v' + APP_VERSION;
@@ -736,6 +763,7 @@ const incognitoBtn = document.getElementById('incognito-btn');
 const tempBanner = document.getElementById('temp-banner');
 const incognitoHero = document.getElementById('incognito-hero');
 const headerNewChatBtn = document.getElementById('header-newchat-btn');
+const headerExportBtn = document.getElementById('header-export-btn');
 const headerDotsWrap = document.getElementById('header-dots-wrap');
 const headerDotsBtn = document.getElementById('header-dots-btn');
 const dotsMenu = document.getElementById('dots-menu');
@@ -744,14 +772,116 @@ const headerDeleteBtn = document.getElementById('header-delete-btn');
 function hasMessages(){ return thread.querySelectorAll('.msg').length > 0; }
 
 // Header shows one of three states: ghost toggle (empty thread) / +&dots (normal chat, has messages) / +&trash (incognito chat, has messages)
+// Export is available in every state that has messages, incognito included — it's exactly the
+// chat that's about to disappear that you'd most want a copy of.
 function updateHeaderState(){
   const started = hasMessages();
   incognitoBtn.style.display = started ? 'none' : 'block';
+  headerExportBtn.style.display = started ? 'block' : 'none';
   headerNewChatBtn.style.display = started ? 'block' : 'none';
   headerDotsWrap.style.display = (started && !temporaryMode) ? 'block' : 'none';
   headerDeleteBtn.style.display = (started && temporaryMode) ? 'block' : 'none';
   document.body.classList.toggle('incognito', temporaryMode);
 }
+
+// --- Export chat: "Me: ... / Creator Booth: ..." transcript, as copy or PDF ---
+function transcriptSpeakerLabel(){
+  return (signedIn && currentUser && currentUser.email) ? currentUser.email.split('@')[0] : 'Me';
+}
+function buildTranscriptTurns(){
+  const meLabel = transcriptSpeakerLabel();
+  const turns = [];
+  thread.querySelectorAll('.msg').forEach(msgEl => {
+    if (msgEl.classList.contains('user')){
+      const t = msgEl.querySelector('.bubble-user-text');
+      if (t && t.textContent.trim()) turns.push({ speaker: meLabel, text: t.textContent.trim() });
+    } else if (msgEl.classList.contains('assistant')){
+      const b = msgEl.querySelector('.bubble-assistant');
+      if (b && b.textContent.trim()) turns.push({ speaker: 'Creator Booth', text: b.textContent.trim() });
+    }
+    // pipeline-in-progress messages have neither .bubble-user-text nor .bubble-assistant yet,
+    // and are skipped automatically since both querySelector calls come back null.
+  });
+  return turns;
+}
+function buildTranscriptText(){
+  return buildTranscriptTurns().map(t => `${t.speaker}:- ${t.text}`).join('\n\n');
+}
+
+const exportModalOverlay = document.getElementById('export-modal-overlay');
+const exportCopyBtn = document.getElementById('export-copy-btn');
+const exportPdfBtn = document.getElementById('export-pdf-btn');
+const exportCancelBtn = document.getElementById('export-cancel-btn');
+
+headerExportBtn.addEventListener('click', () => exportModalOverlay.classList.add('open'));
+exportCancelBtn.addEventListener('click', () => exportModalOverlay.classList.remove('open'));
+
+exportCopyBtn.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(buildTranscriptText());
+    exportCopyBtn.classList.add('done');
+    const original = exportCopyBtn.innerHTML;
+    exportCopyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Copied';
+    setTimeout(() => { exportCopyBtn.classList.remove('done'); exportCopyBtn.innerHTML = original; exportModalOverlay.classList.remove('open'); }, 900);
+  } catch (e) {
+    exportCopyBtn.textContent = "Couldn't copy — check clipboard permission";
+  }
+});
+
+let jsPDFLoadPromise = null;
+function loadJsPDF(){
+  if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+  if (!jsPDFLoadPromise){
+    jsPDFLoadPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = () => resolve(window.jspdf.jsPDF);
+      s.onerror = () => reject(new Error('Could not load the PDF library — check your connection.'));
+      document.head.appendChild(s);
+    });
+  }
+  return jsPDFLoadPromise;
+}
+
+exportPdfBtn.addEventListener('click', async () => {
+  const original = exportPdfBtn.innerHTML;
+  exportPdfBtn.innerHTML = original.replace('Download as PDF', 'Preparing PDF…');
+  try {
+    const JsPDF = await loadJsPDF();
+    const doc = new JsPDF({ unit: 'pt', format: 'a4' });
+    const marginX = 44, maxWidth = 507, lineHeight = 15, pageBottom = 780;
+    let y = 54;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+    doc.text('Creator Booth — Chat Export', marginX, y);
+    y += 18;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(new Date().toLocaleString(), marginX, y);
+    doc.setTextColor(20);
+    y += 26;
+
+    buildTranscriptTurns().forEach(turn => {
+      if (y > pageBottom){ doc.addPage(); y = 54; }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+      doc.text(turn.speaker + ':-', marginX, y);
+      y += lineHeight;
+      doc.setFont('helvetica', 'normal');
+      doc.splitTextToSize(turn.text, maxWidth).forEach(line => {
+        if (y > pageBottom){ doc.addPage(); y = 54; }
+        doc.text(line, marginX, y);
+        y += lineHeight;
+      });
+      y += 12;
+    });
+
+    doc.save('creator-booth-chat.pdf');
+    exportModalOverlay.classList.remove('open');
+    exportPdfBtn.innerHTML = original;
+  } catch (e) {
+    exportPdfBtn.textContent = e.message || 'PDF export failed — try again';
+    setTimeout(() => { exportPdfBtn.innerHTML = original; }, 2400);
+  }
+});
 
 function showIncognitoHero(){
   hero.style.display = 'none';

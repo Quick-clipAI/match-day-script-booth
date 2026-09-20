@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.0.0**
+**v1.1.0**
 
 A mobile-first chat app that drafts short-form video scripts across 6 content
 modes, backed by live web search and (for football) real match data — not
@@ -23,6 +23,9 @@ On every update:
 
 ### Changelog
 
+- **v1.1.0** — Export chat as a "Speaker:- text" transcript, either copied
+  to clipboard or downloaded as a PDF (jsPDF, lazy-loaded). Available from
+  a header icon in both normal and incognito chats.
 - **v1.0.0** — Merged the prototype chat UI into the production repo.
   6 content modes, Gemini + Google Search grounding, Groq automatic
   fallback (text + vision), best-effort football fixture context,
@@ -31,7 +34,6 @@ On every update:
   Privacy pages, visible version tag. Voiceover, project/workspace
   management, and the old football tool-calling loop were not carried
   over — see "What this version doesn't do yet" below.
-
 
 This is a rebuild of an earlier project (previously "Match Day Script Booth").
 The backend proxy pattern carried over; the frontend was replaced with a new
@@ -74,6 +76,10 @@ parity with the old app.
   chat has messages.
 - **Message actions**: copy, regenerate, and share (Web Share API where
   supported, clipboard fallback otherwise) under every assistant reply.
+- **Export chat**: header icon (available in incognito too, not just normal
+  chats) exports the full transcript as `Speaker:- text` turns, either
+  copied to clipboard or downloaded as a PDF. PDF generation uses jsPDF,
+  lazy-loaded from a CDN only when Download is actually clicked.
 - **Terms & Privacy pages** (`/terms.html`, `/privacy.html`) — short,
   accurate placeholders, not full legal documents.
 
