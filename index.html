@@ -68,6 +68,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 .chip .num{color:var(--accent);font-family:var(--mono);font-size:12px;flex-shrink:0}
 
 .err{font-size:13px;color:#d98a7a;background:#2a1f1c;border:1px solid #4a2f28;border-radius:10px;padding:10px 13px}
+.msg-transient-note{margin-bottom:8px;font-size:12px;animation:rise .25s ease}
 
 .msg-actions{display:flex;gap:2px;margin-top:8px;margin-left:-6px}
 .msg-action-btn{
@@ -76,6 +77,11 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 }
 .msg-action-btn:hover{color:var(--text-dim);background:var(--surface2)}
 .msg-action-btn.copied{color:var(--accent)}
+.msg-action-btn.active{color:var(--accent);background:var(--surface2)}
+
+.msg-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px;padding:0 2px}
+.msg-footer-logo{color:var(--accent);flex-shrink:0}
+.msg-footer-disclaimer{font-size:10.5px;color:var(--text-faint);text-align:right;line-height:1.4}
 
 /* sidebar drawer */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;opacity:0;pointer-events:none;transition:.2s}
@@ -635,7 +641,7 @@ const composerEl = document.querySelector('.composer');
 
 // Single source of truth for the version shown in the header and in Settings.
 // Bump this on every deploy — see README.md's "Versioning" section.
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.1';
 document.getElementById('hdr-version').textContent = 'v' + APP_VERSION;
 const settingsVersionEl = document.getElementById('settings-app-version');
 if (settingsVersionEl) settingsVersionEl.textContent = 'Creator Booth v' + APP_VERSION;
@@ -897,6 +903,8 @@ incognitoBtn.addEventListener('click', async () => {
   // Starting incognito always begins a brand new chat, per Claude's own behavior.
   temporaryMode = true;
   currentChatId = null;
+  lastAssistantMsgEl = null;
+  lastAssistantSaveRef = null;
   thread.querySelectorAll('.msg').forEach(el => el.remove());
   tempBanner.style.display = 'block';
   incognitoBtn.classList.add('active');
@@ -917,6 +925,8 @@ async function exitIncognitoToNormalChat(){
 
 async function clearIncognitoStayIncognito(){
   currentChatId = null;
+  lastAssistantMsgEl = null;
+  lastAssistantSaveRef = null;
   thread.querySelectorAll('.msg').forEach(el => el.remove());
   showIncognitoHero();
   updateHeaderState();
@@ -975,6 +985,8 @@ function loadGuestChats(){ return JSON.parse(localStorage.getItem('cb_guest_chat
 function saveGuestChats(list){ localStorage.setItem('cb_guest_chats', JSON.stringify(list)); }
 
 async function createChat(){
+  lastAssistantMsgEl = null;
+  lastAssistantSaveRef = null;
   if (currentUser){
     const { data, error } = await supabase.from('chats').insert({ user_id: currentUser.id }).select('id,title').single();
     if (error){ console.error(error); return null; }
@@ -1109,6 +1121,8 @@ async function openChat(chatId){
   currentChatId = chatId;
   const myToken = ++openChatToken;
   thread.querySelectorAll('.msg').forEach(el => el.remove());
+  lastAssistantMsgEl = null;
+  lastAssistantSaveRef = null;
   let messages = [];
   if (currentUser){
     const chatRow = chats.find(c => c.id === chatId);
@@ -1124,22 +1138,58 @@ async function openChat(chatId){
   if (myToken !== openChatToken) return; // a newer call has since taken over — don't render stale data
   hero.style.display = messages.length ? 'none' : 'flex';
   if (!messages.length) refreshGreeting();
-  messages.forEach(m => {
-    if (m.role === 'user') renderUserBubble(m.content);
-    else renderAssistantBubble(m.content, m.media || []);
+
+  let lastUserText = '';
+  let lastAssistantIndexInArray = -1;
+  messages.forEach((m, i) => {
+    if (m.role === 'user'){
+      renderUserBubble(m.content);
+      lastUserText = m.content;
+    } else {
+      renderAssistantBubble(m.content, m.media || []);
+      lastAssistantIndexInArray = i;
+    }
   });
+
+  // Upgrade the truly-last assistant message to the "last" state: regenerate + footer, wired
+  // against the preceding user message's text. Images aren't persisted across reloads (a known
+  // limitation), so a regenerate here won't re-attach the original image(s).
+  if (lastAssistantIndexInArray >= 0){
+    const assistantMsgEls = thread.querySelectorAll('.msg.assistant');
+    const msgEl = assistantMsgEls[assistantMsgEls.length - 1];
+    if (msgEl){
+      msgEl.insertAdjacentHTML('beforeend', buildMsgActionsHtml(true));
+      const resultText = messages[lastAssistantIndexInArray].content;
+      wireMsgActions(msgEl, resultText, lastUserText, [], true);
+      lastAssistantMsgEl = msgEl;
+      if (currentUser){
+        lastAssistantSaveRef = { chatId, type: 'supabase', id: messages[lastAssistantIndexInArray].id };
+      } else {
+        lastAssistantSaveRef = { chatId, type: 'guest', index: lastAssistantIndexInArray };
+      }
+    }
+  }
+
   await refreshChatList();
   updateHeaderState();
   drawer.classList.remove('open'); overlay.classList.remove('open');
   scrollDown();
 }
 
-async function saveMessage(role, content, media = []){
+let lastAssistantSaveRef = null; // tracks the storage identity of the current last assistant message so regenerate can update it in place instead of inserting a duplicate
+
+async function saveMessage(role, content, media = [], opts = {}){
   if (temporaryMode) return;
   if (!currentChatId) await createChat();
+  const replace = !!opts.replace && role === 'assistant' && lastAssistantSaveRef && lastAssistantSaveRef.chatId === currentChatId;
 
   if (currentUser){
-    await supabase.from('messages').insert({ chat_id: currentChatId, role, content, media });
+    if (replace){
+      await supabase.from('messages').update({ content, media }).eq('id', lastAssistantSaveRef.id);
+    } else {
+      const { data } = await supabase.from('messages').insert({ chat_id: currentChatId, role, content, media }).select('id').single();
+      if (role === 'assistant' && data) lastAssistantSaveRef = { chatId: currentChatId, type: 'supabase', id: data.id };
+    }
     if (role === 'user' && currentChatTitle === 'New chat'){
       currentChatTitle = content.slice(0, 40);
       await supabase.from('chats').update({ title: currentChatTitle }).eq('id', currentChatId);
@@ -1148,7 +1198,12 @@ async function saveMessage(role, content, media = []){
     const list = loadGuestChats();
     const chat = list.find(c => c.id === currentChatId);
     if (!chat) return;
-    chat.messages.push({ role, content, media });
+    if (replace && lastAssistantSaveRef.type === 'guest' && chat.messages[lastAssistantSaveRef.index]){
+      chat.messages[lastAssistantSaveRef.index] = { role, content, media };
+    } else {
+      chat.messages.push({ role, content, media });
+      if (role === 'assistant') lastAssistantSaveRef = { chatId: currentChatId, type: 'guest', index: chat.messages.length - 1 };
+    }
     if (role === 'user' && chat.title === 'New chat'){ chat.title = content.slice(0, 40); currentChatTitle = chat.title; }
     saveGuestChats(list);
   }
@@ -1210,6 +1265,7 @@ function renderAssistantBubble(text, media){
   const mediaHtml = (media || []).map(m => `<div class="sources"><span>${escapeHtml(m.label || '')}</span></div>`).join('');
   div.innerHTML = `<div class="bubble-assistant">${escapeHtml(text)}</div>${mediaHtml}`;
   thread.appendChild(div);
+  return div;
 }
 
 function addPipeline(){
@@ -1413,12 +1469,30 @@ async function gatherFootballContext(queryText){
 
 const ICON_COPY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>';
 const ICON_RETRY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 019-9c2.4 0 4.6.9 6.2 2.5L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 01-9 9c-2.4 0-4.6-.9-6.2-2.5L3 16M3 21v-5h5"/></svg>';
-const ICON_SHARE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7l7.4-4.2M8.3 13.3l7.4 4.2"/></svg>';
+const ICON_THUMBS_UP = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/></svg>';
+const ICON_THUMBS_DOWN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L13 22h0a3.13 3.13 0 0 1-3-3.88Z"/></svg>';
+const BRAND_MARK_SVG = '<svg class="msg-footer-logo" width="15" height="15" viewBox="0 0 32 32" fill="none"><rect x="4" y="16" width="5" height="10" rx="2" fill="currentColor" opacity=".55"/><rect x="13.5" y="8" width="5" height="18" rx="2" fill="currentColor"/><rect x="23" y="12" width="5" height="14" rx="2" fill="currentColor" opacity=".55"/><circle cx="16" cy="4" r="2.4" fill="currentColor"/></svg>';
 
-function wireMsgActions(msgEl, resultText, userText, imageAttachments){
+// Every assistant reply gets copy + thumbs up/down. Only the current LAST assistant reply in the
+// thread also gets regenerate, plus the brand/disclaimer footer row — matching the reference
+// layout, where those two are reserved for the most recent response only.
+function buildMsgActionsHtml(isLast){
+  const base = `<button class="msg-action-btn" data-action="copy" title="Copy">${ICON_COPY}</button>
+    <button class="msg-action-btn" data-action="up" title="Good response">${ICON_THUMBS_UP}</button>
+    <button class="msg-action-btn" data-action="down" title="Bad response">${ICON_THUMBS_DOWN}</button>`;
+  const regen = isLast ? `<button class="msg-action-btn" data-action="retry" title="Regenerate">${ICON_RETRY}</button>` : '';
+  const footer = isLast
+    ? `<div class="msg-footer">${BRAND_MARK_SVG}<span class="msg-footer-disclaimer">Creator Booth is AI and can make mistakes. Please double-check responses.</span></div>`
+    : '';
+  return `<div class="msg-actions">${base}${regen}</div>${footer}`;
+}
+
+function wireMsgActions(msgEl, resultText, userText, imageAttachments, isLast){
   const copyBtn = msgEl.querySelector('[data-action="copy"]');
+  const upBtn = msgEl.querySelector('[data-action="up"]');
+  const downBtn = msgEl.querySelector('[data-action="down"]');
   const retryBtn = msgEl.querySelector('[data-action="retry"]');
-  const shareBtn = msgEl.querySelector('[data-action="share"]');
+
   copyBtn.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(resultText);
@@ -1427,15 +1501,36 @@ function wireMsgActions(msgEl, resultText, userText, imageAttachments){
       setTimeout(() => { copyBtn.classList.remove('copied'); copyBtn.innerHTML = ICON_COPY; }, 1400);
     } catch (e) { /* clipboard permission denied — silently ignore, button just won't confirm */ }
   });
-  retryBtn.addEventListener('click', () => { runPipeline(userText, imageAttachments); });
-  shareBtn.addEventListener('click', async () => {
-    if (navigator.share){
-      try { await navigator.share({ text: resultText }); } catch (e) { /* user cancelled the share sheet */ }
-    } else {
-      try { await navigator.clipboard.writeText(resultText); shareBtn.title = 'Copied — no share sheet on this browser'; } catch (e) {}
-    }
+
+  // Thumbs up/down are local-only UI feedback for now — there's no backend endpoint collecting
+  // this yet, so nothing is sent anywhere. Mutually exclusive, purely a visual acknowledgment.
+  upBtn.addEventListener('click', () => {
+    const nowActive = !upBtn.classList.contains('active');
+    upBtn.classList.toggle('active', nowActive);
+    downBtn.classList.remove('active');
   });
+  downBtn.addEventListener('click', () => {
+    const nowActive = !downBtn.classList.contains('active');
+    downBtn.classList.toggle('active', nowActive);
+    upBtn.classList.remove('active');
+  });
+
+  if (retryBtn){
+    retryBtn.addEventListener('click', () => regenerateInPlace(msgEl, userText, imageAttachments));
+  }
 }
+
+// Strips the regenerate button and footer from whatever was previously the last assistant
+// message, demoting it to the plain 3-button state — only the true last message keeps them.
+function demoteAssistantMessage(msgEl){
+  if (!msgEl) return;
+  const footer = msgEl.querySelector('.msg-footer');
+  if (footer) footer.remove();
+  const retryBtn = msgEl.querySelector('[data-action="retry"]');
+  if (retryBtn) retryBtn.remove();
+}
+
+let lastAssistantMsgEl = null; // the DOM element of the current last assistant message, or null
 
 function buildSourcesHtml(chunks, usedFallback){
   if (chunks && chunks.length){
@@ -1457,11 +1552,13 @@ function buildSourcesHtml(chunks, usedFallback){
 /* grounding + (football mode only) verified match data as context.    */
 /* imageAttachments is an array of {mimeType, base64, dataUrl} — 0 to   */
 /* MAX_IMAGES per message.                                              */
+/*                                                                      */
+/* runGeneration is the shared core for both a fresh send (runPipeline) */
+/* and a regenerate (regenerateInPlace) — the only difference is        */
+/* whether the result lands in a brand-new message or overwrites the    */
+/* existing one in place.                                               */
 /* ------------------------------------------------------------------ */
-async function runPipeline(userText, imageAttachments){
-  const images = imageAttachments || [];
-  const stageEl = addPipeline();
-  const pipelineMsg = stageEl.closest('.msg');
+async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerate, restoreCtx){
   const mode = currentMode();
 
   let footballContext = '';
@@ -1504,19 +1601,58 @@ async function runPipeline(userText, imageAttachments){
   await new Promise(r => setTimeout(r, 200));
 
   if (errorMsg){
-    replacePipelineWithResult(pipelineMsg, `<div class="err">${escapeHtml(errorMsg)}</div>`);
+    if (isRegenerate && restoreCtx && restoreCtx.html){
+      // Regeneration failed — restore the previous response rather than leaving an error box
+      // with the old content gone. Buttons need re-wiring since innerHTML doesn't carry
+      // listeners over; the markup itself (bubble/sources/actions) is already intact.
+      pipelineMsg.innerHTML = restoreCtx.html;
+      wireMsgActions(pipelineMsg, restoreCtx.resultText, userText, images, true);
+      showTransientNote(pipelineMsg, "Couldn't regenerate (" + errorMsg + ") — your previous response is unchanged.");
+    } else {
+      // On a fresh send, the previous last message hasn't been demoted yet at this point,
+      // so it still holds its regenerate/footer — nothing lost here either.
+      replacePipelineWithResult(pipelineMsg, `<div class="err">${escapeHtml(errorMsg)}</div>`);
+    }
     return;
   }
 
+  if (!isRegenerate) demoteAssistantMessage(lastAssistantMsgEl); // only now that we know this new reply will actually land
+
   const sourcesHtml = buildSourcesHtml(chunks, usedFallback);
-  const actionsHtml = `<div class="msg-actions">
-    <button class="msg-action-btn" data-action="copy" title="Copy">${ICON_COPY}</button>
-    <button class="msg-action-btn" data-action="retry" title="Regenerate">${ICON_RETRY}</button>
-    <button class="msg-action-btn" data-action="share" title="Share">${ICON_SHARE}</button>
-  </div>`;
+  const actionsHtml = buildMsgActionsHtml(true); // this message is always the new "last" once it lands
   replacePipelineWithResult(pipelineMsg, `<div class="bubble-assistant">${escapeHtml(resultText)}</div>${sourcesHtml}${actionsHtml}`);
-  wireMsgActions(pipelineMsg, resultText, userText, images);
-  saveMessage('assistant', resultText, []);
+  wireMsgActions(pipelineMsg, resultText, userText, images, true);
+  lastAssistantMsgEl = pipelineMsg;
+  saveMessage('assistant', resultText, [], { replace: isRegenerate });
+}
+
+function showTransientNote(msgEl, text){
+  const note = document.createElement('div');
+  note.className = 'err msg-transient-note';
+  note.textContent = text;
+  msgEl.insertBefore(note, msgEl.firstChild);
+  setTimeout(() => note.remove(), 4500);
+}
+
+async function runPipeline(userText, imageAttachments){
+  const images = imageAttachments || [];
+  const stageEl = addPipeline();
+  const pipelineMsg = stageEl.closest('.msg');
+  await runGeneration(pipelineMsg, stageEl, userText, images, false);
+}
+
+// Clears the existing message's content and regenerates in place — the old reply is replaced,
+// not appended-below-with-a-duplicate. Reuses the same .msg element throughout. Snapshots the
+// current content first so runGeneration can restore it if the regeneration attempt fails.
+async function regenerateInPlace(msgEl, userText, imageAttachments){
+  const images = imageAttachments || [];
+  const previousHtml = msgEl.innerHTML;
+  const bubbleEl = msgEl.querySelector('.bubble-assistant');
+  const previousResultText = bubbleEl ? bubbleEl.textContent : '';
+  msgEl.innerHTML = `<div class="pipeline"><span class="dot"></span><span class="stage">Thinking…</span></div>`;
+  scrollDown();
+  const stageEl = msgEl.querySelector('.stage');
+  await runGeneration(msgEl, stageEl, userText, images, true, { html: previousHtml, resultText: previousResultText });
 }
 
 function submit(){

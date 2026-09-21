@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.1.0**
+**v1.2.1**
 
 A mobile-first chat app that drafts short-form video scripts across 6 content
 modes, backed by live web search and (for football) real match data — not
@@ -23,6 +23,23 @@ On every update:
 
 ### Changelog
 
+- **v1.2.1** — Regenerate now snapshots the previous response before
+  clearing the message; if the regeneration attempt fails (both Gemini
+  and Groq down), the old response is restored with a brief "couldn't
+  regenerate" notice instead of being permanently lost behind an error
+  box. Closes the tradeoff noted in v1.2.0.
+- **v1.2.0** — Redesigned message actions to match a "reference layout":
+  every assistant reply gets copy + thumbs up/down; only the current last
+  reply also gets regenerate, plus a brand-mark/disclaimer footer row.
+  Regenerate now actually replaces the message in place (same DOM element,
+  same DB row updated via `saveMessage(..., {replace:true})`) instead of
+  appending a second reply below the old one. Thumbs up/down are local-only
+  UI feedback for now — no backend collects them yet. Per-message Share was
+  removed (the header-level "Export chat" feature covers that need).
+- **v1.1.1** — Added a GitHub Actions keep-alive workflow
+  (`.github/workflows/supabase-keepalive.yml`) that pings Supabase every
+  3 days so the free-tier project doesn't auto-pause after 7 days of
+  inactivity. No app code changed.
 - **v1.1.0** — Export chat as a "Speaker:- text" transcript, either copied
   to clipboard or downloaded as a PDF (jsPDF, lazy-loaded). Available from
   a header icon in both normal and incognito chats.
@@ -74,8 +91,10 @@ parity with the old app.
   confirmation-gated so you don't lose a conversation by accident).
 - **Per-chat management**: rename/delete from a header menu once a normal
   chat has messages.
-- **Message actions**: copy, regenerate, and share (Web Share API where
-  supported, clipboard fallback otherwise) under every assistant reply.
+- **Message actions**: copy + thumbs up/down under every assistant reply;
+  the current last reply also gets regenerate (replaces that message in
+  place — doesn't stack a second reply below it) plus a brand/disclaimer
+  footer.
 - **Export chat**: header icon (available in incognito too, not just normal
   chats) exports the full transcript as `Speaker:- text` turns, either
   copied to clipboard or downloaded as a PDF. PDF generation uses jsPDF,
@@ -163,6 +182,32 @@ not a surprise.
    mode, a football request, an image attach, and incognito — before
    trusting it's fully working. None of this has had a real end-to-end test
    pass yet as of v1.0.0.
+
+## Keep Supabase from auto-pausing
+
+Supabase pauses free-tier projects after **7 days with no database
+activity** — the project goes offline (`DNS_PROBE_FINISHED_NXDOMAIN` when
+you hit its URL directly) until manually restored from the dashboard. This
+happened once already, after a 2-month pause between working sessions.
+Restoring is free and keeps all data, but it's an avoidable interruption —
+the project resolves this the same day it happens, but only if someone
+notices and restores it.
+
+`.github/workflows/supabase-keepalive.yml` runs a real `SELECT` against the
+`chats` table every 3 days (safe margin under the 7-day limit), so the
+project never goes quiet long enough to trigger a pause. It needs no setup
+— it's already wired to this project's URL/anon key (same ones hardcoded in
+`index.html`; the anon key is public by design, so there's no security
+reason to hide it as a GitHub secret here too). Confirm it's running: repo
+→ **Actions** tab → "Supabase Keep-Alive" should show green runs every 3
+days. You can also trigger it manually from there (**Run workflow** button)
+to test it immediately.
+
+If the project ever does get paused again anyway (workflow got disabled, a
+run failed silently, etc.) — restoring from the dashboard is safe up to
+**90 days** paused; past that, the "Restore" button is disabled entirely and
+you'd need to download the backup and create a fresh project instead. Don't
+let it sit paused for months on the assumption it's fine.
 
 ## Local testing (optional)
 
