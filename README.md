@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.2.1**
+**v1.3.0**
 
 A mobile-first chat app that drafts short-form video scripts across 6 content
 modes, backed by live web search and (for football) real match data — not
@@ -21,8 +21,82 @@ On every update:
 3. Add a line to the changelog below.
 4. Update whichever sections of this README are now stale.
 
+### Setup: profiles table (required for onboarding survey + personalization)
+
+v1.4.0 adds a personalization survey and Profile settings backed by a new Supabase table. Run this once in your Supabase project's SQL Editor:
+
+```sql
+create table if not exists profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  surname text default '',
+  other_names text default '',
+  nickname text default '',
+  referral_source text default '',
+  referral_other text default '',
+  use_case text default '',
+  favorite_club text default '',
+  notes text default '',
+  script_preferences text default '',
+  onboarded boolean default false,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table profiles enable row level security;
+create policy "Users manage own profile" on profiles
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+```
+
+Until this table exists, profile/onboarding features fail silently (no onboarding prompt, greeting falls back to email prefix) rather than breaking sign-in — but run this before shipping v1.4.0 so personalization actually works.
+
 ### Changelog
 
+- **v1.4.0** — Three things:
+  1. **Onboarding survey + personalization.** Right after a genuinely new sign-in (Google or email — never for guests, and never twice), a full-screen survey asks for surname (required), other names, nickname, how you heard about us (chip select + "Other, specify"), what you plan to use Creator Booth for, favorite club, and any other notes — all editable later in Settings → Profile, all optional except surname, "Skip for now" always available. Stored in the new `profiles` table (SQL above), synced across devices for signed-in users; guests get the same form saved to local storage instead. The chat greeting now prefers nickname → other names → surname → email prefix, in that order, instead of always using the email prefix. Terms and Privacy rewritten to disclose this data collection plainly (Section 4/2 respectively) — personalization only, never sold, deletable anytime.
+  2. **Centered composer on a new chat** — on an empty chat, the input box lifts off the bottom edge and centers itself with the greeting (fixed position, capped width, more shadow) instead of sitting pinned to the screen edge. Reverts to the normal full-width bottom bar the moment a message is sent.
+  3. **Word-by-word reply reveal** — freshly generated replies now type out word by word instead of appearing all at once, with a blinking cursor while typing; sources and action buttons fade in once typing finishes. **This is a client-side typewriter effect, not real token streaming** — the full response still has to finish generating before typing starts, so it doesn't reduce time-to-first-word. True streaming (Gemini's `:streamGenerateContent`) is possible but is a real backend change that complicates the Gemini→Groq automatic fallback and the timing of grounding source links — worth doing later if the typewriter effect isn't enough on its own.
+- **v1.3.0** — Four things:
+  1. **Loading indicator redesign** — the blinking orange dot is gone;
+     the "thinking" state now shows three bars of the brand mark pulsing
+     tall/short on a stagger, matching the logo instead of a generic dot.
+  2. **Edit last message** — the single most-recent user message now has
+     an edit (pencil) icon. Tapping it swaps the bubble for a textarea with
+     a notice that saving will regenerate the response below it. Saving
+     updates the message in place (storage + DOM) and regenerates the
+     following assistant reply against the edited text; if that
+     regeneration fails, the previous response is restored with a brief
+     notice, same fallback behavior as plain regenerate.
+  3. **Football club/coach verification** — football mode now runs a
+     small deterministic pipeline before generating: a tool-free Gemini
+     call extracts up to 3 club names mentioned in the request, each is
+     looked up against API-Football's `teams` + `coachs` endpoints for
+     its actual current manager, and the result is injected as a
+     `=== VERIFIED CLUB/COACH DATA ===` block the model is told to treat
+     as ground truth over its own memory — this is what actually catches
+     cases like "Maresca manages Man City" (it doesn't; Guardiola does).
+     **Why not a real tool-calling loop:** combining Gemini's built-in
+     `google_search` grounding with custom function declarations in one
+     request is a Gemini 3-only preview feature — this app runs on
+     `gemini-2.5-flash`, so the model can't be handed a "look up the
+     coach" tool to call itself. This is a fixed extract → verify →
+     inject pipeline instead, not the model deciding when to check.
+     **Known limitation:** only catches club/coach facts, only for up to
+     3 clubs per request, and only when API-Football's team-name search
+     resolves a match — anything else still relies on Gemini's own
+     search grounding (and the v1.2.2 date/time nudge) as before.
+  4. Football mode's system prompt updated to reference the new verified
+     block alongside the existing match-data one.
+- **v1.2.2** — Every request now gets the visitor's current date/time
+  injected into the system prompt, plus an explicit instruction to verify
+  role/roster-type facts (managers, staff, club affiliations) via search
+  rather than trusting memorized training data. **Known limitation:**
+  Gemini's `google_search` tool has no API setting to force a search on
+  every request (that existed for older Gemini 1.5 models via
+  `dynamicRetrievalConfig`, removed for the tool used here) — this is a
+  prompt-level nudge that improves the odds, not a guarantee. If stale
+  facts keep slipping through, the real fix is a deterministic pre-search
+  step (like `gatherFootballContext` already does for fixtures) feeding
+  verified results in as required context — bigger lift, needs its own
+  search API key, not yet built.
 - **v1.2.1** — Regenerate now snapshots the previous response before
   clearing the message; if the regeneration attempt fails (both Gemini
   and Groq down), the old response is restored with a brief "couldn't
