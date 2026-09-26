@@ -12,6 +12,7 @@
   --bg:#1a1918; --surface:#232220; --surface2:#2b2a27; --surface3:#302f2c;
   --border:#3a3835; --border-soft:#2f2e2b;
   --accent:#c96442; --accent-dim:#8f4a32;
+  --verified:#7f9d72; --verified-dim:#5e7a54;
   --text:#f2ede4; --text-dim:#948f86; --text-faint:#5f5b54;
   --serif:'Source Serif 4',serif; --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
 }
@@ -37,6 +38,29 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 .hero-title{font-family:var(--serif);font-weight:500;font-size:26px;color:var(--text)}
 .hero-sub{font-size:13px;color:var(--text-faint);max-width:280px}
 
+/* Home quick-start cards — small, low-key entry points into the four football workflows,
+   not dashboard tiles. Route into the same Chat/football pipeline with a pre-filled starter
+   rather than opening separate screens (those data-heavy screens need more than the current
+   API-Football free-tier coverage can reliably back — see the app's README). */
+.quickstart-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:360px;margin-top:6px}
+.quickstart-card{
+  display:flex;align-items:center;gap:10px;text-align:left;
+  background:var(--surface);border:1px solid var(--border-soft);border-radius:14px;
+  padding:12px 12px;cursor:pointer;transition:.15s;font-family:var(--sans);
+}
+.quickstart-card:hover{border-color:var(--border);background:var(--surface2)}
+.qc-icon{
+  width:32px;height:32px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:15px;
+}
+.qc-icon.qc-match{background:rgba(127,157,114,.18);color:var(--verified)}
+.qc-icon.qc-player{background:rgba(99,125,163,.18);color:#8fa6d1}
+.qc-icon.qc-research{background:rgba(201,142,66,.18);color:#d4a457}
+.qc-icon.qc-script{background:rgba(201,100,66,.18);color:var(--accent)}
+.qc-text{display:flex;flex-direction:column;gap:1px;min-width:0}
+.qc-title{font-size:12.5px;font-weight:600;color:var(--text)}
+.qc-sub{font-size:11px;color:var(--text-faint)}
+
 .msg{max-width:88%;display:flex;flex-direction:column;gap:6px;animation:rise .35s ease}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .msg.user{align-self:flex-end;align-items:flex-end}
@@ -58,7 +82,30 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 @keyframes eqBar{0%,100%{transform:scaleY(.45)}50%{transform:scaleY(1)}}
 .pipeline .stage{transition:opacity .25s}
 
-.sources{margin-top:8px;font-size:11px;color:var(--text-faint);border-top:1px solid var(--border-soft);padding-top:8px;display:flex;gap:8px;flex-wrap:wrap;animation:rise .3s ease}
+.sources{margin-top:8px;animation:rise .3s ease}
+.sources-head{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:6px}
+.sources-list{display:flex;flex-direction:column;gap:6px}
+.source-card{
+  display:flex;align-items:center;gap:9px;text-decoration:none;
+  background:var(--surface);border:1px solid var(--border-soft);border-radius:11px;
+  padding:8px 10px;transition:.15s;
+}
+.source-card:hover{border-color:var(--border);background:var(--surface2)}
+.source-favicon{width:16px;height:16px;border-radius:4px;flex-shrink:0;object-fit:cover}
+.source-favicon-fallback{display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text-faint);background:var(--surface2)}
+.source-card-body{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.source-card-title{font-size:12px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.source-card-host{font-size:10.5px;color:var(--text-faint)}
+.source-card-arrow{font-size:12px;color:var(--text-faint);flex-shrink:0}
+
+/* subtle "checked against live football data" badge — muted green, not a loud banner */
+.verified-badge{
+  margin-bottom:9px;background:rgba(127,157,114,.08);border:1px solid rgba(127,157,114,.28);
+  border-radius:11px;padding:8px 11px;animation:rise .25s ease;
+}
+.verified-badge-head{font-size:10.5px;font-weight:600;color:var(--verified);letter-spacing:.02em}
+.verified-badge-sub{font-weight:400;color:var(--text-faint)}
+.verified-badge-items{display:flex;flex-wrap:wrap;gap:5px 10px;margin-top:5px;font-size:11px;color:var(--text-dim)}
 .sources span{background:var(--surface2);border-radius:6px;padding:3px 8px}
 .sources a{color:var(--accent);text-decoration:none}
 .sources a:hover{text-decoration:underline}
@@ -290,7 +337,7 @@ body.incognito .composer-card{border-color:var(--accent-dim)}
    greeting instead of pinning it to the screen edge — mirrors the "premium" centered-input
    feel of other AI apps' landing states. Only applies while the hero (no messages yet) shows. */
 body.new-chat .composer{
-  position:fixed;left:50%;bottom:auto;top:60%;transform:translate(-50%,-50%);
+  position:fixed;left:50%;bottom:11%;top:auto;transform:translateX(-50%);
   width:calc(100% - 56px);max-width:480px;padding:0;background:none;z-index:5;
 }
 body.new-chat .composer-card{box-shadow:0 14px 40px -14px rgba(0,0,0,.55)}
@@ -512,6 +559,24 @@ body.new-chat .composer-card{box-shadow:0 14px 40px -14px rgba(0,0,0,.55)}
     </svg>
     <div class="hero-title" id="hero-title">What are we making today?</div>
     <div class="hero-sub" id="hero-sub">Search a match, a player, or a topic — I'll gather what I can and draft it.</div>
+    <div class="quickstart-grid" id="quickstart-grid">
+      <button type="button" class="quickstart-card" data-icon-cls="qc-match" data-prefix="Analyze this match: ">
+        <span class="qc-icon qc-match">⚽</span>
+        <span class="qc-text"><span class="qc-title">Match Analysis</span><span class="qc-sub">Analyze a match</span></span>
+      </button>
+      <button type="button" class="quickstart-card" data-icon-cls="qc-player" data-prefix="Give me a player analysis of ">
+        <span class="qc-icon qc-player">👤</span>
+        <span class="qc-text"><span class="qc-title">Player Analysis</span><span class="qc-sub">Scout a player</span></span>
+      </button>
+      <button type="button" class="quickstart-card" data-icon-cls="qc-research" data-prefix="Find the latest news about ">
+        <span class="qc-icon qc-research">📰</span>
+        <span class="qc-text"><span class="qc-title">Football Research</span><span class="qc-sub">Find the latest</span></span>
+      </button>
+      <button type="button" class="quickstart-card" data-icon-cls="qc-script" data-prefix="Write a script about ">
+        <span class="qc-icon qc-script">✍️</span>
+        <span class="qc-text"><span class="qc-title">Script Studio</span><span class="qc-sub">Turn research into a script</span></span>
+      </button>
+    </div>
   </div>
   <div class="incognito-hero" id="incognito-hero" style="display:none">
     <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
@@ -772,7 +837,7 @@ const composerEl = document.querySelector('.composer');
 
 // Single source of truth for the version shown in the header and in Settings.
 // Bump this on every deploy — see README.md's "Versioning" section.
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 document.getElementById('hdr-version').textContent = 'v' + APP_VERSION;
 const settingsVersionEl = document.getElementById('settings-app-version');
 if (settingsVersionEl) settingsVersionEl.textContent = 'Creator Booth v' + APP_VERSION;
@@ -834,21 +899,24 @@ const modeMenu = document.getElementById('mode-menu');
 const modePillIcon = document.getElementById('mode-pill-icon');
 const modePillLabel = document.getElementById('mode-pill-label');
 
+function switchMode(id){
+  currentModeId = id;
+  const m = currentMode();
+  modePillIcon.textContent = m.icon;
+  modePillLabel.textContent = m.label;
+  input.placeholder = m.placeholder;
+  if (!thread.querySelector('.msg')) refreshGreeting();
+  modeMenu.classList.remove('open');
+  renderModeMenu();
+}
+
 function renderModeMenu(){
   modeMenu.innerHTML = '';
   MODES.forEach(m => {
     const btn = document.createElement('button');
     btn.className = 'mode-menu-item' + (m.id === currentModeId ? ' active' : '');
     btn.innerHTML = `<span class="mi-icon">${m.icon}</span><span>${m.label}</span>`;
-    btn.addEventListener('click', () => {
-      currentModeId = m.id;
-      modePillIcon.textContent = m.icon;
-      modePillLabel.textContent = m.label;
-      input.placeholder = m.placeholder;
-      if (!thread.querySelector('.msg')) refreshGreeting();
-      modeMenu.classList.remove('open');
-      renderModeMenu();
-    });
+    btn.addEventListener('click', () => switchMode(m.id));
     modeMenu.appendChild(btn);
   });
 }
@@ -859,6 +927,18 @@ modePill.addEventListener('click', (e) => {
 });
 document.addEventListener('click', (e) => {
   if (!modeMenu.contains(e.target) && e.target !== modePill) modeMenu.classList.remove('open');
+});
+
+// Home quick-start cards: switch to football mode, pre-fill a starter phrase, hand off to
+// the composer for the person to finish typing — same chat pipeline, no separate screen.
+document.querySelectorAll('.quickstart-card').forEach(card => {
+  card.addEventListener('click', () => {
+    switchMode('football');
+    input.value = card.dataset.prefix || '';
+    input.dispatchEvent(new Event('input'));
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  });
 });
 
 document.getElementById('row-logout').addEventListener('click', async () => {
@@ -1552,7 +1632,10 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
   await openChat(currentChatId);
   // Only ever prompted for a real signed-in account, once, right after a genuinely new
   // session — never for guests, and never again once a profile row is marked onboarded.
-  if (signedIn && currentProfile && !currentProfile.onboarded) openOnboarding();
+  // Prompted whenever there's no profile row yet, OR there is one but onboarded is still false
+  // — covers brand-new sign-ups AND every pre-existing account that predates this feature,
+  // since those accounts have no profiles row at all (loadProfile returns null for them).
+  if (signedIn && (!currentProfile || !currentProfile.onboarded)) openOnboarding();
 });
 
 // --- Rendering ---
@@ -1849,45 +1932,49 @@ async function fetchApiFootballFixtureFacts(fixture, dateStr){
   const statusShort = (fixture.fixture && fixture.fixture.status && fixture.fixture.status.short) || '';
 
   const lines = [`Competition & date: ${comp}, ${dateStr}`, `Status: ${statusShort}`];
-  if (goalsHome != null && goalsAway != null) lines.push(`Score: ${home} ${goalsHome} - ${goalsAway} ${away}`);
+  const labels = ['Competition', 'Match status'];
+  if (goalsHome != null && goalsAway != null){ lines.push(`Score: ${home} ${goalsHome} - ${goalsAway} ${away}`); labels.push('Score'); }
 
   const events = (eventsData && eventsData.response) || [];
   const minuteOf = e => { const t = e.time || {}; return t.elapsed + (t.extra ? '+' + t.extra : ''); };
   const goals = events.filter(e => e.type === 'Goal');
   const cards = events.filter(e => e.type === 'Card');
-  if (goals.length) lines.push('Scorers: ' + goals.map(e => `${(e.player && e.player.name) || '?'} (${e.team && e.team.name}, ${minuteOf(e)}')`).join('; '));
-  if (cards.length) lines.push('Cards: ' + cards.map(e => `${(e.player && e.player.name) || '?'} (${e.team && e.team.name}, ${minuteOf(e)}', ${e.detail || 'Card'})`).join('; '));
+  if (goals.length){ lines.push('Scorers: ' + goals.map(e => `${(e.player && e.player.name) || '?'} (${e.team && e.team.name}, ${minuteOf(e)}')`).join('; ')); labels.push('Scorers'); }
+  if (cards.length){ lines.push('Cards: ' + cards.map(e => `${(e.player && e.player.name) || '?'} (${e.team && e.team.name}, ${minuteOf(e)}', ${e.detail || 'Card'})`).join('; ')); labels.push('Cards'); }
 
   const statsArr = (statsData && statsData.response) || [];
   const wantedStats = ['Ball Possession', 'Total Shots', 'Shots on Goal', 'Corner Kicks', 'Fouls', 'Yellow Cards', 'Red Cards'];
+  let statsFound = false;
   statsArr.forEach(teamStat => {
     const teamName = (teamStat.team && teamStat.team.name) || '';
     const picked = (teamStat.statistics || []).filter(st => wantedStats.indexOf(st.type) >= 0 && st.value != null);
-    if (picked.length) lines.push(`${teamName} stats: ` + picked.map(st => `${st.type}: ${st.value}`).join(', '));
+    if (picked.length){ lines.push(`${teamName} stats: ` + picked.map(st => `${st.type}: ${st.value}`).join(', ')); statsFound = true; }
   });
+  if (statsFound) labels.push('Match statistics');
 
-  return lines.join('\n');
+  return { text: lines.join('\n'), labels };
 }
 
 async function gatherFootballContext(queryText){
   try {
     const dateStr = todayDateStr();
     const res = await fetch('/api/football/fixtures?date=' + dateStr);
-    if (!res.ok) return '';
+    if (!res.ok) return null;
     const data = await res.json();
     const fixtures = (data && data.response) || [];
-    if (!fixtures.length) return '';
+    if (!fixtures.length) return null;
     const q = queryText.toLowerCase();
     const hit = fixtures.find(f => {
       const home = ((f.teams && f.teams.home && f.teams.home.name) || '').toLowerCase();
       const away = ((f.teams && f.teams.away && f.teams.away.name) || '').toLowerCase();
       return (home && q.indexOf(home) >= 0) || (away && q.indexOf(away) >= 0);
     });
-    if (!hit) return '';
+    if (!hit) return null;
     const facts = await fetchApiFootballFixtureFacts(hit, dateStr);
-    return facts ? '=== VERIFIED MATCH DATA (from API-Football, today\'s fixtures) ===\n' + facts : '';
+    if (!facts) return null;
+    return { text: '=== VERIFIED MATCH DATA (from API-Football, today\'s fixtures) ===\n' + facts.text, labels: facts.labels };
   } catch (e) {
-    return '';
+    return null;
   }
 }
 
@@ -1947,11 +2034,11 @@ async function lookupCurrentCoach(clubName){
 
 async function gatherVerifiedFootballFacts(queryText){
   const clubs = await extractClubNames(queryText);
-  if (!clubs.length) return '';
+  if (!clubs.length) return null;
   const results = await Promise.all(clubs.map(lookupCurrentCoach));
   const lines = results.filter(Boolean);
-  if (!lines.length) return '';
-  return '=== VERIFIED CLUB/COACH DATA (from API-Football, ' + todayDateStr() + ') ===\n' + lines.join('\n');
+  if (!lines.length) return null;
+  return { text: '=== VERIFIED CLUB/COACH DATA (from API-Football, ' + todayDateStr() + ') ===\n' + lines.join('\n'), labels: ['Current club manager/coach'] };
 }
 
 const ICON_COPY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>';
@@ -2023,14 +2110,43 @@ function demoteAssistantMessage(msgEl){
 
 let lastAssistantMsgEl = null; // the DOM element of the current last assistant message, or null
 
+// Subtle "we checked this against a live sports feed" badge — only appears when football mode
+// actually found real API-Football data for this specific reply. Deliberately understated (no
+// giant green banner): a small line of checkmarks the reader can skim past or read closely.
+function buildVerifiedHtml(labels){
+  if (!labels || !labels.length){
+    return '';
+  }
+  const unique = [...new Set(labels)];
+  const items = unique.map(l => `<span>✓ ${escapeHtml(l)}</span>`).join('');
+  return `<div class="verified-badge">
+    <div class="verified-badge-head">Verified football data <span class="verified-badge-sub">· API-Football, checked moments ago</span></div>
+    <div class="verified-badge-items">${items}</div>
+  </div>`;
+}
+
 function buildSourcesHtml(chunks, usedFallback){
   if (chunks && chunks.length){
-    const links = chunks.slice(0, 5).map(c => {
+    const cards = chunks.slice(0, 5).map(c => {
       const w = c.web || {};
-      const label = escapeHtml(w.title || w.uri || 'source');
-      return `<span><a href="${w.uri || '#'}" target="_blank" rel="noopener">${label}</a></span>`;
-    });
-    return `<div class="sources">${links.join('')}</div>`;
+      const uri = w.uri || '#';
+      let host = '';
+      try { host = new URL(uri).hostname.replace(/^www\./, ''); } catch (e) {}
+      const title = escapeHtml(w.title || host || 'Source');
+      const favicon = host ? `https://www.google.com/s2/favicons?sz=32&domain=${encodeURIComponent(host)}` : '';
+      return `<a class="source-card" href="${uri}" target="_blank" rel="noopener">
+        ${favicon ? `<img class="source-favicon" src="${favicon}" alt="" loading="lazy">` : '<span class="source-favicon source-favicon-fallback">◉</span>'}
+        <span class="source-card-body">
+          <span class="source-card-title">${title}</span>
+          ${host ? `<span class="source-card-host">${escapeHtml(host)}</span>` : ''}
+        </span>
+        <span class="source-card-arrow">→</span>
+      </a>`;
+    }).join('');
+    return `<div class="sources">
+      <div class="sources-head">Web research · ${chunks.length} source${chunks.length > 1 ? 's' : ''}</div>
+      <div class="sources-list">${cards}</div>
+    </div>`;
   }
   if (usedFallback){
     return `<div class="sources"><span>⚠ Backup AI used — no live web search this time, verify facts before using</span></div>`;
@@ -2066,15 +2182,21 @@ async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerat
   const mode = currentMode();
 
   let footballContext = '';
+  let verifiedLabels = [];
   if (mode.id === 'football'){
     // Checked silently — for a casual message like "hi" there's nothing to find, and the
     // stage label shouldn't claim we're doing football research when we might not be.
-    footballContext = await gatherFootballContext(userText);
-    if (footballContext) setStage(stageEl, "Found today's match data — verifying…");
+    const matchData = await gatherFootballContext(userText);
+    if (matchData){
+      setStage(stageEl, "Found today's match data — verifying…");
+      footballContext = matchData.text;
+      verifiedLabels = verifiedLabels.concat(matchData.labels);
+    }
     const verifiedFacts = await gatherVerifiedFootballFacts(userText);
     if (verifiedFacts){
       setStage(stageEl, 'Checking current club/coach info…');
-      footballContext = footballContext ? footballContext + '\n\n' + verifiedFacts : verifiedFacts;
+      footballContext = footballContext ? footballContext + '\n\n' + verifiedFacts.text : verifiedFacts.text;
+      verifiedLabels = verifiedLabels.concat(verifiedFacts.labels);
     }
   }
   if (images.length) setStage(stageEl, images.length > 1 ? 'Looking at your images…' : 'Looking at your image…');
@@ -2127,9 +2249,10 @@ async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerat
 
   if (!isRegenerate) demoteAssistantMessage(lastAssistantMsgEl); // only now that we know this new reply will actually land
 
+  const verifiedHtml = buildVerifiedHtml(verifiedLabels);
   const sourcesHtml = buildSourcesHtml(chunks, usedFallback);
   const actionsHtml = buildMsgActionsHtml(true); // this message is always the new "last" once it lands
-  pipelineMsg.innerHTML = '<div class="bubble-assistant"></div>';
+  pipelineMsg.innerHTML = verifiedHtml + '<div class="bubble-assistant"></div>';
   const bubbleEl = pipelineMsg.querySelector('.bubble-assistant');
   scrollDown();
   revealWords(bubbleEl, resultText, () => {
