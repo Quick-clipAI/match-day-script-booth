@@ -32,6 +32,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 /* thread */
 .thread{flex:1;overflow-y:auto;padding:0 18px;display:flex;flex-direction:column;gap:22px;scroll-behavior:smooth}
 .thread::-webkit-scrollbar{width:0}
+#scroll-spacer{flex-shrink:0;height:0;transition:height .15s ease}
 
 .hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding-bottom:60px}
 .hero-mark{color:var(--accent);display:block}
@@ -83,6 +84,27 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 .pipeline .stage{transition:opacity .25s}
 
 .sources{margin-top:8px;animation:rise .3s ease}
+.sources-toggle{
+  display:flex;align-items:center;gap:7px;background:none;border:none;padding:2px 0;
+  cursor:pointer;font-family:var(--sans);font-size:11.5px;color:var(--text-faint);
+}
+.sources-toggle:hover{color:var(--text-dim)}
+.sources-mini-stack{display:flex;align-items:center}
+.sources-mini-favicon{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--bg);margin-left:-6px;background:var(--surface2)}
+.sources-mini-stack .sources-mini-favicon:first-child{margin-left:0}
+.sources-toggle-chev{transition:transform .2s ease;font-size:13px}
+.sources-toggle.open .sources-toggle-chev{transform:rotate(90deg)}
+.sources-panel{margin-top:8px;animation:rise .2s ease}
+.sources-panel[hidden]{display:none}
+.sources-fallback-note{font-size:11px;color:var(--text-faint)}
+.suggestions-row{display:flex;flex-direction:column;gap:6px;margin-top:10px;animation:rise .25s ease}
+.suggestion-chip{
+  align-self:flex-start;max-width:100%;text-align:left;
+  background:var(--surface);border:1px solid var(--border-soft);color:var(--text-dim);
+  border-radius:16px;padding:7px 13px;font-family:var(--sans);font-size:12.5px;cursor:pointer;transition:.15s;
+}
+.suggestion-chip:hover{border-color:var(--accent-dim);background:var(--surface2);color:var(--text)}
+.suggestion-chip::before{content:'↳ ';color:var(--text-faint)}
 .sources-head{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:6px}
 .sources-list{display:flex;flex-direction:column;gap:6px}
 .source-card{
@@ -171,6 +193,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 .drawer-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);padding:14px 10px 6px}
 .drawer-chats{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
 .drawer-chat{padding:9px 10px;border-radius:9px;font-size:13.5px;color:var(--text-dim);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:.15s}
+.drawer-chat.pending{color:var(--text-faint);font-style:italic}
 .drawer-chat:hover{background:var(--surface2);color:var(--text)}
 .drawer-chat.active{background:var(--surface2);color:var(--text)}
 .drawer-account{border-top:1px solid var(--border-soft);padding-top:12px;margin-top:8px}
@@ -267,7 +290,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 
 /* header incognito toggle */
 .hdr-icon.active{color:var(--accent)}
-.hdr-right{display:flex;align-items:center;gap:14px}
+.hdr-right{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border-soft);border-radius:20px;padding:7px 11px}
+.hdr-right .hdr-icon{width:19px;height:19px}
+.hdr-right #incognito-btn{margin-right:2px}
 .temp-banner{font-size:11.5px;color:var(--accent);text-align:center;padding:6px 0 2px;flex-shrink:0}
 
 body.incognito header{background:rgba(201,100,66,.07)}
@@ -357,7 +382,8 @@ body.new-chat .composer-card{box-shadow:0 14px 40px -14px rgba(0,0,0,.55)}
   display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);
   border-radius:20px;color:var(--text-dim);font-size:12.5px;font-weight:500;padding:7px 12px;cursor:pointer;
 }
-.mode-pill .mp-icon{font-size:13px;line-height:1}
+.mode-pill .mp-icon{display:inline-flex;align-items:center;color:var(--accent)}
+.mode-pill .mp-icon svg{width:14px;height:14px}
 .icon-btn{
   width:34px;height:34px;border-radius:50%;background:transparent;border:none;
   color:var(--text-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
@@ -386,12 +412,31 @@ body.new-chat .composer-card{box-shadow:0 14px 40px -14px rgba(0,0,0,.55)}
 }
 .mode-menu-item:hover{background:var(--surface3)}
 .mode-menu-item.active{color:var(--accent)}
-.mode-menu-item .mi-icon{font-size:14px;width:18px;flex-shrink:0;text-align:center}
+.mode-menu-item .mi-icon{width:18px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;color:var(--text-dim)}
+.mode-menu-item .mi-icon svg{width:15px;height:15px}
 
 /* session banner */
 .banner{display:flex;align-items:center;gap:10px;background:var(--surface2);border-bottom:1px solid var(--border-soft);padding:10px 14px;font-size:12px;color:var(--text-dim);max-height:80px;overflow:hidden;transition:max-height .28s ease,padding .28s ease,opacity .2s ease;opacity:1}
 .banner.closing{max-height:0;padding-top:0;padding-bottom:0;opacity:0;border-bottom-color:transparent}
 .banner .x{margin-left:auto;cursor:pointer;color:var(--text-faint);flex-shrink:0}
+/* Responsive: this was built mobile-first with no width cap, so on a desktop browser or a
+   tablet the header/thread/composer stretched edge-to-edge — fine down to narrow phones
+   (~360dp), bad on anything wider. Cap the content column and center it once the viewport
+   gets wider than a large phone; below that breakpoint, nothing here changes. */
+@media (min-width:720px){
+  header, .thread, .drawer-account, .onboard-scroll, .onboard-bottom{
+    padding-left:max(20px, calc(50% - 340px));
+    padding-right:max(20px, calc(50% - 340px));
+  }
+  .composer{padding-left:max(16px, calc(50% - 340px));padding-right:max(16px, calc(50% - 340px))}
+  body.new-chat .composer{padding-left:0;padding-right:0} /* already centered independently, fixed-positioned */
+  .msg{max-width:72%}
+  .msg.assistant{max-width:78%}
+  .view{max-width:680px;margin:0 auto;width:100%}
+}
+@media (min-width:720px) and (min-height:640px){
+  .quickstart-grid{max-width:420px}
+}
 </style>
 </head>
 <body>
@@ -561,19 +606,19 @@ body.new-chat .composer-card{box-shadow:0 14px 40px -14px rgba(0,0,0,.55)}
     <div class="hero-sub" id="hero-sub">Search a match, a player, or a topic — I'll gather what I can and draft it.</div>
     <div class="quickstart-grid" id="quickstart-grid">
       <button type="button" class="quickstart-card" data-icon-cls="qc-match" data-prefix="Analyze this match: ">
-        <span class="qc-icon qc-match">⚽</span>
+        <span class="qc-icon qc-match"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 4.5h-5L8 10z"/><path d="M12 3v4M12 17v4M4.5 9l3 1M16.5 9l3 1M6 17l2.5-3M18 17l-2.5-3"/></svg></span>
         <span class="qc-text"><span class="qc-title">Match Analysis</span><span class="qc-sub">Analyze a match</span></span>
       </button>
       <button type="button" class="quickstart-card" data-icon-cls="qc-player" data-prefix="Give me a player analysis of ">
-        <span class="qc-icon qc-player">👤</span>
+        <span class="qc-icon qc-player"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-7 8-7s8 3 8 7"/></svg></span>
         <span class="qc-text"><span class="qc-title">Player Analysis</span><span class="qc-sub">Scout a player</span></span>
       </button>
       <button type="button" class="quickstart-card" data-icon-cls="qc-research" data-prefix="Find the latest news about ">
-        <span class="qc-icon qc-research">📰</span>
+        <span class="qc-icon qc-research"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="14" height="15" rx="1.5"/><path d="M17 8h3a1 1 0 011 1v9a2 2 0 01-2 2H6"/><path d="M6.5 8.5h6M6.5 12h8M6.5 15h8" stroke-width="1.3"/></svg></span>
         <span class="qc-text"><span class="qc-title">Football Research</span><span class="qc-sub">Find the latest</span></span>
       </button>
       <button type="button" class="quickstart-card" data-icon-cls="qc-script" data-prefix="Write a script about ">
-        <span class="qc-icon qc-script">✍️</span>
+        <span class="qc-icon qc-script"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></span>
         <span class="qc-text"><span class="qc-title">Script Studio</span><span class="qc-sub">Turn research into a script</span></span>
       </button>
     </div>
@@ -586,6 +631,7 @@ body.new-chat .composer-card{box-shadow:0 14px 40px -14px rgba(0,0,0,.55)}
     <div class="incognito-hero-title">Incognito chat</div>
     <div class="incognito-hero-sub">This chat won't be saved to your account or this device once it ends.</div>
   </div>
+  <div id="scroll-spacer" aria-hidden="true"></div>
 </div>
 
 <div class="modal-overlay" id="modal-overlay">
@@ -692,7 +738,7 @@ body.new-chat .composer-card{box-shadow:0 14px 40px -14px rgba(0,0,0,.55)}
       </button>
       <div class="mode-pill-wrap">
         <button class="mode-pill" id="mode-pill" type="button">
-          <span class="mp-icon" id="mode-pill-icon">⚽</span>
+          <span class="mp-icon" id="mode-pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 4.5h-5L8 10z"/><path d="M12 3v4M12 17v4M4.5 9l3 1M16.5 9l3 1M6 17l2.5-3M18 17l-2.5-3"/></svg></span>
           <span id="mode-pill-label">Football</span>
         </button>
         <div class="mode-menu" id="mode-menu"></div>
@@ -713,6 +759,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = 'https://krmjvfemsufduqdofuqy.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtybWp2ZmVtc3VmZHVxZG9mdXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwMjQ1OTMsImV4cCI6MjEwMDYwMDU5M30.ftTtPul4dCVCBgjB60NH9bdKJJAEWomipYipffRFaK4';
+
+// Same-origin relative paths ('/api/gemini' etc.) only work when this page is actually served
+// from creator-boot.vercel.app. The Android app bundles this exact file locally instead (so it
+// loads instantly offline), which means those calls would otherwise resolve against the app's
+// own local origin and fail. Using the absolute production URL works identically in both
+// places — same-origin on the website, cross-origin (now CORS-enabled server-side) in the app.
+const API_ORIGIN = 'https://creator-boot.vercel.app';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const USER_NAME_FALLBACK = 'there'; // used until a real signed-in name/email is available
@@ -728,7 +781,7 @@ const PLAIN_TEXT_NOTE = ' This app displays plain text only — there is no mark
 
 const MODES = [
   {
-    id: 'football', icon: '⚽', label: 'Football',
+    id: 'football', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 4.5h-5L8 10z"/><path d="M12 3v4M12 17v4M4.5 9l3 1M16.5 9l3 1M6 17l2.5-3M18 17l-2.5-3"/></svg>', label: 'Football',
     placeholder: 'Real Madrid latest signing…',
     heroSub: "Search a match, a player, or a topic — I'll gather what I can and draft it.",
     system:
@@ -738,35 +791,35 @@ const MODES = [
 If you genuinely can't verify a claimed fact, say so plainly rather than guessing, in either mode.` + PLAIN_TEXT_NOTE
   },
   {
-    id: 'story', icon: '📖', label: 'Story',
+    id: 'story', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5A1.5 1.5 0 014 18.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5a1.5 1.5 0 001.5-1.5z"/></svg>', label: 'Story',
     placeholder: 'A story about a lighthouse keeper who…',
     heroSub: "Give me a premise, a character, or a mood — I'll draft a short narrative script.",
     system:
 `You are a short-form narrative assistant for a creator. If they give you a premise, character, or mood, turn it into a vivid, spoken-style short story or video script (roughly 60-90 seconds read aloud), with a clear hook in the first line, a strong sense of voice, and a satisfying turn or ending — no headers, no markdown. If instead they're asking something else about their storytelling (structure advice, brainstorming, format questions), just answer that directly and naturally rather than forcing a script out of it.` + PLAIN_TEXT_NOTE
   },
   {
-    id: 'secret', icon: '🕵️', label: 'Secret Web Tools',
+    id: 'secret', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/><circle cx="10.5" cy="10.5" r="1.8" fill="currentColor" stroke="none"/></svg>', label: 'Secret Web Tools',
     placeholder: 'An underrated tool for editing video on a phone…',
     heroSub: "Ask about a task, and I'll research an obscure, underrated tool for it.",
     system:
 `You are a researcher who surfaces genuinely obscure, underrated web tools and apps that most people have never heard of — not the top 3 everyone already knows. Use web search to find a real, current, verifiable tool matching the user's request (confirm it still exists and works). Never invent a tool name or feature; if you can't verify something is real and current, say so plainly. If they want this as a video script, write it as punchy spoken-style prose (no headers/markdown): what the tool is, the one thing it does better than the obvious choice, and a quick how-to walkthrough. If they're just asking a direct question (comparing tools, asking how something works), answer directly instead of forcing a script format.` + PLAIN_TEXT_NOTE
   },
   {
-    id: 'aiGuides', icon: '🤖', label: 'Hidden AI / Prompting Guides',
+    id: 'aiGuides', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.8 5.8l1.8 1.8M18.2 5.8l-1.8 1.8M5.8 18.2l1.8-1.8M18.2 18.2l-1.8-1.8"/></svg>', label: 'Hidden AI / Prompting Guides',
     placeholder: 'How to get better code out of Claude…',
     heroSub: "Ask how to prompt a specific AI model or task, and I'll draft a guide script.",
     system:
 `You are an expert prompt engineer helping a creator make content about getting better results from AI models. Use web search to make sure any model names, features, or UI details you mention are current — these change fast, don't rely on stale memory for them. If they want this as a video script, write short, practical spoken-style prose (no headers/markdown) with 2-4 concrete, actionable tips and a short example prompt. If they're asking a direct question instead (how does X work, which model is better for Y), just answer it plainly rather than forcing a script.` + PLAIN_TEXT_NOTE
   },
   {
-    id: 'conspiracy', icon: '🏛️', label: 'Conspiracy/History',
+    id: 'conspiracy', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 21h16M5 21V9M19 21V9M4 9h16l-8-5z"/><path d="M8 9v12M12 9v12M16 9v12"/></svg>', label: 'Conspiracy/History',
     placeholder: 'Who really invented the light bulb…',
     heroSub: '"Who really invented X" style deep-dives — fact-checked, not sensationalized.',
     system:
 `You help a creator research and script "who really invented/discovered/did X" style history content. Use web search to verify names, dates, and claims. Clearly distinguish well-established historical fact from disputed or contested claims — if a popular story is a myth or oversimplification, say so and explain what the actual record shows. Do not present unfounded conspiracy theories as fact. If they want a video script, write it as a genuinely surprising, well-sourced spoken-style story (no headers/markdown), not sensationalism. If they're asking a direct research question instead, just answer it plainly.` + PLAIN_TEXT_NOTE
   },
   {
-    id: 'aiNews', icon: '📰', label: 'AI News Roundup',
+    id: 'aiNews', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="14" height="15" rx="1.5"/><path d="M17 8h3a1 1 0 011 1v9a2 2 0 01-2 2H6"/><path d="M6.5 8.5h6M6.5 12h8M6.5 15h8" stroke-width="1.3"/></svg>', label: 'AI News Roundup',
     placeholder: 'What changed with ChatGPT memory this month…',
     heroSub: "Ask about a recent AI product change, and I'll draft a roundup with alternatives.",
     system:
@@ -837,7 +890,7 @@ const composerEl = document.querySelector('.composer');
 
 // Single source of truth for the version shown in the header and in Settings.
 // Bump this on every deploy — see README.md's "Versioning" section.
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.7.1';
 document.getElementById('hdr-version').textContent = 'v' + APP_VERSION;
 const settingsVersionEl = document.getElementById('settings-app-version');
 if (settingsVersionEl) settingsVersionEl.textContent = 'Creator Booth v' + APP_VERSION;
@@ -902,7 +955,7 @@ const modePillLabel = document.getElementById('mode-pill-label');
 function switchMode(id){
   currentModeId = id;
   const m = currentMode();
-  modePillIcon.textContent = m.icon;
+  modePillIcon.innerHTML = m.icon;
   modePillLabel.textContent = m.label;
   input.placeholder = m.placeholder;
   if (!thread.querySelector('.msg')) refreshGreeting();
@@ -1472,7 +1525,8 @@ async function refreshChatList(){
   drawerChats.innerHTML = '';
   chats.forEach(c => {
     const el = document.createElement('div');
-    el.className = 'drawer-chat' + (c.id === currentChatId ? ' active' : '');
+    const pending = c.title === 'Generating title…';
+    el.className = 'drawer-chat' + (c.id === currentChatId ? ' active' : '') + (pending ? ' pending' : '');
     el.textContent = c.title;
     el.onclick = () => openChat(c.id);
     drawerChats.appendChild(el);
@@ -1513,7 +1567,8 @@ async function openChat(chatId){
   let lastUserIndexInArray = -1;
   messages.forEach((m, i) => {
     if (m.role === 'user'){
-      renderUserBubble(m.content);
+      const imgUrls = (m.media || []).filter(x => x && x.type === 'image' && x.dataUrl).map(x => x.dataUrl);
+      renderUserBubble(m.content, imgUrls);
       lastUserText = m.content;
       lastUserIndexInArray = i;
     } else {
@@ -1523,21 +1578,33 @@ async function openChat(chatId){
   });
 
   // Upgrade the truly-last assistant message to the "last" state: regenerate + footer, wired
-  // against the preceding user message's text. Images aren't persisted across reloads (a known
-  // limitation), so a regenerate here won't re-attach the original image(s).
+  // against the preceding user message's text — and, now that images persist, its image(s) too,
+  // so a regenerate after reloading a chat behaves the same as one in a live session.
   if (lastAssistantIndexInArray >= 0){
     const assistantMsgEls = thread.querySelectorAll('.msg.assistant');
     const msgEl = assistantMsgEls[assistantMsgEls.length - 1];
     if (msgEl){
       msgEl.insertAdjacentHTML('beforeend', buildMsgActionsHtml(true));
       const resultText = messages[lastAssistantIndexInArray].content;
-      wireMsgActions(msgEl, resultText, lastUserText, [], true);
+      const lastUserMedia = (lastUserIndexInArray >= 0 && messages[lastUserIndexInArray].media) || [];
+      const imgsForRegen = lastUserMedia.filter(m => m && m.type === 'image' && m.dataUrl).map(m => ({
+        mimeType: m.mimeType || (m.dataUrl.match(/^data:([^;]+);/) || [])[1] || 'image/jpeg',
+        base64: m.dataUrl.split(',')[1] || '',
+        dataUrl: m.dataUrl
+      }));
+      wireMsgActions(msgEl, resultText, lastUserText, imgsForRegen, true);
       lastAssistantMsgEl = msgEl;
+      let ref;
       if (currentUser){
-        lastAssistantSaveRef = { chatId, type: 'supabase', id: messages[lastAssistantIndexInArray].id };
+        ref = { chatId, type: 'supabase', id: messages[lastAssistantIndexInArray].id };
       } else {
-        lastAssistantSaveRef = { chatId, type: 'guest', index: lastAssistantIndexInArray };
+        ref = { chatId, type: 'guest', index: lastAssistantIndexInArray };
       }
+      lastAssistantSaveRef = ref;
+      msgFeedbackRef.set(msgEl, ref);
+      const savedFeedback = messages[lastAssistantIndexInArray].feedback;
+      if (savedFeedback === 'up') msgEl.querySelector('[data-action="up"]').classList.add('active');
+      if (savedFeedback === 'down') msgEl.querySelector('[data-action="down"]').classList.add('active');
     }
   }
 
@@ -1584,7 +1651,7 @@ async function saveMessage(role, content, media = [], opts = {}){
       if (data) setSaveRefFor(role, { chatId: currentChatId, type: 'supabase', id: data.id });
     }
     if (role === 'user' && currentChatTitle === 'New chat'){
-      currentChatTitle = content.slice(0, 40);
+      currentChatTitle = 'Generating title…';
       await supabase.from('chats').update({ title: currentChatTitle }).eq('id', currentChatId);
     }
   } else {
@@ -1597,8 +1664,50 @@ async function saveMessage(role, content, media = [], opts = {}){
       chat.messages.push({ role, content, media });
       setSaveRefFor(role, { chatId: currentChatId, type: 'guest', index: chat.messages.length - 1 });
     }
-    if (role === 'user' && chat.title === 'New chat'){ chat.title = content.slice(0, 40); currentChatTitle = chat.title; }
+    if (role === 'user' && chat.title === 'New chat'){ chat.title = 'Generating title…'; currentChatTitle = chat.title; }
     saveGuestChats(list);
+  }
+  await refreshChatList();
+  return saveRefFor(role); // lets callers (e.g. feedback wiring) know exactly which row this landed in
+}
+
+// Real chat titles instead of "first 40 characters of your message" — a lightweight, tool-free
+// Gemini call summarizes the exchange into a short title once the first reply actually lands.
+// Fire-and-forget: never blocks the UI, and best-effort (a failed call just leaves the chat
+// showing "Generating title…", which is an honest enough fallback if titling quietly fails).
+async function generateChatTitle(userText, assistantText){
+  try {
+    const res = await fetch(API_ORIGIN + '/api/gemini', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: `User: ${userText}\n\nAssistant: ${(assistantText || '').slice(0, 400)}` }] }],
+        system_instruction: { parts: [{ text: 'Write a short chat title (2-5 words, plain text, no quotes, no trailing punctuation) summarizing what this exchange is about — e.g. "Barcelona vs Madrid recap", "Pedri player scouting", "Man City manager check". Respond with ONLY the title, nothing else.' }] }
+      })
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const cand = data && data.candidates && data.candidates[0];
+    const parts = cand && cand.content && cand.content.parts;
+    let title = parts ? parts.map(p => p.text || '').join('').trim() : '';
+    title = title.replace(/^["'`]+|["'`]+$/g, '').replace(/[.!]+$/, '').slice(0, 60);
+    return title || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function maybeGenerateChatTitle(userText, resultText){
+  if (currentChatTitle !== 'Generating title…') return; // already titled, or not the first exchange
+  const chatIdAtStart = currentChatId;
+  const title = await generateChatTitle(userText, resultText);
+  if (!title || currentChatId !== chatIdAtStart) return; // failed, or the person switched chats meanwhile
+  currentChatTitle = title;
+  if (currentUser){
+    await supabase.from('chats').update({ title }).eq('id', chatIdAtStart);
+  } else {
+    const list = loadGuestChats();
+    const chat = list.find(c => c.id === chatIdAtStart);
+    if (chat){ chat.title = title; saveGuestChats(list); }
   }
   await refreshChatList();
 }
@@ -1640,6 +1749,28 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
 
 // --- Rendering ---
 function scrollDown(){ thread.scrollTop = thread.scrollHeight; }
+// Soft version used while a reply is being anchored/typed out: only actually scrolls if the
+// view is already close to the bottom, so it doesn't fight scrollNewMessageToTop's anchor —
+// once growing content genuinely reaches the fold, it naturally starts following again.
+function scrollDownIfNear(){
+  const gap = thread.scrollHeight - thread.scrollTop - thread.clientHeight;
+  if (gap < 140) thread.scrollTop = thread.scrollHeight;
+}
+const scrollSpacer = document.getElementById('scroll-spacer');
+
+// Not everyone wants to read at the very bottom edge of their phone. Instead of always
+// snapping to the absolute bottom, when a new message is sent, this pads the thread with a
+// temporary spacer and scrolls so the new message lands near the top of the visible area —
+// leaving room below it for the reply to fill in, like Claude/ChatGPT do. Once the growing
+// reply exceeds that space, normal bottom-follow scrolling (scrollDown) takes back over.
+function scrollNewMessageToTop(msgEl){
+  scrollSpacer.style.height = thread.clientHeight + 'px';
+  requestAnimationFrame(() => {
+    const containerTop = thread.getBoundingClientRect().top;
+    const elTop = msgEl.getBoundingClientRect().top;
+    thread.scrollTop += (elTop - containerTop) - 14;
+  });
+}
 
 // Only the single most-recent user turn ever shows an edit button — matches the "edit last
 // message" pattern rather than letting every past turn be rewritten. addUserMsg strips the
@@ -1654,7 +1785,7 @@ function addUserMsg(text, imgDataUrls){
   const div = renderUserBubble(text, imgDataUrls, true);
   lastUserMsgEl = div;
   updateHeaderState();
-  scrollDown();
+  scrollNewMessageToTop(div);
 }
 function renderUserBubble(text, imgDataUrls, isLast){
   const div = document.createElement('div');
@@ -1729,7 +1860,11 @@ async function submitUserEdit(msgEl, newText, originalText, originalBubbleHtml){
   if (actionsRow) actionsRow.style.display = '';
   wireUserEditButton(msgEl);
 
-  saveMessage('user', newText, [], { replace: true });
+  // Preserve any images already attached to this message — editing the text shouldn't silently
+  // wipe them, since saveMessage's replace path overwrites both content and media together.
+  const existingImgs = Array.from(bubble.querySelectorAll('.bubble-user-img')).map(img => img.src);
+  const mediaForStorage = existingImgs.map(src => ({ type: 'image', dataUrl: src }));
+  saveMessage('user', newText, mediaForStorage, { replace: true });
 
   // Find the assistant message immediately following this user turn, if any — it's the one
   // whose response is now stale and needs regenerating against the edited text.
@@ -1753,7 +1888,7 @@ function addPipeline(){
   div.className = 'msg assistant';
   div.innerHTML = `<div class="pipeline">${PIPELINE_EQ_SVG}<span class="stage">Thinking…</span></div>`;
   thread.appendChild(div);
-  scrollDown();
+  scrollDownIfNear();
   return div.querySelector('.stage');
 }
 function setStage(stageEl, text){ stageEl.style.opacity = 0; setTimeout(()=>{ stageEl.textContent = text; stageEl.style.opacity = 1; }, 150); }
@@ -1796,7 +1931,7 @@ function revealWords(el, text, onDone){
     }
     el.textContent += (i === 0 ? '' : ' ') + words[i];
     i++;
-    scrollDown();
+    scrollDownIfNear();
     setTimeout(step, delay);
   }
   step();
@@ -1865,7 +2000,7 @@ function openAIResponseToGeminiShape(data){
 // the grounding tool silently (it doesn't support it), so a Groq-sourced answer comes
 // from the model's training data rather than live search — flagged via `provider`.
 function callAI(requestBody){
-  return fetch('/api/gemini', {
+  return fetch(API_ORIGIN + '/api/gemini', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody)
   }).then(res => {
     if (res.ok) return res.json().then(data => ({ data, provider: 'gemini' }));
@@ -1879,7 +2014,7 @@ function callAI(requestBody){
       const hasImage = requestHasImage(requestBody.contents);
       const fallbackModel = hasImage ? GROQ_VISION_MODEL : GROQ_MODEL;
 
-      return fetch('/api/groq', {
+      return fetch(API_ORIGIN + '/api/groq', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: fallbackModel, messages, tools: openAITools })
       }).then(res2 => {
@@ -1922,8 +2057,8 @@ async function fetchApiFootballFixtureFacts(fixture, dateStr){
   if (!fixtureId) return null;
 
   const [statsData, eventsData] = await Promise.all([
-    fetch('/api/football/fixtures/statistics?fixture=' + fixtureId).then(r => r.ok ? r.json() : null).catch(() => null),
-    fetch('/api/football/fixtures/events?fixture=' + fixtureId).then(r => r.ok ? r.json() : null).catch(() => null)
+    fetch(API_ORIGIN + '/api/football/fixtures/statistics?fixture=' + fixtureId).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch(API_ORIGIN + '/api/football/fixtures/events?fixture=' + fixtureId).then(r => r.ok ? r.json() : null).catch(() => null)
   ]);
 
   const home = fixture.teams.home.name, away = fixture.teams.away.name;
@@ -1958,7 +2093,7 @@ async function fetchApiFootballFixtureFacts(fixture, dateStr){
 async function gatherFootballContext(queryText){
   try {
     const dateStr = todayDateStr();
-    const res = await fetch('/api/football/fixtures?date=' + dateStr);
+    const res = await fetch(API_ORIGIN + '/api/football/fixtures?date=' + dateStr);
     if (!res.ok) return null;
     const data = await res.json();
     const fixtures = (data && data.response) || [];
@@ -1994,7 +2129,7 @@ async function gatherFootballContext(queryText){
 /* ------------------------------------------------------------------ */
 async function extractClubNames(queryText){
   try {
-    const res = await fetch('/api/gemini', {
+    const res = await fetch(API_ORIGIN + '/api/gemini', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: queryText }] }],
@@ -2016,12 +2151,12 @@ async function extractClubNames(queryText){
 
 async function lookupCurrentCoach(clubName){
   try {
-    const teamRes = await fetch('/api/football/teams?search=' + encodeURIComponent(clubName));
+    const teamRes = await fetch(API_ORIGIN + '/api/football/teams?search=' + encodeURIComponent(clubName));
     if (!teamRes.ok) return null;
     const teamData = await teamRes.json();
     const team = teamData && teamData.response && teamData.response[0] && teamData.response[0].team;
     if (!team || !team.id) return null;
-    const coachRes = await fetch('/api/football/coachs?team=' + team.id);
+    const coachRes = await fetch(API_ORIGIN + '/api/football/coachs?team=' + team.id);
     if (!coachRes.ok) return null;
     const coachData = await coachRes.json();
     const coach = coachData && coachData.response && coachData.response[0];
@@ -2065,6 +2200,28 @@ function buildMsgActionsHtml(isLast){
   return `<div class="msg-actions">${base}${regen}</div>${footer}`;
 }
 
+// Maps a rendered assistant message element to the storage row it landed in (Supabase row id,
+// or a guest chat's array index) — set right after saveMessage resolves for that element, read
+// here when a thumbs button is pressed. Messages never saved (incognito) simply have no entry,
+// so feedback there stays local-only, same as the rest of an incognito chat.
+const msgFeedbackRef = new WeakMap();
+
+async function saveFeedback(ref, value){
+  if (!ref) return;
+  try {
+    if (ref.type === 'supabase'){
+      await supabase.from('messages').update({ feedback: value }).eq('id', ref.id);
+    } else if (ref.type === 'guest'){
+      const list = loadGuestChats();
+      const chat = list.find(c => c.id === ref.chatId);
+      if (chat && chat.messages[ref.index]) { chat.messages[ref.index].feedback = value; saveGuestChats(list); }
+    }
+  } catch (e) {
+    // Best-effort — a failed feedback save shouldn't disrupt the chat, and the button already
+    // gave the person visual confirmation, so silently dropping it here is the lesser evil.
+  }
+}
+
 function wireMsgActions(msgEl, resultText, userText, imageAttachments, isLast){
   const copyBtn = msgEl.querySelector('[data-action="copy"]');
   const upBtn = msgEl.querySelector('[data-action="up"]');
@@ -2080,17 +2237,20 @@ function wireMsgActions(msgEl, resultText, userText, imageAttachments, isLast){
     } catch (e) { /* clipboard permission denied — silently ignore, button just won't confirm */ }
   });
 
-  // Thumbs up/down are local-only UI feedback for now — there's no backend endpoint collecting
-  // this yet, so nothing is sent anywhere. Mutually exclusive, purely a visual acknowledgment.
+  // Thumbs up/down now actually persist (see msgFeedbackRef / saveFeedback) for any message
+  // that was actually saved — tapping the active one again clears the feedback rather than
+  // leaving it stuck on. Mutually exclusive, same as before.
   upBtn.addEventListener('click', () => {
     const nowActive = !upBtn.classList.contains('active');
     upBtn.classList.toggle('active', nowActive);
     downBtn.classList.remove('active');
+    saveFeedback(msgFeedbackRef.get(msgEl), nowActive ? 'up' : null);
   });
   downBtn.addEventListener('click', () => {
     const nowActive = !downBtn.classList.contains('active');
     downBtn.classList.toggle('active', nowActive);
     upBtn.classList.remove('active');
+    saveFeedback(msgFeedbackRef.get(msgEl), nowActive ? 'down' : null);
   });
 
   if (retryBtn){
@@ -2098,14 +2258,17 @@ function wireMsgActions(msgEl, resultText, userText, imageAttachments, isLast){
   }
 }
 
-// Strips the regenerate button and footer from whatever was previously the last assistant
-// message, demoting it to the plain 3-button state — only the true last message keeps them.
+// Strips the regenerate button, footer, and suggested-next-question chips from whatever was
+// previously the last assistant message, demoting it to the plain 3-button state — only the
+// true last message keeps them.
 function demoteAssistantMessage(msgEl){
   if (!msgEl) return;
   const footer = msgEl.querySelector('.msg-footer');
   if (footer) footer.remove();
   const retryBtn = msgEl.querySelector('[data-action="retry"]');
   if (retryBtn) retryBtn.remove();
+  const suggestionsRow = msgEl.querySelector('.suggestions-row');
+  if (suggestionsRow) suggestionsRow.remove();
 }
 
 let lastAssistantMsgEl = null; // the DOM element of the current last assistant message, or null
@@ -2125,8 +2288,18 @@ function buildVerifiedHtml(labels){
   </div>`;
 }
 
+// Collapsed by default: a small favicon stack + "Sources · N" toggle, matching how most chat
+// apps keep sources out of the way until you actually want them, rather than always dumping
+// full cards into the reply. wireSourcesToggle (called right after this HTML is inserted)
+// wires the expand/collapse.
 function buildSourcesHtml(chunks, usedFallback){
   if (chunks && chunks.length){
+    const favicons = chunks.slice(0, 3).map(c => {
+      const w = c.web || {};
+      let host = '';
+      try { host = new URL(w.uri || '').hostname.replace(/^www\./, ''); } catch (e) {}
+      return host ? `<img class="sources-mini-favicon" src="https://www.google.com/s2/favicons?sz=32&domain=${encodeURIComponent(host)}" alt="" loading="lazy">` : '';
+    }).join('');
     const cards = chunks.slice(0, 5).map(c => {
       const w = c.web || {};
       const uri = w.uri || '#';
@@ -2144,14 +2317,47 @@ function buildSourcesHtml(chunks, usedFallback){
       </a>`;
     }).join('');
     return `<div class="sources">
-      <div class="sources-head">Web research · ${chunks.length} source${chunks.length > 1 ? 's' : ''}</div>
-      <div class="sources-list">${cards}</div>
+      <button type="button" class="sources-toggle" data-action="toggle-sources">
+        <span class="sources-mini-stack">${favicons}</span>
+        <span>Sources · ${chunks.length}</span>
+        <span class="sources-toggle-chev">›</span>
+      </button>
+      <div class="sources-panel" hidden><div class="sources-list">${cards}</div></div>
     </div>`;
   }
   if (usedFallback){
-    return `<div class="sources"><span>⚠ Backup AI used — no live web search this time, verify facts before using</span></div>`;
+    return `<div class="sources"><span class="sources-fallback-note">⚠ Backup AI used — no live web search this time, verify facts before using</span></div>`;
   }
   return '';
+}
+
+function wireSourcesToggle(msgEl){
+  const toggleBtn = msgEl.querySelector('[data-action="toggle-sources"]');
+  if (!toggleBtn) return;
+  const panel = msgEl.querySelector('.sources-panel');
+  toggleBtn.addEventListener('click', () => {
+    const willOpen = panel.hasAttribute('hidden');
+    if (willOpen) panel.removeAttribute('hidden'); else panel.setAttribute('hidden', '');
+    toggleBtn.classList.toggle('open', willOpen);
+    if (willOpen) scrollDownIfNear();
+  });
+}
+
+// Tappable follow-up prompts, parsed out of the model's own response (see extractSuggestions) —
+// tapping one sends it immediately as the next message, same as typing it and hitting send.
+function buildSuggestionsHtml(suggestions){
+  if (!suggestions || !suggestions.length) return '';
+  const chips = suggestions.map(s => `<button type="button" class="suggestion-chip" data-suggestion="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join('');
+  return `<div class="suggestions-row">${chips}</div>`;
+}
+function wireSuggestions(msgEl){
+  msgEl.querySelectorAll('.suggestion-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (isGenerating) return;
+      input.value = btn.dataset.suggestion || '';
+      submit();
+    });
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -2176,6 +2382,45 @@ function currentDateTimeNote(){
   const now = new Date();
   const formatted = now.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   return `Current date/time: ${formatted}. Your training data has a cutoff before this date, so anything that changes over time — club managers, coaching staff, player-club affiliations, injuries, prices, current holders of a role — may be different now even if you feel confident about it from memory. For any such claim, actually use the search tool to verify before stating it, every time, even when you're sure. Do not silently rely on a memorized fact for anything that could plausibly have changed since your training cutoff.`;
+}
+
+// Fixes a real failure mode: asked something like "yesterday's football", the model would
+// check one competition (usually whichever domestic league it defaults to), find nothing
+// scheduled, and flatly answer "no football happened" — wrong and unhelpful during any
+// international break, when qualifiers, continental tournaments, and other domestic leagues
+// are very much still being played.
+function footballScopeNote(){
+  return `When asked broadly about "matches", "football", or "what happened" without a named competition, don't limit your search to one league (e.g. the Premier League) and don't conclude "no football happened" just because that one league has no fixture that day — domestic top-flight leagues regularly pause for international windows (World Cup qualifiers, Nations League, continental qualifiers like AFCON, and friendlies), and other leagues/cups are frequently still active. Search broadly across competitions before answering, and if the most likely competition genuinely has nothing scheduled, say so specifically ("no Premier League match today — it's an international break") rather than implying no football happened anywhere, then offer what actually is happening.`;
+}
+
+// Personalization: the onboarding survey collects a favorite club (see Settings → Profile).
+// When known, it's handed to the model so replies can be lightly tailored — most visibly for
+// explicit requests for banter/jokes, where football culture runs on good-natured rival
+// ribbing. Kept opt-in and low-key: never forced into a straight factual answer.
+function favoriteClubNote(){
+  if (!currentProfile || !currentProfile.favorite_club || !currentProfile.favorite_club.trim()) return '';
+  const club = currentProfile.favorite_club.trim();
+  return `This person's favorite club (from their profile, only relevant if the request calls for it) is ${club}.
+- If — and only if — they explicitly ask for a joke, banter, or something playful, you can lean into good-natured football rivalry humor from a ${club} fan's perspective, referencing real, well-known struggles of a rival club (a trophy drought, a bad run of form, a managerial merry-go-round) — exaggerated for comic effect the way real football banter is, but not fabricating specific false incidents stated as fact (no invented quotes, no made-up events). Keep it affectionate rivalry, not genuine insults, and never bring this up unprompted outside of a request for humor.
+- If you're writing a video SCRIPT (not a neutral research/fact answer) about a match involving ${club}, you may narrate it with a light, natural lean toward a ${club} fan's perspective — e.g. giving their good moments more emphasis, or a charitable read on an ambiguous refereeing decision — the way a fan channel naturally would. This is about narrative framing and word choice ONLY: every score, stat, scorer, card, and factual claim must stay exactly accurate regardless of framing — never soften a loss, invent a better result, or omit a real fact to protect the narrative. If the request is a neutral factual question (e.g. "who won", "who is the manager"), answer neutrally with no lean at all.`;
+}
+
+// Encourages the same "what should I ask next" affordance the person liked elsewhere — parsed
+// out of the visible text client-side (extractSuggestions) and rendered as tappable chips, so
+// none of this delimiter syntax should ever reach the person's eyes.
+function suggestionsNote(){
+  return `After a substantive answer (skip this for a casual greeting or a single quick fact), end your response with a line containing exactly ===SUGGESTIONS=== followed by 2-4 short follow-up prompts the person could naturally send next — each on its own line, phrased as something they'd type (e.g. "Compare their head-to-head record"), under 8 words, no numbering or bullet symbols.`;
+}
+
+function extractSuggestions(text){
+  const marker = '===SUGGESTIONS===';
+  const idx = text.indexOf(marker);
+  if (idx === -1) return { text: text.trim(), suggestions: [] };
+  const main = text.slice(0, idx).trim();
+  const suggestions = text.slice(idx + marker.length).split('\n')
+    .map(s => s.replace(/^[-•\d.)\s]+/, '').trim())
+    .filter(Boolean).slice(0, 4);
+  return { text: main, suggestions };
 }
 
 async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerate, restoreCtx){
@@ -2211,19 +2456,25 @@ async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerat
   let chunks = [];
   let usedFallback = false;
   let errorMsg = '';
+  let suggestions = [];
   try {
     setStage(stageEl, 'Putting it together…');
+    const extraNotes = [currentDateTimeNote(), suggestionsNote()];
+    if (mode.id === 'football'){ extraNotes.push(footballScopeNote()); const clubNote = favoriteClubNote(); if (clubNote) extraNotes.push(clubNote); }
     const { data, provider } = await callAI({
       contents: [{ role: 'user', parts: userParts }],
-      system_instruction: { parts: [{ text: mode.system + '\n\n' + currentDateTimeNote() }] },
+      system_instruction: { parts: [{ text: mode.system + '\n\n' + extraNotes.join('\n\n') }] },
       tools: [{ google_search: {} }]
     });
     usedFallback = provider === 'groq';
     const cand = data && data.candidates && data.candidates[0];
     const parts = cand && cand.content && cand.content.parts;
-    resultText = parts ? parts.map(p => p.text || '').join('') : '';
+    let rawText = parts ? parts.map(p => p.text || '').join('') : '';
     chunks = (cand && cand.groundingMetadata && cand.groundingMetadata.groundingChunks) || [];
-    if (!resultText.trim()) throw new Error('No response came back — try rephrasing your request.');
+    if (!rawText.trim()) throw new Error('No response came back — try rephrasing your request.');
+    const extracted = extractSuggestions(rawText);
+    resultText = extracted.text;
+    suggestions = extracted.suggestions;
   } catch (e) {
     errorMsg = e.message || 'Something went wrong.';
   }
@@ -2251,17 +2502,21 @@ async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerat
 
   const verifiedHtml = buildVerifiedHtml(verifiedLabels);
   const sourcesHtml = buildSourcesHtml(chunks, usedFallback);
+  const suggestionsHtml = buildSuggestionsHtml(suggestions);
   const actionsHtml = buildMsgActionsHtml(true); // this message is always the new "last" once it lands
   pipelineMsg.innerHTML = verifiedHtml + '<div class="bubble-assistant"></div>';
   const bubbleEl = pipelineMsg.querySelector('.bubble-assistant');
-  scrollDown();
+  scrollDownIfNear();
   revealWords(bubbleEl, resultText, () => {
-    pipelineMsg.insertAdjacentHTML('beforeend', sourcesHtml + actionsHtml);
+    pipelineMsg.insertAdjacentHTML('beforeend', suggestionsHtml + sourcesHtml + actionsHtml);
     wireMsgActions(pipelineMsg, resultText, userText, images, true);
-    scrollDown();
+    wireSourcesToggle(pipelineMsg);
+    wireSuggestions(pipelineMsg);
+    scrollDownIfNear();
   });
   lastAssistantMsgEl = pipelineMsg;
-  saveMessage('assistant', resultText, [], { replace: isRegenerate });
+  saveMessage('assistant', resultText, [], { replace: isRegenerate }).then(ref => { if (ref) msgFeedbackRef.set(pipelineMsg, ref); });
+  maybeGenerateChatTitle(userText, resultText); // fire-and-forget; no-ops after the first exchange
 }
 
 function showTransientNote(msgEl, text){
@@ -2272,11 +2527,15 @@ function showTransientNote(msgEl, text){
   setTimeout(() => note.remove(), 4500);
 }
 
+let isGenerating = false; // guards against overlapping generations from suggestion chips / quickstart / send firing close together
+
 async function runPipeline(userText, imageAttachments){
   const images = imageAttachments || [];
   const stageEl = addPipeline();
   const pipelineMsg = stageEl.closest('.msg');
-  await runGeneration(pipelineMsg, stageEl, userText, images, false);
+  isGenerating = true;
+  try { await runGeneration(pipelineMsg, stageEl, userText, images, false); }
+  finally { isGenerating = false; }
 }
 
 // Clears the existing message's content and regenerates in place — the old reply is replaced,
@@ -2288,20 +2547,24 @@ async function regenerateInPlace(msgEl, userText, imageAttachments){
   const bubbleEl = msgEl.querySelector('.bubble-assistant');
   const previousResultText = bubbleEl ? bubbleEl.textContent : '';
   msgEl.innerHTML = `<div class="pipeline">${PIPELINE_EQ_SVG}<span class="stage">Thinking…</span></div>`;
-  scrollDown();
+  scrollDownIfNear();
   const stageEl = msgEl.querySelector('.stage');
-  await runGeneration(msgEl, stageEl, userText, images, true, { html: previousHtml, resultText: previousResultText });
+  isGenerating = true;
+  try { await runGeneration(msgEl, stageEl, userText, images, true, { html: previousHtml, resultText: previousResultText }); }
+  finally { isGenerating = false; }
 }
 
 function submit(){
+  if (isGenerating) return;
   const text = input.value.trim();
   if (!text && !pendingImages.length) return;
   const imgsForBubble = pendingImages.map(img => img.dataUrl);
   const imgsForApi = pendingImages.slice();
   addUserMsg(text || '(image)', imgsForBubble);
-  // Images aren't persisted to storage yet (they're only used for this request) — save a
-  // plain-text placeholder so history reloads don't break, and note the limitation to the user.
-  saveMessage('user', text || '(image)', imgsForApi.length ? [{ label: `${imgsForApi.length} image(s) attached (not saved to history)` }] : []);
+  // Images are now persisted as real data (compressed on attach — see compressImage), not a
+  // placeholder label, so reloading a chat shows the actual photo again.
+  const mediaForStorage = imgsForApi.map(img => ({ type: 'image', mimeType: img.mimeType, dataUrl: img.dataUrl }));
+  saveMessage('user', text || '(image)', mediaForStorage);
   input.value = '';
   input.style.height = 'auto';
   clearAttachments();
@@ -2330,6 +2593,36 @@ const attachBtn = document.getElementById('attach-btn');
 const attachFileInput = document.getElementById('attach-file-input');
 const attachPreview = document.getElementById('attach-preview');
 
+// Resizes/re-encodes to a sane max size before it ever touches state — both the request to
+// Gemini/Groq and (new) persisted chat history use this smaller version. Keeps a multi-image
+// message from blowing past Supabase's row/column size in a hurry, and it's plenty of
+// resolution for reading a scoreboard, a stat graphic, or a photo in a script request.
+function compressImage(file, maxDim = 1024, quality = 0.72){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Could not decode image'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim){
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve({ mimeType: 'image/jpeg', base64: dataUrl.split(',')[1], dataUrl });
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 attachBtn.addEventListener('click', () => attachFileInput.click());
 attachFileInput.addEventListener('change', () => {
   const files = Array.from(attachFileInput.files || []).filter(f => f.type.startsWith('image/'));
@@ -2338,16 +2631,15 @@ attachFileInput.addEventListener('change', () => {
   if (files.length > room){
     authNoteTemp('Up to ' + MAX_IMAGES + ' images per message — extra ones were skipped.');
   }
-  toAdd.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result;
-      const base64 = dataUrl.split(',')[1];
-      pendingImages.push({ mimeType: file.type, base64, dataUrl });
+  toAdd.forEach(async file => {
+    try {
+      const img = await compressImage(file);
+      pendingImages.push(img);
       renderAttachPreview();
       sendBtn.disabled = input.value.trim().length === 0 && pendingImages.length === 0;
-    };
-    reader.readAsDataURL(file);
+    } catch (e) {
+      authNoteTemp("Couldn't process that image — try a different one.");
+    }
   });
   attachFileInput.value = '';
 });

@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.3.0**
+**v1.7.0**
 
 A mobile-first chat app that drafts short-form video scripts across 6 content
 modes, backed by live web search and (for football) real match data — not
@@ -48,8 +48,41 @@ create policy "Users manage own profile" on profiles
 
 Until this table exists, profile/onboarding features fail silently (no onboarding prompt, greeting falls back to email prefix) rather than breaking sign-in — but run this before shipping v1.4.0 so personalization actually works.
 
+### Setup: feedback column (required for persisted thumbs up/down)
+
+v1.7.0 makes the thumbs up/down buttons actually persist instead of being local-only UI. Run this once in your Supabase project's SQL Editor:
+
+```sql
+alter table messages add column if not exists feedback text;
+```
+
+Until this column exists, tapping thumbs up/down still gives visual feedback but the save silently fails (caught and ignored, same fail-open pattern as the rest of this app) — so it's safe to deploy before running this, just won't actually persist until you do.
+
+### A note on image storage (v1.7.0)
+
+Attached images are now compressed client-side (max 1024px, JPEG ~70% quality) and saved as base64 directly in the `messages.media` jsonb column — not Supabase Storage. This is the simpler option and fine for personal/moderate use, but it counts against Supabase's free-tier **database** size limit (500MB), not the separate Storage limit (1GB), and base64 is ~33% larger than the raw bytes. If image use grows heavy, migrating to Supabase Storage (storing a URL instead of the bytes) would be the next step — flagging now so it's a deliberate choice later, not a surprise.
+
 ### Changelog
 
+- **v1.7.1** — Backend groundwork for the Android app (see the new `app/` folder):
+  - Every frontend call to `/api/gemini`, `/api/groq`, and `/api/football/...` now goes through an absolute `API_ORIGIN` (`https://creator-boot.vercel.app`) constant instead of a same-origin relative path. Behaves identically on the website (still same-origin, no functional change) but is what makes the app work at all — the app bundles this same file locally at a different origin (`https://localhost`), and a relative `/api/...` path there would have resolved against the app's own local origin and failed outright.
+  - Added CORS headers (`Access-Control-Allow-Origin: *` + `OPTIONS` preflight handling) to `api/gemini.js`, `api/groq.js`, and `api/football/[...path].js`, since the app now calls them cross-origin. No change in behavior for same-origin website calls.
+- **v1.7.0** — Decided against a native app for now (see chat discussion — Capacitor wrapper is real future work, not this pass) and built the three flagged ideas instead:
+  1. **Images now persist in chat history.** Attached images are compressed client-side (max 1024px, JPEG ~70%) before both sending to the AI and saving — see the "note on image storage" section above for the storage tradeoff (DB jsonb column, not Supabase Storage). Reloading a chat now shows the actual photo again instead of nothing. Regenerating the last reply after a reload also now correctly re-sends the original image(s) — previously it silently dropped them even when they were the last live message in a session. Editing a message's text no longer wipes its attached images (was a real bug introduced by this change — replace-saves overwrite `content` and `media` together, so the fix now re-reads the existing images from the DOM before saving an edit).
+  2. **Thumbs up/down now actually persist** to a new `feedback` column on `messages` (SQL above) via a `msgFeedbackRef` map from DOM element → storage row, set right after each message saves. Tapping an already-active thumb clears it rather than getting stuck on. Reloading a chat restores whichever thumb was previously pressed on the last message.
+  3. **Favorite-club narrative lean for scripts.** When writing a video script (not a neutral factual answer) about a match involving the person's favorite club, the model may narrate with a light sympathetic lean — more emphasis on their good moments, a charitable read on an ambiguous call — the way a fan channel naturally would. Explicitly scoped to framing/word-choice only: every score, stat, and fact must stay accurate regardless of lean, and neutral factual questions ("who won") get a neutral answer with no lean at all.
+- **v1.6.0** — A big batch from one review session:
+  1. **Investigated the "stray n" glitch** reported at the bottom-left corner — found nothing in source (no stray text node, no NaN-producing calculation) that would explain it, and it showed up identically on an old v1.4.0 screenshot, before any of this session's layout changes. Best guess: Vercel's own "Toolbar" widget, which auto-injects on your deployment for any browser signed into your Vercel account — not part of this app's code at all. Test in an Incognito tab (signed out of Vercel) to confirm.
+  2. **Responsive layout** — capped and centered the content column above ~720px viewport width (desktop/tablet browsers), so it no longer stretches edge-to-edge on a PC. Below that breakpoint (phones, including narrow ~360dp ones), nothing changed.
+  3. **Header icon pill** — the top-right action icons (export/new chat/options/delete) now sit inside a small rounded pill background, matching the grouped-icon treatment you pointed out.
+  4. **Sources redesigned** — collapsed by default into a small favicon-stack + "Sources · N" toggle; tapping it expands the full card list inline, instead of always dumping full cards into every reply.
+  5. **Football research scope fix** — football mode's prompt now explicitly says not to limit "what happened" questions to one league and not to conclude "no football happened" just because e.g. the Premier League has no fixture that day — international windows (World Cup/AFCON qualifiers, Nations League, friendlies) and other competitions are accounted for.
+  6. **Suggested follow-up questions** — substantive replies now end with 2-4 tappable follow-up prompts (parsed out of the model's own response via a `===SUGGESTIONS===` marker, never shown as raw text); tapping one sends it immediately, same as the ChatGPT pattern that prompted this.
+  7. **Playful club banter** — when a favorite club is set in the profile (from the onboarding survey) and the person explicitly asks for a joke/banter, the model can lean into good-natured rival-club ribbing grounded in real, well-known struggles (trophy droughts, bad form) — never invented specific incidents, never unprompted.
+  8. **Scroll anchoring** — sending a message now scrolls it to just below the top of the screen instead of jamming it at the very bottom edge, leaving room for the reply to fill in below; long replies still naturally follow to the bottom as they grow.
+  9. **Custom icons** — all 6 mode icons and the 4 Home quick-start card icons are now custom line-SVGs matching the app's existing icon style, replacing the emoji placeholders.
+  10. **Real chat titles** — a chat now shows "Generating title…" (styled distinctly) instead of the first 40 characters of your message, then gets a short AI-generated title (e.g. "Man City manager check") once the first reply actually lands — one lightweight extra Gemini call per new chat, only once.
+  - **Also fixed while in this code:** suggestion-chip taps could theoretically fire a second generation while one was already running — added a proper `isGenerating` guard rather than leaving that unprotected.
 - **v1.5.0** — Built the two lowest-risk pieces of the football-first redesign discussion (see README history / chat for the full reasoning on what was deferred and why):
   1. **Home quick-start cards** — 4 small cards (Match Analysis, Player Analysis, Football Research, Script Studio) under the greeting on an empty chat. They don't open new screens — each just switches to football mode and pre-fills the composer with a starter phrase, so the person finishes typing and sends as normal. Kept small and Claude-like on purpose, not dashboard tiles.
   2. **Verified / Research split** — football replies that actually found live API-Football data now show a small, muted-green "Verified football data" badge listing exactly which facts were confirmed (score, scorers, cards, match stats, current coach, etc.) — never a generic "verified" stamp, always the specific fields that were real for that reply. Source chips were upgraded into proper cards (favicon, title, domain, "→" link) under a "Web research · N sources" label. Deliberately did **not** add a fabricated "Used for: X" line per source — grounding metadata doesn't tell us which source contributed which fact, and guessing would undermine the whole point of a "verified" section.
