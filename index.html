@@ -32,7 +32,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 /* thread */
 .thread{flex:1;overflow-y:auto;padding:0 18px;display:flex;flex-direction:column;gap:22px;scroll-behavior:smooth}
 .thread::-webkit-scrollbar{width:0}
-#scroll-spacer{flex-shrink:0;height:0;transition:height .15s ease}
+#scroll-spacer{flex-shrink:0;height:0;margin-top:-22px}
 
 .hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding-bottom:60px}
 .hero-mark{color:var(--accent);display:block}
@@ -68,9 +68,16 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 .msg.assistant{align-self:flex-start;align-items:flex-start;max-width:96%}
 
 .bubble-user{background:var(--surface2);border:1px solid var(--border-soft);border-radius:16px 16px 4px 16px;padding:11px 15px;font-size:14.5px}
-.bubble-assistant{font-size:14.5px;color:var(--text);white-space:pre-wrap}
-.bubble-assistant p{margin-bottom:10px}
-.bubble-assistant.typing::after{content:'▍';color:var(--accent);animation:blink 1s step-start infinite;margin-left:1px}
+.bubble-assistant{font-size:14.5px;color:var(--text);overflow-wrap:anywhere}
+.bubble-assistant p{margin:0 0 10px}
+.bubble-assistant ul,.bubble-assistant ol{margin:0 0 10px;padding-left:20px}
+.bubble-assistant li{margin-bottom:4px}
+.bubble-assistant strong{font-weight:600}
+.bubble-assistant .md-h{font-weight:600;margin:14px 0 6px}
+.bubble-assistant > :last-child{margin-bottom:0}
+.bubble-assistant.typing > p:last-child::after,
+.bubble-assistant.typing > ul:last-child > li:last-child::after,
+.bubble-assistant.typing > ol:last-child > li:last-child::after{content:'▍';color:var(--accent);animation:blink 1s step-start infinite;margin-left:1px}
 @keyframes blink{50%{opacity:0}}
 
 /* status pipeline — the signature element */
@@ -419,6 +426,47 @@ body.new-chat .composer-card{box-shadow:0 14px 40px -14px rgba(0,0,0,.55)}
 .banner{display:flex;align-items:center;gap:10px;background:var(--surface2);border-bottom:1px solid var(--border-soft);padding:10px 14px;font-size:12px;color:var(--text-dim);max-height:80px;overflow:hidden;transition:max-height .28s ease,padding .28s ease,opacity .2s ease;opacity:1}
 .banner.closing{max-height:0;padding-top:0;padding-bottom:0;opacity:0;border-bottom-color:transparent}
 .banner .x{margin-left:auto;cursor:pointer;color:var(--text-faint);flex-shrink:0}
+/* --- v1.8.0: long-press message menu, select-text sheet, toast, retry block, unsaved warning --- */
+@media (pointer:coarse){
+  .bubble-assistant,.bubble-user-text{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  .bubble-user-img{pointer-events:none;-webkit-touch-callout:none}
+}
+.edit-textarea{-webkit-user-select:text;user-select:text}
+.msg-pressed{outline:1.5px solid var(--accent-dim);outline-offset:4px;border-radius:14px}
+.msg-menu{
+  position:fixed;z-index:60;display:none;min-width:200px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.55);
+}
+.msg-menu.open{display:block;animation:rise .15s ease}
+.msg-menu button{
+  display:flex;align-items:center;gap:11px;width:100%;background:none;border:none;color:var(--text);
+  font-family:var(--sans);font-size:14px;padding:11px 12px;border-radius:9px;cursor:pointer;text-align:left;
+}
+.msg-menu button:active,.msg-menu button:hover{background:var(--surface3)}
+.msg-menu button svg{width:16px;height:16px;flex-shrink:0;color:var(--text-dim)}
+.msg-menu button.active,.msg-menu button.active svg{color:var(--accent)}
+.toast{
+  position:fixed;left:50%;bottom:120px;transform:translate(-50%,8px);background:var(--surface3);color:var(--text);
+  border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;opacity:0;pointer-events:none;
+  transition:.2s;z-index:70;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.select-card{max-width:420px}
+.select-hint{font-size:11.5px;color:var(--text-faint);margin-bottom:10px}
+.select-body{
+  max-height:48vh;overflow-y:auto;background:var(--surface);border:1px solid var(--border-soft);border-radius:10px;
+  padding:12px;font-size:14px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;
+  -webkit-user-select:text;user-select:text;margin-bottom:14px;
+}
+.retry-block{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.retry-note{font-size:13px;color:var(--text-faint)}
+.retry-btn{
+  display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);
+  color:var(--text-dim);border-radius:16px;padding:7px 13px;font-family:var(--sans);font-size:12.5px;cursor:pointer;
+}
+.retry-btn:hover{border-color:var(--accent-dim);color:var(--text)}
+.save-warning{margin-top:6px;font-size:11px;color:#d98a7a}
+
 /* Responsive: this was built mobile-first with no width cap, so on a desktop browser or a
    tablet the header/thread/composer stretched edge-to-edge — fine down to narrow phones
    (~360dp), bad on anything wider. Cap the content column and center it once the viewport
@@ -593,6 +641,20 @@ body.new-chat .composer-card{box-shadow:0 14px 40px -14px rgba(0,0,0,.55)}
     </div>
   </div>
 </div>
+
+<div class="modal-overlay" id="select-overlay">
+  <div class="modal-card select-card">
+    <div class="modal-msg">Select text</div>
+    <div class="select-hint">Touch and hold a word, then drag the handles to choose what to copy.</div>
+    <div class="select-body" id="select-body"></div>
+    <div class="modal-actions">
+      <button class="modal-btn ghost" id="select-done-btn">Done</button>
+      <button class="modal-btn danger" id="select-copyall-btn">Copy all</button>
+    </div>
+  </div>
+</div>
+<div class="msg-menu" id="msg-menu"></div>
+<div class="toast" id="toast"></div>
 
 <div class="thread" id="thread">
   <div class="hero" id="hero">
@@ -777,7 +839,7 @@ const USER_NAME_FALLBACK = 'there'; // used until a real signed-in name/email is
 // The UI renders assistant replies as plain text (no markdown rendering), so every mode's
 // system prompt gets this appended — otherwise the model's own "**bold**" or "# heading"
 // syntax shows up as literal asterisks/hashes instead of formatting.
-const PLAIN_TEXT_NOTE = ' This app displays plain text only — there is no markdown rendering, so never use markdown symbols like ** or # or _ in any response, even for a direct (non-script) answer. Use plain paragraphs, and for lists just put each item on its own line with a plain dash, no bold.';
+const PLAIN_TEXT_NOTE = ' Formatting: a spoken video script must be plain prose — no markdown, no headers, no bullets. For any other answer (research, explanations, roundups, advice), structure it so it is easy to scan on a phone: short paragraphs separated by blank lines, "- " bullet lines for lists of items, numbered lines ("1. ") for ordered steps, and **bold** for key names or figures. Never use # headings, tables, code blocks, or HTML.';
 
 const MODES = [
   {
@@ -869,6 +931,7 @@ const drawerAccount = document.getElementById('drawer-account');
 const newChatBtn = document.getElementById('new-chat-btn');
 const thread = document.getElementById('thread');
 const hero = document.getElementById('hero');
+const scrollSpacer = document.getElementById('scroll-spacer');
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('send');
 const banner = document.getElementById('session-banner');
@@ -890,7 +953,7 @@ const composerEl = document.querySelector('.composer');
 
 // Single source of truth for the version shown in the header and in Settings.
 // Bump this on every deploy — see README.md's "Versioning" section.
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.8.0';
 document.getElementById('hdr-version').textContent = 'v' + APP_VERSION;
 const settingsVersionEl = document.getElementById('settings-app-version');
 if (settingsVersionEl) settingsVersionEl.textContent = 'Creator Booth v' + APP_VERSION;
@@ -1108,7 +1171,8 @@ function buildTranscriptTurns(){
       if (t && t.textContent.trim()) turns.push({ speaker: meLabel, text: t.textContent.trim() });
     } else if (msgEl.classList.contains('assistant')){
       const b = msgEl.querySelector('.bubble-assistant');
-      if (b && b.textContent.trim()) turns.push({ speaker: 'Creator Booth', text: b.textContent.trim() });
+      const rawText = b ? stripMarkdown(bubbleRawText(b)).trim() : '';
+      if (rawText) turns.push({ speaker: 'Creator Booth', text: rawText });
     }
     // pipeline-in-progress messages have neither .bubble-user-text nor .bubble-assistant yet,
     // and are skipped automatically since both querySelector calls come back null.
@@ -1209,8 +1273,9 @@ incognitoBtn.addEventListener('click', async () => {
   temporaryMode = true;
   currentChatId = null;
   lastAssistantMsgEl = null;
-  lastAssistantSaveRef = null;
+  lastUserMsgEl = null;
   thread.querySelectorAll('.msg').forEach(el => el.remove());
+  resetSpacer();
   tempBanner.style.display = 'block';
   incognitoBtn.classList.add('active');
   showIncognitoHero();
@@ -1231,8 +1296,9 @@ async function exitIncognitoToNormalChat(){
 async function clearIncognitoStayIncognito(){
   currentChatId = null;
   lastAssistantMsgEl = null;
-  lastAssistantSaveRef = null;
+  lastUserMsgEl = null;
   thread.querySelectorAll('.msg').forEach(el => el.remove());
+  resetSpacer();
   showIncognitoHero();
   updateHeaderState();
 }
@@ -1343,7 +1409,6 @@ async function saveProfile(fields, opts = {}){
 
 async function createChat(){
   lastAssistantMsgEl = null;
-  lastAssistantSaveRef = null;
   if (currentUser){
     const { data, error } = await supabase.from('chats').insert({ user_id: currentUser.id }).select('id,title').single();
     if (error){ console.error(error); return null; }
@@ -1542,10 +1607,9 @@ async function openChat(chatId){
   currentChatId = chatId;
   const myToken = ++openChatToken;
   thread.querySelectorAll('.msg').forEach(el => el.remove());
+  resetSpacer();
   lastAssistantMsgEl = null;
-  lastAssistantSaveRef = null;
   lastUserMsgEl = null;
-  lastUserSaveRef = null;
   let messages = [];
   if (currentUser){
     const chatRow = chats.find(c => c.id === chatId);
@@ -1562,68 +1626,41 @@ async function openChat(chatId){
   hero.style.display = messages.length ? 'none' : 'flex';
   if (!messages.length) refreshGreeting();
 
-  let lastUserText = '';
-  let lastAssistantIndexInArray = -1;
-  let lastUserIndexInArray = -1;
+  // Which reply is "the last one" (gets Regenerate + footer)? Only if it actually answers the
+  // final message — if the chat ends on a user message with no reply (an interrupted
+  // generation), that message gets its own "Get a reply" block instead, and no older answer is
+  // ever wired to regenerate for the wrong question.
+  let lastAssistantIdx = -1, lastUserIdx = -1;
+  messages.forEach((m, i) => { if (m.role === 'user') lastUserIdx = i; else lastAssistantIdx = i; });
+  const endsOnUnanswered = messages.length > 0 && messages[messages.length - 1].role === 'user';
+  const rowRefFor = (i) => currentUser
+    ? { chatId, type: 'supabase', id: messages[i].id }
+    : { chatId, type: 'guest', index: i };
+
+  let precedingUserText = '';
+  let precedingUserImgs = [];
   messages.forEach((m, i) => {
     if (m.role === 'user'){
-      const imgUrls = (m.media || []).filter(x => x && x.type === 'image' && x.dataUrl).map(x => x.dataUrl);
-      renderUserBubble(m.content, imgUrls);
-      lastUserText = m.content;
-      lastUserIndexInArray = i;
+      const atts = attachmentsFromMedia(m.media);
+      const isLastUser = i === lastUserIdx;
+      const el = renderUserBubble(m.content, atts.map(a => a.dataUrl), isLastUser, m.created_at);
+      msgRowRef.set(el, rowRefFor(i));
+      if (isLastUser) lastUserMsgEl = el;
+      precedingUserText = m.content;
+      precedingUserImgs = atts;
     } else {
-      renderAssistantBubble(m.content, m.media || []);
-      lastAssistantIndexInArray = i;
+      const isLast = (i === lastAssistantIdx) && !endsOnUnanswered;
+      const el = renderAssistantBubble(m.content, m.media || [], m.created_at);
+      el.insertAdjacentHTML('beforeend', buildMsgActionsHtml(isLast));
+      // Each reply is wired to the user message that came right before IT — not the chat's last one.
+      wireMsgActions(el, m.content, precedingUserText, precedingUserImgs, isLast);
+      msgRowRef.set(el, rowRefFor(i));
+      if (m.feedback === 'up') el.querySelector('[data-action="up"]').classList.add('active');
+      if (m.feedback === 'down') el.querySelector('[data-action="down"]').classList.add('active');
+      if (isLast) lastAssistantMsgEl = el;
     }
   });
-
-  // Upgrade the truly-last assistant message to the "last" state: regenerate + footer, wired
-  // against the preceding user message's text — and, now that images persist, its image(s) too,
-  // so a regenerate after reloading a chat behaves the same as one in a live session.
-  if (lastAssistantIndexInArray >= 0){
-    const assistantMsgEls = thread.querySelectorAll('.msg.assistant');
-    const msgEl = assistantMsgEls[assistantMsgEls.length - 1];
-    if (msgEl){
-      msgEl.insertAdjacentHTML('beforeend', buildMsgActionsHtml(true));
-      const resultText = messages[lastAssistantIndexInArray].content;
-      const lastUserMedia = (lastUserIndexInArray >= 0 && messages[lastUserIndexInArray].media) || [];
-      const imgsForRegen = lastUserMedia.filter(m => m && m.type === 'image' && m.dataUrl).map(m => ({
-        mimeType: m.mimeType || (m.dataUrl.match(/^data:([^;]+);/) || [])[1] || 'image/jpeg',
-        base64: m.dataUrl.split(',')[1] || '',
-        dataUrl: m.dataUrl
-      }));
-      wireMsgActions(msgEl, resultText, lastUserText, imgsForRegen, true);
-      lastAssistantMsgEl = msgEl;
-      let ref;
-      if (currentUser){
-        ref = { chatId, type: 'supabase', id: messages[lastAssistantIndexInArray].id };
-      } else {
-        ref = { chatId, type: 'guest', index: lastAssistantIndexInArray };
-      }
-      lastAssistantSaveRef = ref;
-      msgFeedbackRef.set(msgEl, ref);
-      const savedFeedback = messages[lastAssistantIndexInArray].feedback;
-      if (savedFeedback === 'up') msgEl.querySelector('[data-action="up"]').classList.add('active');
-      if (savedFeedback === 'down') msgEl.querySelector('[data-action="down"]').classList.add('active');
-    }
-  }
-
-  // Same upgrade for the truly-last user message — gets the edit button, tracked against its
-  // storage identity so an edit can update it in place instead of inserting a duplicate.
-  if (lastUserIndexInArray >= 0){
-    const userMsgEls = thread.querySelectorAll('.msg.user');
-    const msgEl = userMsgEls[userMsgEls.length - 1];
-    if (msgEl){
-      msgEl.insertAdjacentHTML('beforeend', `<div class="user-actions"><button class="msg-action-btn" data-action="edit" title="Edit">${ICON_EDIT}</button></div>`);
-      wireUserEditButton(msgEl);
-      lastUserMsgEl = msgEl;
-      if (currentUser){
-        lastUserSaveRef = { chatId, type: 'supabase', id: messages[lastUserIndexInArray].id };
-      } else {
-        lastUserSaveRef = { chatId, type: 'guest', index: lastUserIndexInArray };
-      }
-    }
-  }
+  if (endsOnUnanswered) renderOrphanReply(precedingUserText, precedingUserImgs);
 
   await refreshChatList();
   updateHeaderState();
@@ -1631,44 +1668,64 @@ async function openChat(chatId){
   scrollDown();
 }
 
-let lastAssistantSaveRef = null; // tracks the storage identity of the current last assistant message so regenerate can update it in place instead of inserting a duplicate
+// Every rendered message remembers the storage row it lives in (Supabase id, or a guest chat's
+// array index), keyed by its DOM element. Every update-in-place — regenerate, edit, thumbs —
+// goes through THIS, never through a global "last row" pointer. The old pointer could end up
+// aimed at the wrong row (after a failed insert, or after a reload) and silently overwrite an
+// older message with a newer answer.
+const msgRowRef = new WeakMap();
 
-// Generalized so both roles can be updated in place: assistant for regenerate, user for edit.
-function saveRefFor(role){ return role === 'user' ? lastUserSaveRef : lastAssistantSaveRef; }
-function setSaveRefFor(role, ref){ if (role === 'user') lastUserSaveRef = ref; else lastAssistantSaveRef = ref; }
+// Monotonic client-side timestamps: message order in the database follows the order messages
+// were CREATED on screen, not when each network request happened to land.
+let lastTs = 0;
+function nextTimestamp(){ lastTs = Math.max(Date.now(), lastTs + 1); return new Date(lastTs).toISOString(); }
 
+// Returns: a row ref on success · null if intentionally not saved (incognito) · false on failure.
 async function saveMessage(role, content, media = [], opts = {}){
-  if (temporaryMode) return;
+  if (temporaryMode) return null;
   if (!currentChatId) await createChat();
-  const ref = saveRefFor(role);
-  const replace = !!opts.replace && ref && ref.chatId === currentChatId;
+  const chatId = currentChatId;
+  const createdAt = opts.createdAt || nextTimestamp();
+  const target = (opts.replaceRef && opts.replaceRef.chatId === chatId) ? opts.replaceRef : null;
+  let ref = null;
 
   if (currentUser){
-    if (replace){
-      await supabase.from('messages').update({ content, media }).eq('id', ref.id);
+    if (target){
+      const { error } = await supabase.from('messages').update({ content, media }).eq('id', target.id);
+      if (error){ console.warn('Message update failed', error); return false; }
+      ref = target;
     } else {
-      const { data } = await supabase.from('messages').insert({ chat_id: currentChatId, role, content, media }).select('id').single();
-      if (data) setSaveRefFor(role, { chatId: currentChatId, type: 'supabase', id: data.id });
+      let row = null;
+      for (let attempt = 0; attempt < 2 && !row; attempt++){
+        if (attempt) await new Promise(r => setTimeout(r, 1200));
+        const res = await supabase.from('messages').insert({ chat_id: chatId, role, content, media, created_at: createdAt }).select('id').single();
+        if (res.error) console.warn('Message insert failed', res.error); else row = res.data;
+      }
+      if (!row) return false;
+      ref = { chatId, type: 'supabase', id: row.id };
     }
     if (role === 'user' && currentChatTitle === 'New chat'){
       currentChatTitle = 'Generating title…';
-      await supabase.from('chats').update({ title: currentChatTitle }).eq('id', currentChatId);
+      await supabase.from('chats').update({ title: currentChatTitle }).eq('id', chatId);
     }
   } else {
-    const list = loadGuestChats();
-    const chat = list.find(c => c.id === currentChatId);
-    if (!chat) return;
-    if (replace && ref.type === 'guest' && chat.messages[ref.index]){
-      chat.messages[ref.index] = { role, content, media };
-    } else {
-      chat.messages.push({ role, content, media });
-      setSaveRefFor(role, { chatId: currentChatId, type: 'guest', index: chat.messages.length - 1 });
-    }
-    if (role === 'user' && chat.title === 'New chat'){ chat.title = 'Generating title…'; currentChatTitle = chat.title; }
-    saveGuestChats(list);
+    try {
+      const list = loadGuestChats();
+      const chat = list.find(c => c.id === chatId);
+      if (!chat) return false;
+      if (target && target.type === 'guest' && chat.messages[target.index]){
+        chat.messages[target.index] = { ...chat.messages[target.index], role, content, media };
+        ref = target;
+      } else {
+        chat.messages.push({ role, content, media, created_at: createdAt });
+        ref = { chatId, type: 'guest', index: chat.messages.length - 1 };
+      }
+      if (role === 'user' && chat.title === 'New chat'){ chat.title = 'Generating title…'; currentChatTitle = chat.title; }
+      saveGuestChats(list);
+    } catch (e) { console.warn('Guest save failed', e); return false; }
   }
   await refreshChatList();
-  return saveRefFor(role); // lets callers (e.g. feedback wiring) know exactly which row this landed in
+  return ref;
 }
 
 // Real chat titles instead of "first 40 characters of your message" — a lightweight, tool-free
@@ -1756,27 +1813,150 @@ function scrollDownIfNear(){
   const gap = thread.scrollHeight - thread.scrollTop - thread.clientHeight;
   if (gap < 140) thread.scrollTop = thread.scrollHeight;
 }
-const scrollSpacer = document.getElementById('scroll-spacer');
-
-// Not everyone wants to read at the very bottom edge of their phone. Instead of always
-// snapping to the absolute bottom, when a new message is sent, this pads the thread with a
-// temporary spacer and scrolls so the new message lands near the top of the visible area —
-// leaving room below it for the reply to fill in, like Claude/ChatGPT do. Once the growing
-// reply exceeds that space, normal bottom-follow scrolling (scrollDown) takes back over.
+// Spacer that always sits AFTER the last message — every message is inserted before it (see
+// appendToThread). Its height is recomputed so the newest user message can be scrolled to the
+// top of the view with blank room underneath for the reply to fill in; as the reply grows the
+// spacer shrinks to nothing, so there is never a permanent void. (v1.6.0 shipped this with two
+// bugs: messages were appended AFTER the spacer, pushing them down into blank space, and its
+// height was never reset on a new chat — both fixed here.)
+let spacerAnchor = null;
+function updateSpacer(){
+  if (!spacerAnchor || !spacerAnchor.isConnected){ scrollSpacer.style.height = '0px'; return; }
+  const tTop = thread.getBoundingClientRect().top;
+  const aTop = spacerAnchor.getBoundingClientRect().top - tTop + thread.scrollTop;
+  const sTop = scrollSpacer.getBoundingClientRect().top - tTop + thread.scrollTop;
+  const needed = Math.max(0, thread.clientHeight - 14 - (sTop - aTop));
+  scrollSpacer.style.height = needed + 'px';
+}
+function resetSpacer(){ spacerAnchor = null; scrollSpacer.style.height = '0px'; }
+function appendToThread(el){ thread.insertBefore(el, scrollSpacer); }
 function scrollNewMessageToTop(msgEl){
-  scrollSpacer.style.height = thread.clientHeight + 'px';
+  spacerAnchor = msgEl;
+  updateSpacer();
   requestAnimationFrame(() => {
-    const containerTop = thread.getBoundingClientRect().top;
-    const elTop = msgEl.getBoundingClientRect().top;
-    thread.scrollTop += (elTop - containerTop) - 14;
+    const tTop = thread.getBoundingClientRect().top;
+    const aTop = msgEl.getBoundingClientRect().top - tTop + thread.scrollTop;
+    thread.scrollTop = Math.max(0, aTop - 14);
   });
+}
+window.addEventListener('resize', updateSpacer);
+
+// ---- Lightweight markdown: enough structure to make research answers readable on a phone
+// (paragraphs, bullets, numbered steps, bold, short headings). Everything is HTML-escaped FIRST,
+// then only our own tags are added, so model output can never inject markup. ----
+function renderMarkdown(src, streaming){
+  let text = String(src == null ? '' : src).replace(/\r\n/g, '\n');
+  if (streaming && ((text.match(/\*\*/g) || []).length % 2)) text += '**'; // don't flash a raw "**" mid-typing
+  const inline = (t) => escapeHtml(t)
+    .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[\s(])\*([^*\s][^*\n]*?)\*(?=[\s).,!?:;]|$)/g, '$1<em>$2</em>');
+  const out = [];
+  let para = [], list = null;
+  const flushPara = () => { if (para.length){ out.push('<p>' + para.map(inline).join('<br>') + '</p>'); para = []; } };
+  const flushList = () => { if (list){ out.push('<' + list.type + '>' + list.items.map(i => '<li>' + inline(i) + '</li>').join('') + '</' + list.type + '>'); list = null; } };
+  text.split('\n').forEach(raw => {
+    const line = raw.replace(/\s+$/, '');
+    let m;
+    if (!line.trim()){ flushPara(); flushList(); return; }
+    if ((m = line.match(/^\s*[-*•]\s+(.*)$/))){
+      flushPara(); if (!list || list.type !== 'ul'){ flushList(); list = { type: 'ul', items: [] }; } list.items.push(m[1]); return;
+    }
+    if ((m = line.match(/^\s*\d+[.)]\s+(.*)$/))){
+      flushPara(); if (!list || list.type !== 'ol'){ flushList(); list = { type: 'ol', items: [] }; } list.items.push(m[1]); return;
+    }
+    if ((m = line.match(/^\s*#{1,4}\s+(.*)$/))){ flushPara(); flushList(); out.push('<p class="md-h">' + inline(m[1]) + '</p>'); return; }
+    flushList();
+    para.push(line);
+  });
+  flushPara(); flushList();
+  return out.join('');
+}
+// Copy / select / export should hand over clean text, not raw markdown symbols.
+function stripMarkdown(t){
+  return String(t || '').replace(/\*\*([^*\n]+?)\*\*/g, '$1').replace(/^\s*#{1,4}\s+/gm, '').replace(/^(\s*)[-*]\s+/gm, '$1• ');
+}
+// The exact text the model produced for a bubble (the DOM only holds the rendered version).
+function bubbleRawText(bubbleEl){
+  if (!bubbleEl) return '';
+  return (bubbleEl.dataset && bubbleEl.dataset.full) || bubbleEl.textContent || '';
+}
+
+// ---- Conversation memory: rebuilds the earlier turns from the thread itself, relative to the
+// reply slot being generated, so it's correct for a fresh send, a regenerate, an edit, AND a
+// chat reloaded from history. Text only (images from earlier turns aren't re-sent). ----
+function buildHistoryContents(replyEl){
+  let cur = replyEl.previousElementSibling;
+  while (cur && !(cur.classList && cur.classList.contains('user'))) cur = cur.previousElementSibling;
+  const turns = [];
+  for (let el = cur ? cur.previousElementSibling : null; el; el = el.previousElementSibling){
+    if (!el.classList || !el.classList.contains('msg')) continue;
+    if (el.classList.contains('user')){
+      const t = el.querySelector('.bubble-user-text');
+      const text = t ? t.textContent.trim() : '';
+      if (text) turns.unshift({ role: 'user', text });
+    } else {
+      const b = el.querySelector('.bubble-assistant');
+      const text = b ? bubbleRawText(b).trim() : '';
+      if (text) turns.unshift({ role: 'model', text: text.length > 3000 ? text.slice(0, 3000) + '…' : text });
+    }
+  }
+  const merged = [];
+  turns.forEach(t => {
+    const last = merged[merged.length - 1];
+    if (last && last.role === t.role) last.text += '\n\n' + t.text; else merged.push({ role: t.role, text: t.text });
+  });
+  while (merged.length && merged[0].role !== 'user') merged.shift();
+  while (merged.length && merged[merged.length - 1].role !== 'model') merged.pop(); // drop an unanswered trailing question
+  let total = merged.reduce((n, t) => n + t.text.length, 0);
+  while (merged.length > 2 && (merged.length > 16 || total > 14000)){
+    total -= merged[0].text.length + merged[1].text.length;
+    merged.splice(0, 2);
+  }
+  return merged.map(t => ({ role: t.role, parts: [{ text: t.text }] }));
+}
+function conversationNote(){
+  return `This is an ongoing conversation — the earlier turns are included above. Treat the latest message as a continuation of it: resolve pronouns and short or vague follow-ups (for example "what of France and Mbappé?") using the topic already being discussed, instead of answering as if it were a brand-new standalone question, and don't repeat information you've already given unless asked.`;
+}
+
+// ---- Failed / missing replies get an explicit retry instead of a dead end ----
+function retryBlockHtml(note, isError){
+  return `<div class="retry-block">${isError ? `<div class="err">${escapeHtml(note)}</div>` : `<div class="retry-note">${escapeHtml(note)}</div>`}<button type="button" class="retry-btn" data-action="retry-block">${ICON_RETRY}<span>${isError ? 'Try again' : 'Get a reply'}</span></button></div>`;
+}
+function wireRetryBlock(msgEl, userText, images){
+  const b = msgEl.querySelector('[data-action="retry-block"]');
+  if (b) b.addEventListener('click', () => { if (!isGenerating) regenerateInPlace(msgEl, userText, images || []); });
+}
+function renderOrphanReply(userText, images){
+  const div = document.createElement('div');
+  div.className = 'msg assistant';
+  div.dataset.ts = nextTimestamp();
+  div.innerHTML = retryBlockHtml('No reply was saved for this message.', false);
+  appendToThread(div);
+  wireRetryBlock(div, userText, images);
+  return div;
+}
+function attachmentsFromMedia(media){
+  return (media || []).filter(x => x && x.type === 'image' && x.dataUrl).map(x => ({
+    mimeType: x.mimeType || (x.dataUrl.match(/^data:([^;]+);/) || [])[1] || 'image/jpeg',
+    base64: x.dataUrl.split(',')[1] || '',
+    dataUrl: x.dataUrl
+  }));
+}
+
+// ---- Save tracking: every rendered message remembers the row it lives in ----
+function trackSave(el, ref){
+  if (ref) msgRowRef.set(el, ref);
+  else if (ref === false) markUnsaved(el);   // null = intentionally unsaved (incognito); false = a real failure
+}
+function markUnsaved(el){
+  if (!el || el.querySelector('.save-warning')) return;
+  el.insertAdjacentHTML('beforeend', '<div class="save-warning">⚠ Couldn\'t save this message — it may be missing after you reload.</div>');
 }
 
 // Only the single most-recent user turn ever shows an edit button — matches the "edit last
 // message" pattern rather than letting every past turn be rewritten. addUserMsg strips the
 // button off whatever used to be last before adding the new one.
 let lastUserMsgEl = null;
-let lastUserSaveRef = null; // tracks storage identity of the current last user message, same pattern as lastAssistantSaveRef
 
 function addUserMsg(text, imgDataUrls){
   hero.style.display = 'none';
@@ -1787,9 +1967,10 @@ function addUserMsg(text, imgDataUrls){
   updateHeaderState();
   scrollNewMessageToTop(div);
 }
-function renderUserBubble(text, imgDataUrls, isLast){
+function renderUserBubble(text, imgDataUrls, isLast, ts){
   const div = document.createElement('div');
   div.className = 'msg user';
+  div.dataset.ts = ts || nextTimestamp();
   const imgs = imgDataUrls || [];
   const imgHtml = imgs.length
     ? `<div class="bubble-user-imgs">${imgs.map(u => `<img class="bubble-user-img" src="${u}">`).join('')}</div>`
@@ -1797,7 +1978,7 @@ function renderUserBubble(text, imgDataUrls, isLast){
   div.innerHTML = `<div class="bubble-user">${imgHtml}<span class="bubble-user-text"></span></div>`;
   div.querySelector('.bubble-user-text').textContent = text;
   if (isLast) div.insertAdjacentHTML('beforeend', `<div class="user-actions"><button class="msg-action-btn" data-action="edit" title="Edit">${ICON_EDIT}</button></div>`);
-  thread.appendChild(div);
+  appendToThread(div);
   if (isLast) wireUserEditButton(div);
   return div;
 }
@@ -1864,7 +2045,7 @@ async function submitUserEdit(msgEl, newText, originalText, originalBubbleHtml){
   // wipe them, since saveMessage's replace path overwrites both content and media together.
   const existingImgs = Array.from(bubble.querySelectorAll('.bubble-user-img')).map(img => img.src);
   const mediaForStorage = existingImgs.map(src => ({ type: 'image', dataUrl: src }));
-  saveMessage('user', newText, mediaForStorage, { replace: true });
+  saveMessage('user', newText, mediaForStorage, { replaceRef: msgRowRef.get(msgEl), createdAt: msgEl.dataset.ts }).then(ref => trackSave(msgEl, ref));
 
   // Find the assistant message immediately following this user turn, if any — it's the one
   // whose response is now stale and needs regenerating against the edited text.
@@ -1874,12 +2055,14 @@ async function submitUserEdit(msgEl, newText, originalText, originalBubbleHtml){
     await regenerateInPlace(assistantEl, newText, []);
   }
 }
-function renderAssistantBubble(text, media){
+function renderAssistantBubble(text, media, ts){
   const div = document.createElement('div');
   div.className = 'msg assistant';
+  div.dataset.ts = ts || nextTimestamp();
   const mediaHtml = (media || []).map(m => `<div class="sources"><span>${escapeHtml(m.label || '')}</span></div>`).join('');
-  div.innerHTML = `<div class="bubble-assistant">${escapeHtml(text)}</div>${mediaHtml}`;
-  thread.appendChild(div);
+  div.innerHTML = `<div class="bubble-assistant">${renderMarkdown(text)}</div>${mediaHtml}`;
+  div.querySelector('.bubble-assistant').dataset.full = text;
+  appendToThread(div);
   return div;
 }
 
@@ -1887,7 +2070,8 @@ function addPipeline(){
   const div = document.createElement('div');
   div.className = 'msg assistant';
   div.innerHTML = `<div class="pipeline">${PIPELINE_EQ_SVG}<span class="stage">Thinking…</span></div>`;
-  thread.appendChild(div);
+  div.dataset.ts = nextTimestamp();
+  appendToThread(div);
   scrollDownIfNear();
   return div.querySelector('.stage');
 }
@@ -1920,17 +2104,21 @@ function escapeHtml(s){ const d = document.createElement('div'); d.textContent =
 // not done here. Speed adapts to length so a long script doesn't take forever to finish.
 function revealWords(el, text, onDone){
   el.classList.add('typing');
+  el.dataset.full = text;
   const words = text.split(' ');
   const delay = Math.max(10, Math.min(38, 3200 / Math.max(words.length, 1)));
   let i = 0;
   function step(){
     if (i >= words.length){
       el.classList.remove('typing');
+      el.innerHTML = renderMarkdown(text);
+      updateSpacer();
       if (onDone) onDone();
       return;
     }
-    el.textContent += (i === 0 ? '' : ' ') + words[i];
     i++;
+    el.innerHTML = renderMarkdown(words.slice(0, i).join(' '), true);
+    updateSpacer();
     scrollDownIfNear();
     setTimeout(step, delay);
   }
@@ -2200,11 +2388,8 @@ function buildMsgActionsHtml(isLast){
   return `<div class="msg-actions">${base}${regen}</div>${footer}`;
 }
 
-// Maps a rendered assistant message element to the storage row it landed in (Supabase row id,
-// or a guest chat's array index) — set right after saveMessage resolves for that element, read
-// here when a thumbs button is pressed. Messages never saved (incognito) simply have no entry,
-// so feedback there stays local-only, same as the rest of an incognito chat.
-const msgFeedbackRef = new WeakMap();
+// Thumbs feedback looks up the message's row via msgRowRef (see saveMessage). Messages that were
+// never saved (incognito) have no entry, so feedback there stays local-only.
 
 async function saveFeedback(ref, value){
   if (!ref) return;
@@ -2230,27 +2415,27 @@ function wireMsgActions(msgEl, resultText, userText, imageAttachments, isLast){
 
   copyBtn.addEventListener('click', async () => {
     try {
-      await navigator.clipboard.writeText(resultText);
+      await navigator.clipboard.writeText(stripMarkdown(resultText));
       copyBtn.classList.add('copied');
       copyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>';
       setTimeout(() => { copyBtn.classList.remove('copied'); copyBtn.innerHTML = ICON_COPY; }, 1400);
     } catch (e) { /* clipboard permission denied — silently ignore, button just won't confirm */ }
   });
 
-  // Thumbs up/down now actually persist (see msgFeedbackRef / saveFeedback) for any message
+  // Thumbs up/down now actually persist (see msgRowRef / saveFeedback) for any message
   // that was actually saved — tapping the active one again clears the feedback rather than
   // leaving it stuck on. Mutually exclusive, same as before.
   upBtn.addEventListener('click', () => {
     const nowActive = !upBtn.classList.contains('active');
     upBtn.classList.toggle('active', nowActive);
     downBtn.classList.remove('active');
-    saveFeedback(msgFeedbackRef.get(msgEl), nowActive ? 'up' : null);
+    saveFeedback(msgRowRef.get(msgEl), nowActive ? 'up' : null);
   });
   downBtn.addEventListener('click', () => {
     const nowActive = !downBtn.classList.contains('active');
     downBtn.classList.toggle('active', nowActive);
     upBtn.classList.remove('active');
-    saveFeedback(msgFeedbackRef.get(msgEl), nowActive ? 'down' : null);
+    saveFeedback(msgRowRef.get(msgEl), nowActive ? 'down' : null);
   });
 
   if (retryBtn){
@@ -2459,10 +2644,12 @@ async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerat
   let suggestions = [];
   try {
     setStage(stageEl, 'Putting it together…');
+    const history = buildHistoryContents(pipelineMsg);
     const extraNotes = [currentDateTimeNote(), suggestionsNote()];
+    if (history.length) extraNotes.push(conversationNote());
     if (mode.id === 'football'){ extraNotes.push(footballScopeNote()); const clubNote = favoriteClubNote(); if (clubNote) extraNotes.push(clubNote); }
     const { data, provider } = await callAI({
-      contents: [{ role: 'user', parts: userParts }],
+      contents: [...history, { role: 'user', parts: userParts }],
       system_instruction: { parts: [{ text: mode.system + '\n\n' + extraNotes.join('\n\n') }] },
       tools: [{ google_search: {} }]
     });
@@ -2488,12 +2675,20 @@ async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerat
       // with the old content gone. Buttons need re-wiring since innerHTML doesn't carry
       // listeners over; the markup itself (bubble/sources/actions) is already intact.
       pipelineMsg.innerHTML = restoreCtx.html;
-      wireMsgActions(pipelineMsg, restoreCtx.resultText, userText, images, true);
-      showTransientNote(pipelineMsg, "Couldn't regenerate (" + errorMsg + ") — your previous response is unchanged.");
+      if (restoreCtx.kind === 'retry'){
+        wireRetryBlock(pipelineMsg, userText, images);
+        showTransientNote(pipelineMsg, "Still couldn't get a reply (" + errorMsg + ").");
+      } else {
+        wireMsgActions(pipelineMsg, restoreCtx.resultText, userText, images, true);
+        wireSourcesToggle(pipelineMsg);
+        wireSuggestions(pipelineMsg);
+        showTransientNote(pipelineMsg, "Couldn't regenerate (" + errorMsg + ") — your previous response is unchanged.");
+      }
     } else {
       // On a fresh send, the previous last message hasn't been demoted yet at this point,
       // so it still holds its regenerate/footer — nothing lost here either.
-      replacePipelineWithResult(pipelineMsg, `<div class="err">${escapeHtml(errorMsg)}</div>`);
+      replacePipelineWithResult(pipelineMsg, retryBlockHtml(errorMsg, true));
+      wireRetryBlock(pipelineMsg, userText, images);
     }
     return;
   }
@@ -2515,7 +2710,7 @@ async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerat
     scrollDownIfNear();
   });
   lastAssistantMsgEl = pipelineMsg;
-  saveMessage('assistant', resultText, [], { replace: isRegenerate }).then(ref => { if (ref) msgFeedbackRef.set(pipelineMsg, ref); });
+  saveMessage('assistant', resultText, [], { replaceRef: isRegenerate ? msgRowRef.get(pipelineMsg) : null, createdAt: pipelineMsg.dataset.ts }).then(ref => trackSave(pipelineMsg, ref));
   maybeGenerateChatTitle(userText, resultText); // fire-and-forget; no-ops after the first exchange
 }
 
@@ -2545,12 +2740,13 @@ async function regenerateInPlace(msgEl, userText, imageAttachments){
   const images = imageAttachments || [];
   const previousHtml = msgEl.innerHTML;
   const bubbleEl = msgEl.querySelector('.bubble-assistant');
-  const previousResultText = bubbleEl ? bubbleEl.textContent : '';
+  const previousResultText = bubbleEl ? bubbleRawText(bubbleEl) : '';
+  const kind = bubbleEl ? 'reply' : 'retry';
   msgEl.innerHTML = `<div class="pipeline">${PIPELINE_EQ_SVG}<span class="stage">Thinking…</span></div>`;
   scrollDownIfNear();
   const stageEl = msgEl.querySelector('.stage');
   isGenerating = true;
-  try { await runGeneration(msgEl, stageEl, userText, images, true, { html: previousHtml, resultText: previousResultText }); }
+  try { await runGeneration(msgEl, stageEl, userText, images, true, { html: previousHtml, resultText: previousResultText, kind }); }
   finally { isGenerating = false; }
 }
 
@@ -2561,10 +2757,10 @@ function submit(){
   const imgsForBubble = pendingImages.map(img => img.dataUrl);
   const imgsForApi = pendingImages.slice();
   addUserMsg(text || '(image)', imgsForBubble);
-  // Images are now persisted as real data (compressed on attach — see compressImage), not a
-  // placeholder label, so reloading a chat shows the actual photo again.
+  const userEl = lastUserMsgEl;
+  // Images are persisted as real data (compressed on attach — see compressImage).
   const mediaForStorage = imgsForApi.map(img => ({ type: 'image', mimeType: img.mimeType, dataUrl: img.dataUrl }));
-  saveMessage('user', text || '(image)', mediaForStorage);
+  saveMessage('user', text || '(image)', mediaForStorage, { createdAt: userEl.dataset.ts }).then(ref => trackSave(userEl, ref));
   input.value = '';
   input.style.height = 'auto';
   clearAttachments();
@@ -2580,6 +2776,132 @@ input.addEventListener('input', () => {
 // Enter always makes a new line here — this is a script-writing tool, people type multi-line prompts.
 // Sending only happens via the send button, intentionally.
 sendBtn.addEventListener('click', submit);
+
+// ---------- Long-press message menu (touch devices) ----------
+// Replaces Chrome's native text-selection toolbar / "Web search" popup: long-pressing any message
+// opens our own menu instead — Select text · Copy · (assistant) thumbs up/down + Regenerate on the
+// last reply · (yours) Edit on the last message. Text selection is disabled on touch screens (see
+// the pointer:coarse CSS); "Select text" opens a sheet where selection works normally. Desktop
+// mouse users keep the browser's normal behavior.
+const msgMenu = document.getElementById('msg-menu');
+const toastEl = document.getElementById('toast');
+const selectOverlay = document.getElementById('select-overlay');
+const selectBody = document.getElementById('select-body');
+const ICON_SELECT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4h6M9 20h6M12 4v16"/></svg>';
+let menuOpenedAt = 0, menuBubble = null;
+
+function showToast(text){
+  toastEl.textContent = text;
+  toastEl.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toastEl.classList.remove('show'), 1500);
+}
+async function copyText(text){
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e2) {}
+    ta.remove();
+  }
+  showToast('Copied');
+}
+function closeMsgMenu(){
+  msgMenu.classList.remove('open');
+  if (menuBubble){ menuBubble.classList.remove('msg-pressed'); menuBubble = null; }
+}
+function openSelectSheet(text){
+  selectBody.textContent = text;
+  selectOverlay.dataset.text = text;
+  selectOverlay.classList.add('open');
+}
+document.getElementById('select-done-btn').addEventListener('click', () => selectOverlay.classList.remove('open'));
+document.getElementById('select-copyall-btn').addEventListener('click', () => copyText(selectOverlay.dataset.text || ''));
+selectOverlay.addEventListener('click', (e) => { if (e.target === selectOverlay) selectOverlay.classList.remove('open'); });
+
+function openMsgMenu(bubbleEl, x, y){
+  const msgEl = bubbleEl.closest('.msg');
+  if (!msgEl) return;
+  const isUser = msgEl.classList.contains('user');
+  const text = isUser
+    ? ((msgEl.querySelector('.bubble-user-text') || {}).textContent || '').trim()
+    : stripMarkdown(bubbleRawText(msgEl.querySelector('.bubble-assistant'))).trim();
+  const items = [];
+  if (text){
+    items.push({ label: 'Select text', icon: ICON_SELECT, run: () => openSelectSheet(text) });
+    items.push({ label: 'Copy', icon: ICON_COPY, run: () => copyText(text) });
+  }
+  if (isUser){
+    const editBtn = msgEl.querySelector('[data-action="edit"]');
+    if (editBtn && !isGenerating) items.push({ label: 'Edit', icon: ICON_EDIT, run: () => editBtn.click() });
+  } else {
+    const up = msgEl.querySelector('[data-action="up"]');
+    const down = msgEl.querySelector('[data-action="down"]');
+    const retry = msgEl.querySelector('[data-action="retry"]');
+    if (up) items.push({ label: 'Good response', icon: ICON_THUMBS_UP, active: up.classList.contains('active'), run: () => up.click() });
+    if (down) items.push({ label: 'Bad response', icon: ICON_THUMBS_DOWN, active: down.classList.contains('active'), run: () => down.click() });
+    if (retry && !isGenerating) items.push({ label: 'Regenerate', icon: ICON_RETRY, run: () => retry.click() });
+  }
+  if (!items.length) return;
+
+  msgMenu.innerHTML = '';
+  items.forEach(it => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    if (it.active) b.classList.add('active');
+    b.innerHTML = `${it.icon}<span>${it.label}</span>`;
+    b.addEventListener('click', () => { closeMsgMenu(); it.run(); });
+    msgMenu.appendChild(b);
+  });
+  if (menuBubble) menuBubble.classList.remove('msg-pressed');
+  menuBubble = bubbleEl;
+  bubbleEl.classList.add('msg-pressed');
+  msgMenu.classList.add('open');
+  const w = msgMenu.offsetWidth, h = msgMenu.offsetHeight;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const left = Math.min(Math.max(12, x - w / 2), vw - w - 12);
+  let top = y - h - 16;
+  if (top < 70) top = Math.min(y + 24, vh - h - 12);
+  msgMenu.style.left = left + 'px';
+  msgMenu.style.top = top + 'px';
+  menuOpenedAt = Date.now();
+}
+
+let lpTimer = null, lpStart = null, lpFired = false;
+const isTouchUI = () => window.matchMedia('(pointer:coarse)').matches;
+thread.addEventListener('touchstart', (e) => {
+  if (!isTouchUI()) return;
+  const bubble = e.target.closest && e.target.closest('.bubble-assistant, .bubble-user');
+  if (!bubble || e.target.closest('.edit-wrap, a, button') || bubble.classList.contains('typing')) return;
+  const t = e.touches[0];
+  lpStart = { x: t.clientX, y: t.clientY };
+  lpFired = false;
+  clearTimeout(lpTimer);
+  lpTimer = setTimeout(() => {
+    lpFired = true;
+    if (navigator.vibrate) navigator.vibrate(12);
+    openMsgMenu(bubble, lpStart.x, lpStart.y);
+  }, 420);
+}, { passive: true });
+thread.addEventListener('touchmove', (e) => {
+  if (!lpTimer) return;
+  const t = e.touches[0];
+  if (Math.abs(t.clientX - lpStart.x) > 10 || Math.abs(t.clientY - lpStart.y) > 10){ clearTimeout(lpTimer); lpTimer = null; }
+}, { passive: true });
+['touchend', 'touchcancel'].forEach(ev => thread.addEventListener(ev, (e) => {
+  clearTimeout(lpTimer); lpTimer = null;
+  if (lpFired && e.cancelable) e.preventDefault(); // swallow the click that would follow the long-press
+}, { passive: false }));
+thread.addEventListener('contextmenu', (e) => {
+  if (isTouchUI() && e.target.closest && e.target.closest('.bubble-assistant, .bubble-user')) e.preventDefault();
+});
+document.addEventListener('pointerdown', (e) => {
+  if (!msgMenu.classList.contains('open') || Date.now() - menuOpenedAt < 450) return;
+  if (!msgMenu.contains(e.target)) closeMsgMenu();
+}, true);
+thread.addEventListener('scroll', closeMsgMenu, { passive: true });
+window.addEventListener('resize', closeMsgMenu);
 
 // --- Image attachment (up to MAX_IMAGES per message) ---
 // Gemini (gemini-2.5-flash) accepts images natively via inline_data. Groq's automatic backup
