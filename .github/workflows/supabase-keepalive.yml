@@ -1,0 +1,30 @@
+name: Supabase Keep-Alive
+
+# Supabase pauses free-tier projects after 7 days with no real database activity.
+# This runs a genuine SELECT against the `chats` table every 3 days — a safe margin
+# under the 7-day limit — so the project never goes quiet long enough to pause.
+#
+# The URL and key below are the same SUPABASE_URL / SUPABASE_ANON_KEY already hardcoded
+# in index.html — the anon key is public by design (it's shipped to every visitor's
+# browser), so there's no security reason to hide it as a GitHub secret here too.
+
+on:
+  schedule:
+    - cron: '0 6 */3 * *'   # every 3 days at 06:00 UTC
+  workflow_dispatch: {}      # lets you trigger it manually from the Actions tab, to test
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase (real query against the chats table)
+        run: |
+          STATUS=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            "https://krmjvfemsufduqdofuqy.supabase.co/rest/v1/chats?select=id&limit=1" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtybWp2ZmVtc3VmZHVxZG9mdXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwMjQ1OTMsImV4cCI6MjEwMDYwMDU5M30.ftTtPul4dCVCBgjB60NH9bdKJJAEWomipYipffRFaK4" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtybWp2ZmVtc3VmZHVxZG9mdXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwMjQ1OTMsImV4cCI6MjEwMDYwMDU5M30.ftTtPul4dCVCBgjB60NH9bdKJJAEWomipYipffRFaK4")
+          echo "HTTP status: $STATUS"
+          cat /tmp/resp.json
+          if [ "$STATUS" -ge 400 ]; then
+            echo "::warning::Supabase ping failed (HTTP $STATUS) — project may be paused. Check the dashboard."
+          fi
