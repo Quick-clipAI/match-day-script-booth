@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v2.1.0**
+**v1.2.2**
 
 A mobile-first chat app that drafts short-form video scripts across 6 content
 modes, backed by live web search and (for football) real match data — not
@@ -64,6 +64,14 @@ Attached images are now compressed client-side (max 1024px, JPEG ~70% quality) a
 
 ### Changelog
 
+- **v1.2.2** — New logo everywhere; version label reset to v1.2.2 (entries below used a higher internal numbering and are kept for history).
+  1. The asterisk-and-ball logo replaces the old three-bar mark on the home screen, sign-in and welcome screens, sidebar, reply footer, and the "Thinking…" loader (which now pulses the logo). Terms and Privacy pages carry it too.
+  2. The site finally has a favicon (`favicon.svg`, `favicon.ico`), an iOS home-screen icon (`apple-touch-icon.png`), and a link-preview image (`icon-512.png`).
+  3. Logo orange is `#FF6A1A` (CSS variable `--brand`); the interface accent colour is unchanged.
+- **v2.2.0** — Desktop layout. Phones are pixel-identical to v2.1.0.
+  1. From 900px wide: wider reading column (800px), larger text, bigger home screen and centered composer.
+  2. From 1100px wide: the chat list is a permanent left sidebar (no hamburger, no dimming overlay).
+  3. Short windows (under 750px tall) get a compact home screen so nothing overlaps.
 - **v2.1.0** — Groundwork for the Android app; the website itself behaves the same.
   1. **Google + email sign-in can return to the app.** Inside the app, Google opens in the phone's real browser (Google blocks sign-in inside embedded WebViews) and comes back through a `com.creatorbooth.app://login-callback` link; email sign-in links use the same return link. On the website nothing changes. **Supabase → Authentication → URL Configuration → Redirect URLs must also contain `com.creatorbooth.app://**`.**
   2. **In-app updates.** The app checks GitHub for a newer web build, downloads it quietly, and offers a one-tap restart. Inactive on the website.
