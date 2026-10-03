@@ -823,6 +823,13 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const API_ORIGIN = 'https://creator-boot.vercel.app';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// --- Native (Android app) support. Everything tied to these constants is inert in a normal
+// browser tab: window.NativeBridge only exists inside the app (the build script injects it).
+const NATIVE = !!(window.NativeBridge && window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+const APP_AUTH_REDIRECT = 'com.creatorbooth.app://login-callback';
+const UPDATE_REPO = '__GITHUB_REPO__'; // the app build replaces this with "owner/repo"
+const nativePlugin = (name) => (window.NativeBridge && window.NativeBridge[name]) || null;
+
 const USER_NAME_FALLBACK = 'there'; // used until a real signed-in name/email is available
 
 /* ------------------------------------------------------------------ */
@@ -918,7 +925,7 @@ const composerEl = document.querySelector('.composer');
 
 // Single source of truth for the version shown in the header and in Settings.
 // Bump this on every deploy — see README.md's "Versioning" section.
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.1.0';
 document.getElementById('hdr-version').textContent = 'v' + APP_VERSION;
 const settingsVersionEl = document.getElementById('settings-app-version');
 if (settingsVersionEl) settingsVersionEl.textContent = 'Creator Booth v' + APP_VERSION;
@@ -1643,13 +1650,30 @@ checkEmailBack.addEventListener('click', () => {
 });
 
 document.getElementById('auth-google-btn').addEventListener('click', async () => {
+  if (NATIVE){
+    // Inside the app Google must open in the phone's real browser (Google blocks sign-in inside
+    // an embedded WebView). The browser sends the user back via the com.creatorbooth.app:// link,
+    // which handleAuthDeepLink() below picks up.
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google', options: { redirectTo: APP_AUTH_REDIRECT, skipBrowserRedirect: true }
+      });
+      if (error) throw error;
+      const Browser = nativePlugin('Browser');
+      if (!Browser) throw new Error('Browser plugin unavailable');
+      await Browser.open({ url: data.url });
+    } catch (err) {
+      authNote.textContent = 'Could not start Google sign-in: ' + (err && err.message ? err.message : err);
+    }
+    return;
+  }
   await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
 });
 authEmailSend.addEventListener('click', async () => {
   const email = authEmailInput.value.trim();
   if (!email) return;
   authEmailSend.disabled = true;
-  const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } });
+  const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: NATIVE ? APP_AUTH_REDIRECT : window.location.href } });
   if (error){
     authNote.textContent = error.message;
     authEmailSend.disabled = false;
@@ -3169,7 +3193,90 @@ function clearAttachments(){
 // --- Boot ---
 // supabase fires onAuthStateChange once immediately with the current session (or null),
 // and that handler already creates/opens the right chat — nothing else needed here.
+// --- Native bridge: sign-in return trip + in-app updates (no-ops on the website) ---
+let lastDeepLink = '';
+async function handleAuthDeepLink(url){
+  if (typeof url !== 'string' || url.indexOf('com.creatorbooth.app://') !== 0 || url === lastDeepLink) return;
+  lastDeepLink = url;
+  try {
+    const hash = url.indexOf('#'), qs = url.indexOf('?');
+    const query = new URLSearchParams(qs >= 0 ? url.slice(qs + 1, hash > qs ? hash : undefined) : '');
+    const frag = new URLSearchParams(hash >= 0 ? url.slice(hash + 1) : '');
+    const get = (k) => frag.get(k) || query.get(k);
+    const problem = get('error_description') || get('error');
+    if (problem) throw new Error(problem);
+    let result;
+    if (get('code')) result = await supabase.auth.exchangeCodeForSession(get('code'));
+    else if (get('access_token') && get('refresh_token')) result = await supabase.auth.setSession({ access_token: get('access_token'), refresh_token: get('refresh_token') });
+    else return;
+    if (result.error) throw result.error;
+    try { const B = nativePlugin('Browser'); if (B) await B.close(); } catch (e) { /* Android can't close the tab itself; harmless */ }
+  } catch (err) {
+    openAuthView();
+    authNote.textContent = 'Sign-in failed: ' + (err && err.message ? err.message : err);
+  }
+}
+
+let updateState = 'idle'; // idle | checking | ready
+let lastUpdateCheck = 0;
+function showUpdateBanner(bundle){
+  if (document.getElementById('update-banner')) return;
+  const bar = document.createElement('div');
+  bar.id = 'update-banner';
+  bar.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);z-index:9999;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;font-size:13px;color:var(--text);box-shadow:0 6px 24px rgba(0,0,0,.4)';
+  const msg = document.createElement('span');
+  msg.style.flex = '1';
+  msg.textContent = 'A new version is ready.';
+  const btn = document.createElement('button');
+  btn.textContent = 'Restart';
+  btn.style.cssText = 'background:var(--accent);color:#fff;border:0;border-radius:9px;padding:7px 14px;font:inherit;font-weight:600;cursor:pointer';
+  btn.addEventListener('click', async () => {
+    btn.disabled = true; btn.textContent = 'Updating…';
+    try { await nativePlugin('CapacitorUpdater').set({ id: bundle.id }); } catch (e) { btn.disabled = false; btn.textContent = 'Restart'; }
+  });
+  const later = document.createElement('button');
+  later.textContent = 'Later';
+  later.style.cssText = 'background:none;color:var(--text-dim);border:0;font:inherit;cursor:pointer';
+  later.addEventListener('click', () => bar.remove());
+  bar.append(msg, later, btn);
+  document.body.appendChild(bar);
+}
+// Compares the build number shipped inside this copy of the app (./version.json) with the newest
+// one published on GitHub. If newer, downloads just the web files quietly, queues them for the
+// next launch, and offers a one-tap restart. Never blocks or breaks the app if anything fails.
+async function checkForAppUpdate(){
+  if (!NATIVE || updateState !== 'idle' || UPDATE_REPO.indexOf('__') === 0) return;
+  if (Date.now() - lastUpdateCheck < 10 * 60 * 1000) return;
+  const Updater = nativePlugin('CapacitorUpdater'), Http = nativePlugin('CapacitorHttp');
+  if (!Updater || !Http) return;
+  updateState = 'checking'; lastUpdateCheck = Date.now();
+  try {
+    const base = 'https://github.com/' + UPDATE_REPO + '/releases/download/latest/';
+    const local = await fetch('./version.json', { cache: 'no-store' }).then((r) => r.json());
+    const remote = (await Http.get({ url: base + 'version.json?t=' + Date.now(), responseType: 'json' })).data;
+    if (!remote || !(Number(remote.build) > Number(local.build))) { updateState = 'idle'; return; }
+    const bundle = await Updater.download({ url: base + 'bundle.zip', version: String(remote.version) });
+    await Updater.next({ id: bundle.id });   // applies on next launch even if the banner is ignored
+    updateState = 'ready';
+    showUpdateBanner(bundle);
+  } catch (err) {
+    updateState = 'idle'; // offline / GitHub hiccup: try again at the next check
+  }
+}
+if (NATIVE){
+  const AppPlugin = nativePlugin('App');
+  if (AppPlugin){
+    AppPlugin.addListener('appUrlOpen', (e) => handleAuthDeepLink(e && e.url));
+    AppPlugin.getLaunchUrl().then((l) => { if (l && l.url) handleAuthDeepLink(l.url); }).catch(() => {});
+    AppPlugin.addListener('appStateChange', (st) => { if (st && st.isActive) checkForAppUpdate(); });
+  }
+  checkForAppUpdate();
+}
+
 showView('chat');
+// Tell the updater this version started fine. If a downloaded update ever broke startup, this line
+// would never run and the app rolls back to the previous working version by itself.
+if (NATIVE){ try { const U = nativePlugin('CapacitorUpdater'); if (U) U.notifyAppReady(); } catch (e) {} }
 </script>
 </body>
 </html>
