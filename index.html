@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Creator Booth</title>
+<title>Creator Booth — Football AI for match analysis, scouting &amp; scripts</title>
+<meta name="description" content="Creator Booth is a free football AI assistant for match analysis, player scouting, up-to-date research and video scripts. Use it on the web or as an Android app."/>
+<link rel="canonical" href="https://creator-boot.vercel.app/"/>
+<meta name="robots" content="index,follow,max-image-preview:large"/>
 <meta name="theme-color" content="#000000"/>
 <script>
 /* Theme: "system" (follow the phone), "light" or "dark". Runs before first paint so there is no flash.
@@ -31,8 +34,25 @@
 <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192"/>
 <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
 <meta property="og:title" content="Creator Booth — Football AI"/>
+<meta property="og:description" content="Creator Booth is a free football AI assistant for match analysis, player scouting, up-to-date research and video scripts. Use it on the web or as an Android app."/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://creator-boot.vercel.app/"/>
+<meta property="og:site_name" content="Creator Booth"/>
 <meta property="og:image" content="https://creator-boot.vercel.app/icon-512.png"/>
 <meta name="twitter:card" content="summary"/>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Creator Booth","url":"https://creator-boot.vercel.app/","description":"Creator Booth is a free football AI assistant for match analysis, player scouting, up-to-date research and video scripts. Use it on the web or as an Android app.","applicationCategory":"SportsApplication","operatingSystem":"Web, Android","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<script>
+/* Website-only visitor counts (Vercel Web Analytics: cookieless, anonymous). Never runs inside the Android app
+   (its address is https://localhost), and is skipped when the visitor's browser sends Do Not Track. */
+(function(){
+  try{
+    if(location.protocol!=='https:'||location.hostname==='localhost')return;
+    if(navigator.doNotTrack==='1'||window.doNotTrack==='1')return;
+    window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};
+    var s=document.createElement('script');s.defer=true;s.src='/_vercel/insights/script.js';document.head.appendChild(s);
+  }catch(e){}
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
 <style>
@@ -1263,7 +1283,7 @@ const composerEl = document.querySelector('.composer');
 
 // Single source of truth for the version shown in the header and in Settings.
 // Bump this on every deploy — see README.md's "Versioning" section.
-const APP_VERSION = '1.2.5';
+const APP_VERSION = '1.2.6';
 document.getElementById('hdr-version').textContent = 'v' + APP_VERSION;
 const settingsVersionEl = document.getElementById('settings-app-version');
 if (settingsVersionEl) settingsVersionEl.textContent = 'Creator Booth v' + APP_VERSION;
