@@ -1,12 +1,16 @@
 # Creator Booth
 
-**v1.2.2**
+**v1.2.4**
 
-A mobile-first chat app that drafts short-form video scripts across 6 content
-modes, backed by live web search and (for football) real match data — not
-just whatever the model remembers from training.
+A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by live web search and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
 ## Versioning
+
+**Version numbers: only ever bump the LAST number.** 1.2.3 → 1.2.4 → 1.2.5. Do not
+touch the middle or first number unless the owner explicitly asks for it (for
+example, 1.2.9 → 1.2.10 is correct, 1.2.9 → 1.3.0 is not). One release = one
+increment, no matter how many changes it contains. The Android app project
+(`package.json` + the app README) uses the same number.
 
 **This README must be updated on every change, in the same commit/patch as
 the code.** Not just the version number — the relevant sections above too
@@ -20,6 +24,31 @@ On every update:
 2. Bump `"version"` in `package.json` to match.
 3. Add a line to the changelog below.
 4. Update whichever sections of this README are now stale.
+
+### Setup: feedback table (required for Settings → Send feedback, v1.2.3)
+
+Run this once in Supabase → SQL Editor. Until you do, the feedback form shows "Couldn't send it just now".
+
+```sql
+create table if not exists feedback (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  user_id uuid references auth.users(id) on delete set null,
+  rating smallint not null check (rating between 1 and 5),
+  category text check (category in ('bug','idea','confusing','praise')),
+  message text not null check (char_length(message) between 5 and 2000),
+  contact text check (contact is null or char_length(contact) <= 200),
+  app_version text,
+  platform text,
+  viewport text
+);
+alter table feedback enable row level security;
+create policy "Anyone can send feedback" on feedback
+  for insert to anon, authenticated
+  with check (user_id is null or user_id = auth.uid());
+-- Deliberately no SELECT policy: nobody can read feedback through the app.
+-- You read it in Supabase → Table Editor → feedback.
+```
 
 ### Setup: profiles table (required for onboarding survey + personalization)
 
@@ -64,6 +93,20 @@ Attached images are now compressed client-side (max 1024px, JPEG ~70% quality) a
 
 ### Changelog
 
+- **v1.2.4** — About the author filled in (About page → "About the author"): name, short bio, a round avatar made from the pPrince logo, and a link to the freeCodeCamp Responsive Web Design certificate. Personal email and phone number are deliberately NOT shown on the public page. Edit the `ABOUT_AUTHOR` object in `index.html` to change any of it; leave `bio` empty to hide the section again. Inside the app, links open in the phone's browser.
+- **v1.2.3** — Everything since v1.2.2, in one release. (An earlier build of this work was labelled v1.3.0; the correct number is v1.2.3 because only the last number is bumped.)
+  1. **Offline start.** Chat list and the latest chat show straight from the phone's saved copy (about 0.2s in testing); the 12 most recent chats are saved while online so they open offline. The welcome form never appears offline; it only shows after the server confirms a new user.
+  2. **Sidebar account name.** Nickname, then first name, then surname; the email only when the profile is empty. The name sits in a box that ends in "…" when long, and the Google profile photo is used when available, with the initial as fallback.
+  3. **Small and zoomed phones.** Home cards stay clear of the input box (checked at 360x640, 360x800, 553x1270); the send button fits narrow screens.
+  4. **Theme.** Settings → Appearance cycles System / Light / Dark (System is the default). **Dark is now true black (#000)** so it matches the phone's status bar; the Android status bar colour follows the theme.
+  5. **Typing reveal** no longer scrolls the page while text appears; a "Jump to latest" button shows if the text runs below the screen.
+  6. **Thinking animation:** the star rolls once, then the ball comes out of its centre.
+  7. **Reply length pill:** Short (about 60-150 words, default) or Deep (about 400-800 words).
+  8. **No more blank chats.** "New chat" is just a blank screen until the first message is sent; the chat is saved then. Old empty "New chat" entries (older than 2 minutes, zero messages) are cleaned up once per sign-in. Guest chats too.
+  9. **About Creator Booth page** (Settings → About): what it is, the problem, how it helps, how it differs from a general chatbot, and (website only) a Website-vs-App comparison. It contains only claims that are true of the code. The "About the author" block is controlled by `ABOUT_AUTHOR` in `index.html` (hidden while `bio` is empty).
+  10. **Send feedback page** (Settings → Send feedback): star rating, optional category, message, optional reply email. Works signed in or as a guest. Needs the `feedback` table above. Terms and Privacy updated to say what is stored.
+  11. **"Get the app" popup** on the website for Android browsers (after about 9s, never over sign-in, and hidden for 14 days once dismissed). Its button goes to `/download`, a redirect defined in `vercel.json`, so the GitHub address isn't printed on the page. Also available from Settings → Get the Android app. Not shown inside the app.
+  12. Removed the dead Voice and Help & FAQ rows from Settings (the FAQ now lives on the About page); Terms and Privacy rows open those pages.
 - **v1.2.2** — New logo everywhere; version label reset to v1.2.2 (entries below used a higher internal numbering and are kept for history).
   1. The asterisk-and-ball logo replaces the old three-bar mark on the home screen, sign-in and welcome screens, sidebar, reply footer, and the "Thinking…" loader (which now pulses the logo). Terms and Privacy pages carry it too.
   2. The site finally has a favicon (`favicon.svg`, `favicon.ico`), an iOS home-screen icon (`apple-touch-icon.png`), and a link-preview image (`icon-512.png`).
