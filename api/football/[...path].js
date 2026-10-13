@@ -80,6 +80,12 @@ export default async function handler(req, res) {
       proxy: { requestedPath: target.path, pathFoundIn: target.pathFoundIn, requestUrl: String(req.url || ''), queryKeysSeen: Object.keys(req.query || {}) }
     });
   }
+  // Only the endpoints Creator Booth actually uses, so the proxy is not an open door to your whole API quota.
+  const ALLOWED = new Set(['status', 'leagues', 'fixtures', 'fixtures/events', 'fixtures/statistics', 'fixtures/lineups',
+    'standings', 'teams', 'coachs', 'players', 'players/topscorers', 'players/topassists', 'injuries', 'transfers']);
+  if (!ALLOWED.has(target.path)) {
+    return res.status(400).json({ error: 'That football endpoint is not available on this site.', requestedPath: target.path });
+  }
   const qs = target.params.toString();
   const url = `${API_BASE}/${target.path}${qs ? '?' + qs : ''}`;
 
@@ -107,9 +113,6 @@ export default async function handler(req, res) {
         }
       });
     }
-
-    // /status also returns the account owner's name and email. This proxy is public, so never pass those on.
-    if (target.path === 'status' && data && data.response && typeof data.response === 'object') delete data.response.account;
 
     // Cache lightweight, fast-changing data briefly at the edge to save on quota.
     res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');

@@ -31,12 +31,16 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: { message: 'Missing "contents" in request body.' } });
   }
 
-  // Model names live in Vercel environment variables so a future model retirement needs no code change:
-  //   GEMINI_MODEL           (default gemini-3.5-flash)
-  //   GEMINI_FALLBACK_MODEL  (default gemini-3.1-flash-lite) — only tried if the first model returns 404 (retired/removed)
-  // gemini-2.5-flash is being shut down by Google on 16 Oct 2026, so it is no longer used.
-  const primary = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
-  const backup = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.1-flash-lite';
+  // Model names live in Vercel environment variables, so a model retirement needs no code change.
+  //   GEMINI_MODEL           one name, or several separated by commas in priority order, e.g.
+  //                          gemini-2.5-flash,gemini-3.5-flash-lite,gemini-3.5-flash
+  //   GEMINI_FALLBACK_MODEL  optional extra model appended to the end of that list
+  // If a model is gone (404) or Google is overloaded (503/500), the next one in the list is tried.
+  const chain = String(process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite,gemini-3.5-flash')
+    .split(',').map(x => x.trim()).filter(Boolean);
+  const extra = (process.env.GEMINI_FALLBACK_MODEL || '').trim();
+  if (extra && chain.indexOf(extra) === -1) chain.push(extra);
+
   const call = async (model) => {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
     const upstream = await fetch(url, {
@@ -49,8 +53,11 @@ export default async function handler(req, res) {
   };
 
   try {
-    let r = await call(primary);
-    if (r.status === 404 && backup && backup !== primary) r = await call(backup);
+    let r = null;
+    for (let i = 0; i < chain.length && i < 4; i++) {
+      r = await call(chain[i]);
+      if (![404, 500, 502, 503].includes(r.status)) break;
+    }
     res.setHeader('x-gemini-model', r.model);
     return res.status(r.status).json(r.data);
   } catch (err) {
