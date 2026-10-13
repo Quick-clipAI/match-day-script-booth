@@ -31,18 +31,28 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: { message: 'Missing "contents" in request body.' } });
   }
 
-  const model = 'gemini-2.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
-
-  try {
+  // Model names live in Vercel environment variables so a future model retirement needs no code change:
+  //   GEMINI_MODEL           (default gemini-3.5-flash)
+  //   GEMINI_FALLBACK_MODEL  (default gemini-3.1-flash-lite) — only tried if the first model returns 404 (retired/removed)
+  // gemini-2.5-flash is being shut down by Google on 16 Oct 2026, so it is no longer used.
+  const primary = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+  const backup = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.1-flash-lite';
+  const call = async (model) => {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
     const upstream = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents, system_instruction, tools })
     });
-
     const data = await upstream.json().catch(() => ({}));
-    return res.status(upstream.status).json(data);
+    return { status: upstream.status, data, model };
+  };
+
+  try {
+    let r = await call(primary);
+    if (r.status === 404 && backup && backup !== primary) r = await call(backup);
+    res.setHeader('x-gemini-model', r.model);
+    return res.status(r.status).json(r.data);
   } catch (err) {
     return res.status(502).json({ error: { message: 'Could not reach Gemini: ' + (err && err.message) } });
   }

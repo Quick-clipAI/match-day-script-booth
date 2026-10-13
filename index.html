@@ -1317,7 +1317,7 @@ const composerEl = document.querySelector('.composer');
 
 // Single source of truth for the version shown in the header and in Settings.
 // Bump this on every deploy — see README.md's "Versioning" section.
-const APP_VERSION = '1.2.7';
+const APP_VERSION = '1.3.0';
 document.getElementById('hdr-version').textContent = 'v' + APP_VERSION;
 const settingsVersionEl = document.getElementById('settings-app-version');
 if (settingsVersionEl) settingsVersionEl.textContent = 'Creator Booth v' + APP_VERSION;
@@ -3018,9 +3018,22 @@ async function callAI(requestBody){
   const err = await res.json().catch(() => ({}));
   return groqFallback(requestBody, (err && err.error && err.error.message) || ('status ' + res.status));
 }
+function whyGeminiFailed(msg){
+  const m = String(msg || '');
+  if (/no longer available|not found|\b404\b|is not supported/i.test(m)) return 'Gemini model unavailable';
+  if (/quota|RESOURCE_EXHAUSTED|\b429\b|rate.?limit/i.test(m)) return 'Gemini request limit reached';
+  if (/API key|\b401\b|\b403\b|permission|PERMISSION_DENIED|GEMINI_API_KEY/i.test(m)) return 'Gemini key problem';
+  if (/took too long|abort|timed out/i.test(m)) return 'Gemini too slow';
+  return 'Gemini error';
+}
 async function groqFallback(requestBody, geminiMsg){
-  const systemText = requestBody.system_instruction && requestBody.system_instruction.parts &&
+  const baseSystem = requestBody.system_instruction && requestBody.system_instruction.parts &&
     requestBody.system_instruction.parts.map(p => p.text).join('\n');
+  // The backup AI cannot search the web and its memory is out of date. Without this note it confidently
+  // "corrects" people about recent events (it told someone a 2026 final never happened). Be honest instead.
+  const systemText = (baseSystem || '') + `
+
+IMPORTANT — LIVE SEARCH IS OFF FOR THIS ANSWER: you cannot browse the web and your own knowledge is out of date. Treat anything that may have happened recently (this season, the 2026 World Cup, transfers, injuries, rumours, results) as something you CANNOT confirm or deny. Never tell the person that an event "did not happen" or that a rumour is false because you do not remember it. Say plainly that you cannot verify it right now, share only background you are sure about, and suggest they try again in a few minutes for a live-checked answer. Facts in a VERIFIED DATA block (if present) are still reliable.`;
   const messages = geminiContentsToOpenAIMessages(systemText, requestBody.contents);
   const openAITools = geminiToolsToOpenAI(requestBody.tools);
   const hasImage = requestHasImage(requestBody.contents);
@@ -3035,7 +3048,7 @@ async function groqFallback(requestBody, geminiMsg){
     const imgNote = hasImage ? ' (including the attached image)' : '';
     throw new Error('Gemini: ' + geminiMsg + ' — backup (Groq) also failed' + imgNote + ': ' + groqMsg);
   }
-  return { data: openAIResponseToGeminiShape(await res2.json()), provider: 'groq' };
+  return { data: openAIResponseToGeminiShape(await res2.json()), provider: 'groq', why: whyGeminiFailed(geminiMsg) };
 }
 
 // Small helper tasks (finding club names, naming a chat) run on Groq first so they don't spend
@@ -3301,7 +3314,7 @@ function buildVerifiedHtml(labels){
 // apps keep sources out of the way until you actually want them, rather than always dumping
 // full cards into the reply. wireSourcesToggle (called right after this HTML is inserted)
 // wires the expand/collapse.
-function buildSourcesHtml(chunks, usedFallback){
+function buildSourcesHtml(chunks, usedFallback, fallbackWhy){
   if (chunks && chunks.length){
     const favicons = chunks.slice(0, 3).map(c => {
       const w = c.web || {};
@@ -3335,7 +3348,7 @@ function buildSourcesHtml(chunks, usedFallback){
     </div>`;
   }
   if (usedFallback){
-    return `<div class="sources"><span class="sources-fallback-note">⚠ Backup AI used — no live web search this time, verify facts before using</span></div>`;
+    return `<div class="sources"><span class="sources-fallback-note">⚠ Backup AI used${fallbackWhy ? ' (' + escapeHtml(fallbackWhy) + ')' : ''} — no live web search this time, verify facts before using</span></div>`;
   }
   return '';
 }
@@ -3482,6 +3495,7 @@ async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerat
   let resultText = '';
   let chunks = [];
   let usedFallback = false;
+  let fallbackWhy = '';
   let errorMsg = '';
   let suggestions = [];
   let suggestionsLead = '';
@@ -3497,12 +3511,13 @@ async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerat
       if (history.length) extraNotes.push(conversationNote());
       if (mode.id === 'banter'){ extraNotes.push(banterClubNote()); }
       else { extraNotes.push(footballScopeNote()); const clubNote = favoriteClubNote(); if (clubNote) extraNotes.push(clubNote); extraNotes.push('You are in ANALYSIS mode: answer the question asked, straight and factually. If earlier messages in this chat were jokes or banter, do not continue that tone unless the latest message asks for it.'); }
-      const { data, provider } = await callAI({
+      const { data, provider, why } = await callAI({
         contents: [...history, { role: 'user', parts: userParts }],
         system_instruction: { parts: [{ text: mode.system + '\n\n' + extraNotes.join('\n\n') }] },
         tools: [{ google_search: {} }]
       });
       usedFallback = provider === 'groq';
+      fallbackWhy = why || '';
       const cand = data && data.candidates && data.candidates[0];
       const parts = cand && cand.content && cand.content.parts;
       let rawText = parts ? parts.map(p => p.text || '').join('') : '';
@@ -3558,7 +3573,7 @@ async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerat
   if (!isRegenerate) demoteAssistantMessage(lastAssistantMsgEl); // only now that we know this new reply will actually land
 
   const verifiedHtml = buildVerifiedHtml(verifiedLabels);
-  const sourcesHtml = buildSourcesHtml(chunks, usedFallback);
+  const sourcesHtml = buildSourcesHtml(chunks, usedFallback, fallbackWhy);
   const suggestionsHtml = buildSuggestionsHtml(suggestions, suggestionsLead);
   const actionsHtml = buildMsgActionsHtml(true); // this message is always the new "last" once it lands
   pipelineMsg.innerHTML = verifiedHtml + '<div class="bubble-assistant"></div>';

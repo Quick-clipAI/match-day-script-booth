@@ -1,16 +1,17 @@
 # Creator Booth
 
-**v1.2.4**
+**v1.3.0**
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by live web search and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
 ## Versioning
 
-**Version numbers: only ever bump the LAST number.** 1.2.3 → 1.2.4 → 1.2.5. Do not
-touch the middle or first number unless the owner explicitly asks for it (for
-example, 1.2.9 → 1.2.10 is correct, 1.2.9 → 1.3.0 is not). One release = one
-increment, no matter how many changes it contains. The Android app project
-(`package.json` + the app README) uses the same number.
+**Version numbers count like an odometer.** Each release raises the LAST number by one. When the last number
+would pass 9, it goes back to 0 and the MIDDLE number goes up by one; when the middle number would pass 9, it
+goes back to 0 and the FIRST number goes up by one. So: 1.2.9 → **1.3.0** → 1.3.1 → 1.3.1 … 1.9.9 → **2.0.0**.
+(An earlier version of this note said 1.2.9 → 1.2.10; the owner's rule is the odometer rule above.) One release =
+one increment, no matter how many changes it contains. The Android app project (`package.json` + the app README)
+uses the same number.
 
 **This README must be updated on every change, in the same commit/patch as
 the code.** Not just the version number — the relevant sections above too
@@ -92,6 +93,14 @@ Until this column exists, tapping thumbs up/down still gives visual feedback but
 Attached images are now compressed client-side (max 1024px, JPEG ~70% quality) and saved as base64 directly in the `messages.media` jsonb column — not Supabase Storage. This is the simpler option and fine for personal/moderate use, but it counts against Supabase's free-tier **database** size limit (500MB), not the separate Storage limit (1GB), and base64 is ~33% larger than the raw bytes. If image use grows heavy, migrating to Supabase Storage (storing a URL instead of the bytes) would be the next step — flagging now so it's a deliberate choice later, not a surprise.
 
 ### Changelog
+
+- **v1.3.0** — Football data fix and web search endpoint. (This changelog has no entries for v1.2.5 to v1.2.9, which were made in other sessions; short notes on them are in the Android project's README. The header here still said v1.2.4 and has been corrected.)
+  1. **Root-cause fix for "football data never arrives".** `api/football/[...path].js` now reads the endpoint from the real request URL (with fallbacks) instead of trusting `req.query.path`, strips the helper parameter Vercel adds, and refuses odd paths with a clear 400. A lost endpoint used to send the call to API-Football's bare root address, which replies "NOT AUTORIZED, API KEY MISSING OR USER BLOCKED" with HTTP 200 even for a good key. Proven in a separate test project: the same key returned "Plan: Free, 0 of 100 requests".
+  2. **Rejected keys are now reported honestly.** API-Football signals a bad key inside an HTTP 200 reply; the proxy turns that into HTTP 401 with a plain message, the key length only (never the key), the path it sent, and `no-store` caching. Plan and daily-limit messages still pass through unchanged. The app already treats any non-OK football reply as "no data", so nothing changes for visitors.
+  3. **Privacy fix.** `/api/football/status` no longer returns the account owner's name and email (the proxy is public).
+  4. **Minimal upstream request.** The proxy sends only the `x-apisports-key` header, as the API-Football documentation asks (Node's built-in fetch adds five extra headers). This turned out not to be the cause of the problem but matches the documentation.
+  5. **New `api/search.js`** (web search through Tavily): titles, links and short snippets only, basic depth (1 credit), optional news mode, recency range, and a "trusted sites" filter (BBC, Soccernet.ng, Sky Sports, The Guardian, ESPN, UEFA, FIFA, Premier League, Transfermarkt, Goal, Reuters, AP, The Athletic). **Not wired into the chat yet**; it does nothing until `TAVILY_API_KEY` is set and a later release calls it.
+  6. `package.json` gets `"type": "module"` (the API files already use ES-module syntax and none use CommonJS), matching the environment the proxy was tested in.
 
 - **v1.2.4** — About the author filled in (About page → "About the author"): name, short bio, a round avatar made from the pPrince logo, and a link to the freeCodeCamp Responsive Web Design certificate. Personal email and phone number are deliberately NOT shown on the public page. Edit the `ABOUT_AUTHOR` object in `index.html` to change any of it; leave `bio` empty to hide the section again. Inside the app, links open in the phone's browser.
 - **v1.2.3** — Everything since v1.2.2, in one release. (An earlier build of this work was labelled v1.3.0; the correct number is v1.2.3 because only the last number is bumped.)
@@ -350,6 +359,9 @@ not a surprise.
    - `GROQ_API_KEY` — (optional) free key from console.groq.com/keys, no card
      required. Automatic backup when Gemini's quota runs out. The chat still
      works without it, it just has no fallback.
+   - `TAVILY_API_KEY` — (optional, for the web search endpoint `/api/search`,
+     added in v1.3.0 but not yet used by the chat) free key from tavily.com,
+     1,000 credits a month, no card. Never paste any key into a chat or screenshot.
 
    Then **redeploy** (Deployments tab → ⋯ → Redeploy) — Vercel doesn't
    hot-reload env vars into an existing deployment.
@@ -363,6 +375,22 @@ not a surprise.
    mode, a football request, an image attach, and incognito — before
    trusting it's fully working. None of this has had a real end-to-end test
    pass yet as of v1.0.0.
+
+## If football data is missing (troubleshooting)
+
+Open `https://<your-site>/api/football/status` in a browser. A healthy reply shows your plan and request
+count (for example `"plan":"Free"` and `"requests":{"current":0,"limit_day":100}`); your account name and
+email are removed from it on purpose. Since v1.3.0 any failure explains itself:
+
+- **HTTP 401, "API-Football rejected the API key"**: the reply says how many characters the key is (normally
+  32) and what path was sent. Re-enter `API_SPORTS_KEY` in Vercel and **redeploy**.
+- **HTTP 400, "Could not work out which endpoint was requested"**: the reply shows what arrived; report it.
+- **HTTP 500, "missing API_SPORTS_KEY"**: add the variable and redeploy.
+
+Background: before v1.3.0 the proxy took the endpoint name from `req.query.path`. When Vercel passed that
+under another name the call went to API-Football's bare root address, which answers a perfectly good key with
+the misleading "NOT AUTORIZED, API KEY MISSING OR USER BLOCKED" (HTTP 200), so every football lookup silently
+found nothing while the dashboard showed 0 requests. The proxy now reads the endpoint from the real URL.
 
 ## Keep Supabase from auto-pausing
 
