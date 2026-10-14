@@ -56,7 +56,10 @@ export default async function handler(req, res) {
     let r = null;
     for (let i = 0; i < chain.length && i < 4; i++) {
       r = await call(chain[i]);
-      if (![404, 500, 502, 503].includes(r.status)) break;
+      // 404 = model gone, 5xx = Google busy. 429 on a plain request = this model's own free quota is used up,
+      // so the next model (which has its own quota) may still answer. With the search tool, 429 means search is refused: stop.
+      const retry = [404, 500, 502, 503].includes(r.status) || (r.status === 429 && !tools);
+      if (!retry) break;
     }
     res.setHeader('x-gemini-model', r.model);
     return res.status(r.status).json(r.data);
