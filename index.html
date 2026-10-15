@@ -690,6 +690,18 @@ body.new-chat .hero{padding-bottom:calc(var(--composer-h,150px) + var(--composer
 .promo-links{display:flex;justify-content:space-between;margin-top:10px}
 .promo-links button{background:none;border:0;color:var(--text-dim);font:inherit;font-size:13.5px;cursor:pointer;padding:6px 2px}
 @media (min-width:600px){#app-promo{align-items:center}.promo-card{border-radius:20px}}
+/* update notice (Android app only): same bottom sheet look as the "Get the app" popup */
+#update-sheet{position:fixed;inset:0;z-index:50;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
+#update-sheet.open{display:flex}
+#update-sheet .promo-dl{border:0;width:100%;font:inherit;font-weight:600;font-size:15px;cursor:pointer}
+#update-sheet .promo-dl[disabled]{opacity:.6;cursor:default}
+#update-sheet .upd-text{font-size:14px;color:var(--text-dim);line-height:1.5;margin:0 0 14px}
+#update-sheet .upd-err{font-size:12.5px;color:#d98a7a;line-height:1.45;margin:0 0 12px;word-break:break-word}
+:root[data-theme="light"] #update-sheet .upd-err{color:#b0452c}
+.update-detail{font-size:12px;line-height:1.6;color:var(--text-faint);padding:2px 6px 14px;word-break:break-word;white-space:pre-line}
+.settings-row .row-val.upd-new{color:var(--accent);font-weight:600}
+.settings-row.last-vis{border-radius:0 0 12px 12px}
+@media (min-width:600px){#update-sheet{align-items:center}}
 
 /* modes */
 .mode-pill{cursor:pointer;user-select:none}
@@ -1067,6 +1079,10 @@ body.new-chat .hero{padding-bottom:calc(var(--composer-h,150px) + var(--composer
       Send feedback
       <span class="chev">›</span>
     </div>
+    <div class="settings-row" id="row-update" style="display:none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 20h14"/></svg>
+      App updates
+      <span class="row-val" id="update-val">Check now</span>
+    </div>
     <div class="settings-row" id="row-getapp" style="display:none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
       Get the Android app
       <span class="chev">›</span>
@@ -1091,6 +1107,7 @@ body.new-chat .hero{padding-bottom:calc(var(--composer-h,150px) + var(--composer
     </div>
   </div>
 
+  <div class="update-detail" id="update-detail" style="display:none"></div>
   <div class="app-version" id="settings-app-version"></div>
 </div>
 
@@ -1261,7 +1278,7 @@ function currentMode(){ return MODES.find(m => m.id === currentModeId) || MODES[
 let replyLength = (function(){ try { return localStorage.getItem('cb_reply_len') === 'deep' ? 'deep' : 'short'; } catch (e) { return 'short'; } })();
 function replyLengthNote(){
   if (replyLength === 'deep') return `REPLY LENGTH — DEEP MODE: the person wants broad, well-researched analysis. Cover the context, the key data, tactical/historical angles and the caveats; organise it in short paragraphs; usually 400-800 words unless the task clearly needs more or less. Where the topic is debated, include the main camps, who argues them and the evidence for and against. Prefer verified facts and say what you could not verify. This overrides any shorter-length habit.`;
-  return `REPLY LENGTH — SHORT MODE: the person wants a short, punchy answer for daily use. Lead with the answer, no preamble, no restating the question, no filler. Usually 60-150 words (a video script: about 150-200 words, roughly 60-75 seconds spoken). Only the most important facts. For a debated topic, use that space to show the main sides and who argues them. If more depth would help, end with one short line offering it. This overrides any longer-length habit.`;
+  return `REPLY LENGTH — SHORT MODE: the person wants a short, punchy answer for daily use. Lead with the answer, no preamble, no restating the question, no filler. Usually 60-150 words (a video script: about 150-200 words, roughly 60-75 seconds spoken). Only the most important facts. For a debated topic (an award race, a rumour, a theory, a controversy) you may use up to about 200 words so the main sides, who argues each and their strongest reason all fit. If more depth would help, end with one short line offering it. This overrides any longer-length habit.`;
 }
 function syncLenPill(){
   const l = document.getElementById('len-pill-label'); if (l) l.textContent = replyLength === 'deep' ? 'Deep' : 'Short';
@@ -1341,7 +1358,7 @@ const composerEl = document.querySelector('.composer');
 
 // Single source of truth for the version shown in the header and in Settings.
 // Bump this on every deploy — see README.md's "Versioning" section.
-const APP_VERSION = '1.3.3';
+const APP_VERSION = '1.3.4';
 document.getElementById('hdr-version').textContent = 'v' + APP_VERSION;
 const settingsVersionEl = document.getElementById('settings-app-version');
 if (settingsVersionEl) settingsVersionEl.textContent = 'Creator Booth v' + APP_VERSION;
@@ -1352,6 +1369,7 @@ function showView(name){
   composerEl.style.display = isChat ? 'flex' : 'none';
   if (banner) banner.style.display = (isChat && !signedIn) ? 'flex' : 'none';
   settingsView.classList.toggle('open', name === 'settings');
+  if (name === 'settings') fixSettingsCorners();
   profileView.classList.toggle('open', name === 'profile');
   aboutView.classList.toggle('open', name === 'about');
   feedbackView.classList.toggle('open', name === 'feedback');
@@ -3096,7 +3114,7 @@ async function groqFallback(requestBody, geminiMsg){
   const hasResearch = /WEB RESEARCH \(live/.test(baseSystem || '');
   const systemText = (baseSystem || '') + (hasResearch ? '' : `
 
-IMPORTANT — LIVE SEARCH IS OFF FOR THIS ANSWER: you cannot browse the web and your own knowledge is out of date. Treat anything that may have happened recently (this season, the 2026 World Cup, transfers, injuries, rumours, results) as something you CANNOT confirm or deny. Never tell the person that an event "did not happen" or that a rumour is false because you do not remember it. Say plainly that you cannot verify it right now, share only background you are sure about, and suggest they try again in a few minutes for a live-checked answer. Facts in a VERIFIED DATA block (if present) are still reliable.`);
+IMPORTANT — LIVE SEARCH IS OFF FOR THIS ANSWER: you cannot browse the web and your own knowledge is out of date. Treat anything that may have happened recently (this season, the 2026 World Cup, transfers, injuries, rumours, results) as something you CANNOT confirm or deny. Never tell the person that an event "did not happen" or that a rumour is false because you do not remember it. Say plainly that you cannot verify it right now, share only background you are sure about, and suggest they try again in a few minutes for a live-checked answer. Never tell the person they are confused or mistaken, and never offer a different "correct" version of events from memory. Facts in a VERIFIED DATA block (if present) are still reliable.`);
   const messages = geminiContentsToOpenAIMessages(systemText, requestBody.contents);
   const openAITools = geminiToolsToOpenAI(requestBody.tools);
   const hasImage = requestHasImage(requestBody.contents);
@@ -3155,7 +3173,18 @@ function wantsLiveSearch(text){
   if (/^(hi|hello|hey|thanks|thank you|ok|okay|cool|nice|lol|good (morning|afternoon|evening|night))\b[\s!.?]*$/.test(t)) return false;
   return true;
 }
-const NO_SEARCH_NOTE = `LIVE SEARCH IS OFF FOR THIS ANSWER: you cannot browse the web and your own knowledge is out of date. Treat anything that may have happened recently (this season, the 2026 World Cup, transfers, injuries, rumours, results) as something you CANNOT confirm or deny. Never tell the person that an event "did not happen" or that a rumour is false because you do not remember it. Say plainly that you cannot verify it right now, share only background you are sure about, and suggest they try again in a few minutes. Facts in a VERIFIED DATA block (if present) are still reliable.`;
+// Debates, awards, rumours and "why did it happen" questions need several searches (who said what, both sides), even in
+// Short mode. Short only controls how long the ANSWER is; it must not decide how well the question is researched.
+function isDebatedTopic(text){
+  return /\b(ballon d.?or|who (will|is going to|is gonna|should) win|who('s| is) (winning|the best|better|the goat)|goat debate|rumou?rs?|theor(y|ies)|conspirac\w*|behind (it|this|that)|something (strange|fishy|wrong)|controvers\w*|debate|what (do|are|did) (people|fans|pundits|they|players|managers) (think|say|saying|said)|(people|fans|pundits|media) (say|said|are saying|think)|overrated|underrated|robbed|deserv\w*|why (did|was|were|is|are)\b[^?.!]{0,60}\b(lose|lost|win|won|sacked|leave|left|dropped|benched|failed|struggl\w*))\b/i.test(String(text || ''));
+}
+// A model with no search sometimes still "corrects" the person about recent events ("there might be some confusion...").
+// Used only when no live search happened: such an answer is not shown, the person gets an honest retry instead.
+function looksLikeDenial(text){
+  const t = String(text || '').slice(0, 900);
+  return /\b(slight |some |a bit of )?(confusion|mix-?up|misunderstanding)\b|\b(you may|you might|you could) (be|have)\b[^.]{0,30}\b(mistaken|confus\w*|mixing)|\b(is|was|has been) no (record|evidence|report) of\b|\bno such (event|match|game|final|thing)\b|\b(did(n['’]t| not)|has(n['’]t| not)|never) (actually )?(happen|take place|occur|been played|reach(ed)?|made it)\b|\bcommon misconception\b|\bassuming you['’]?re referring\b|\bfamously won\b/i.test(t);
+}
+const NO_SEARCH_NOTE = `LIVE SEARCH IS OFF FOR THIS ANSWER: you cannot browse the web and your own knowledge is out of date. Treat anything that may have happened recently (this season, the 2026 World Cup, transfers, injuries, rumours, results) as something you CANNOT confirm or deny. Never tell the person that an event "did not happen" or that a rumour is false because you do not remember it. Say plainly that you cannot verify it right now, share only background you are sure about, and suggest they try again in a few minutes. Never tell the person they are confused or mistaken, and never offer a different "correct" version of events from memory. Facts in a VERIFIED DATA block (if present) are still reliable.`;
 function researchNote(text){
   return `=== WEB RESEARCH (live, from search) ===\n${text}\n=== END WEB RESEARCH ===\nUse WEB RESEARCH for news, rumours, transfers and anything recent, and VERIFIED DATA blocks for structured facts (scores, tables, squads, coach). If the person's message conflicts with either, say plainly what the evidence shows instead of just agreeing or denying. If sources disagree, or only report rumours, say so. Never present a rumour as done.`;
 }
@@ -3190,9 +3219,11 @@ async function liveResearch(userText, opts){
   const deep = !!opts.deep;
   const user = (opts.prev ? 'Earlier question, for context only: ' + opts.prev + '\n\nCurrent question: ' : '') + String(userText).slice(0, 700);
   const sys = researchSystem(deep, opts.extra);
-  const models = deep ? [GROQ_SEARCH_MODEL_DEEP, GROQ_SEARCH_MODEL] : [GROQ_SEARCH_MODEL];
+  const models = deep ? [GROQ_SEARCH_MODEL_DEEP, GROQ_SEARCH_MODEL] : [GROQ_SEARCH_MODEL, GROQ_SEARCH_MODEL_DEEP];
   let lastWhy = 'no model answered';
+  const t0 = Date.now();
   for (const model of models){
+    if (Date.now() - t0 > 40000) break; // never keep the person waiting for a third try
     try {
       const r = await fetchWithTimeout(API_ORIGIN + '/api/groq', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -3541,7 +3572,7 @@ function wireSuggestions(msgEl){
 function currentDateTimeNote(){
   const now = new Date();
   const formatted = now.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  return `Current date/time: ${formatted}. Your training data has a cutoff before this date, so anything that changes over time — club managers, coaching staff, player-club affiliations, injuries, prices, current holders of a role — may be different now even if you feel confident about it from memory. For any such claim, actually use the search tool to verify before stating it, every time, even when you're sure. Do not silently rely on a memorized fact for anything that could plausibly have changed since your training cutoff.`;
+  return `Current date/time: ${formatted}. Your training data has a cutoff before this date, so anything that changes over time — club managers, coaching staff, player-club affiliations, injuries, prices, current holders of a role — may be different now even if you feel confident about it from memory. For any such claim, check it against web search or the WEB RESEARCH block when you have one. If you have neither, say you cannot confirm it instead of answering from memory. Do not silently rely on a memorized fact for anything that could plausibly have changed since your training cutoff.`;
 }
 
 // Fixes a real failure mode: asked something like "yesterday's football", the model would
@@ -3656,7 +3687,7 @@ async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerat
       const tryGeminiSearch = wantSearch && !geminiSearchDown();
       let researched = false;
       const researchOpts = {
-        deep: replyLength === 'deep' || mode.id === 'debate',
+        deep: replyLength === 'deep' || mode.id === 'debate' || isDebatedTopic(userText),
         prev: lastUserTextBefore(history),
         extra: mode.id === 'banter'
           ? ' Also note how fans and comedy creators joke about this topic (running gags and angles), described in your own words, not copied.'
@@ -3696,6 +3727,9 @@ async function runGeneration(pipelineMsg, stageEl, userText, images, isRegenerat
       const gChunks = cand && cand.groundingMetadata && cand.groundingMetadata.groundingChunks;
       if (gChunks && gChunks.length) chunks = gChunks;
       if (!rawText.trim()) throw new Error('No response came back — try rephrasing your request.');
+      // No live search happened (neither Gemini's nor the research step) and the model is "correcting" the person from memory:
+      // that is exactly how it once denied a real final. Do not show it.
+      if (wantSearch && !researched && !(gChunks && gChunks.length) && looksLikeDenial(rawText)) throw new Error('Live search was not available just now, so I could not check this. Please try again in a minute.');
       const extracted = extractSuggestions(rawText);
       resultText = extracted.text;
       suggestions = extracted.suggestions;
@@ -4214,50 +4248,175 @@ async function handleAuthDeepLink(url){
   }
 }
 
-let updateState = 'idle'; // idle | checking | ready
-let lastUpdateCheck = 0;
-function showUpdateBanner(bundle){
-  if (document.getElementById('update-banner')) return;
-  const bar = document.createElement('div');
-  bar.id = 'update-banner';
-  bar.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);z-index:9999;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;font-size:13px;color:var(--text);box-shadow:0 6px 24px rgba(0,0,0,.4)';
-  const msg = document.createElement('span');
-  msg.style.flex = '1';
-  msg.textContent = 'A new version is ready.';
-  const btn = document.createElement('button');
-  btn.textContent = 'Restart';
-  btn.style.cssText = 'background:var(--accent);color:#fff;border:0;border-radius:9px;padding:7px 14px;font:inherit;font-weight:600;cursor:pointer';
-  btn.addEventListener('click', async () => {
-    btn.disabled = true; btn.textContent = 'Updating…';
-    try { await nativePlugin('CapacitorUpdater').set({ id: bundle.id }); } catch (e) { btn.disabled = false; btn.textContent = 'Restart'; }
-  });
-  const later = document.createElement('button');
-  later.textContent = 'Later';
-  later.style.cssText = 'background:none;color:var(--text-dim);border:0;font:inherit;cursor:pointer';
-  later.addEventListener('click', () => bar.remove());
-  bar.append(msg, later, btn);
-  document.body.appendChild(bar);
+// ---- App updates (Android app only; every function here does nothing on the website) ------------------
+// How it works: each build publishes version.json, bundle.zip (the web files) and creator-booth.apk to the
+// GitHub release "latest". The app reads version.json. When it names a newer version, an "Update available"
+// sheet opens. "Update now" downloads bundle.zip and restarts on it. If that fails for any reason, or the
+// release needs a fresh install, the sheet offers "Download update" (the APK) instead. Nothing fails silently:
+// Settings -> App updates shows the last result and the exact problem, if any.
+const UPDATE_KEY = 'cb_update_info';
+const UPDATE_SNOOZE_KEY = 'cb_update_snooze';
+const UPDATE_APK_URL = API_ORIGIN + '/download';
+let upd = { status: 'idle', remote: null, apkNeeded: false, applyFailed: false, error: '', checkedAt: 0, apkVersion: '', localBuild: '' };
+let updBusy = false;
+try { const saved = JSON.parse(localStorage.getItem(UPDATE_KEY) || 'null'); if (saved && saved.checkedAt){ upd.checkedAt = saved.checkedAt; upd.error = saved.error || ''; } } catch (e) {}
+
+// Versions count like an odometer (1.3.9 -> 1.4.0), so comparing the three numbers in order is correct.
+function verParts(v){ const m = String(v || '').match(/^(\d+)\.(\d+)\.(\d+)/); return m ? [+m[1], +m[2], +m[3]] : null; }
+function verCompare(a, b){
+  const A = verParts(a), B = verParts(b);
+  if (!A || !B) return 0;
+  for (let i = 0; i < 3; i++){ if (A[i] !== B[i]) return A[i] > B[i] ? 1 : -1; }
+  return 0;
 }
-// Compares the build number shipped inside this copy of the app (./version.json) with the newest
-// one published on GitHub. If newer, downloads just the web files quietly, queues them for the
-// next launch, and offers a one-tap restart. Never blocks or breaks the app if anything fails.
-async function checkForAppUpdate(){
-  if (!NATIVE || updateState !== 'idle' || UPDATE_REPO.indexOf('__') === 0) return;
-  if (Date.now() - lastUpdateCheck < 10 * 60 * 1000) return;
-  const Updater = nativePlugin('CapacitorUpdater'), Http = nativePlugin('CapacitorHttp');
-  if (!Updater || !Http) return;
-  updateState = 'checking'; lastUpdateCheck = Date.now();
+function updErr(e){ return String((e && (e.message || e.errorMessage || e.error)) || e || 'unknown problem').slice(0, 170); }
+function updFmtTime(ts){
+  if (!ts) return 'not yet';
+  try { return new Date(ts).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return 'earlier'; }
+}
+function updTimeout(promise, ms, what){
+  let t; const timer = new Promise((_, rej) => { t = setTimeout(() => rej(new Error(what + ' timed out')), ms); });
+  return Promise.race([promise, timer]).finally(() => clearTimeout(t));
+}
+function updReleaseBase(){ return 'https://github.com/' + UPDATE_REPO + '/releases/download/latest/'; }
+
+async function updFetchRemote(){
+  const Http = nativePlugin('CapacitorHttp');
+  if (!Http) throw new Error('this app file has no network plugin; install the newest app file once');
+  const res = await updTimeout(Http.get({ url: updReleaseBase() + 'version.json?t=' + Date.now(), responseType: 'text', connectTimeout: 15000, readTimeout: 15000 }), 25000, 'the version check');
+  if (!res || res.status !== 200) throw new Error('GitHub answered ' + (res && res.status) + ' for version.json (is the repo public and the build green?)');
+  let d = res.data;
+  if (typeof d === 'string') d = JSON.parse(d);
+  if (!d || typeof d !== 'object' || d.build == null) throw new Error('version.json on GitHub looks wrong');
+  return d;
+}
+async function updReadLocal(){
+  try { const r = await fetch('./version.json', { cache: 'no-store' }); return await r.json(); } catch (e) { return {}; }
+}
+// The version of the installed app FILE (the APK), which web updates cannot change.
+async function updApkVersion(){
+  try { const A = nativePlugin('App'); const i = A && A.getInfo ? await A.getInfo() : null; return i && verParts(i.version) ? String(i.version) : ''; } catch (e) { return ''; }
+}
+function updSnoozed(){
+  try { const o = JSON.parse(localStorage.getItem(UPDATE_SNOOZE_KEY) || 'null'); return !!(o && upd.remote && o.v === upd.remote.web && o.until > Date.now()); } catch (e) { return false; }
+}
+function updSnooze(){
+  try { localStorage.setItem(UPDATE_SNOOZE_KEY, JSON.stringify({ v: upd.remote && upd.remote.web, until: Date.now() + 12 * 3600e3 })); } catch (e) {}
+}
+
+// Some Settings rows are hidden depending on app vs website, so :last-child can be an invisible row and the visible
+// group ends square. Round the last VISIBLE row instead.
+function fixSettingsCorners(){
+  document.querySelectorAll('#settings-view .settings-group').forEach(g => {
+    const rows = Array.from(g.querySelectorAll('.settings-row')).filter(r => r.style.display !== 'none');
+    rows.forEach(r => r.classList.remove('last-vis'));
+    if (rows.length > 1) rows[rows.length - 1].classList.add('last-vis');
+  });
+}
+function updRender(){
+  const row = document.getElementById('row-update'), val = document.getElementById('update-val'), det = document.getElementById('update-detail');
+  if (!NATIVE || !row || !val || !det) return;
+  row.style.display = '';
+  let t = 'Check now', cls = '';
+  if (upd.status === 'checking') t = 'Checking…';
+  else if (upd.status === 'applying') t = 'Updating…';
+  else if (upd.status === 'available'){ t = (upd.remote && upd.remote.web ? 'v' + upd.remote.web : 'New version') + ' available'; cls = ' upd-new'; }
+  else if (upd.status === 'uptodate') t = 'Up to date';
+  else if (upd.status === 'error') t = 'Check failed';
+  val.textContent = t; val.className = 'row-val' + cls;
+  const lines = ['Installed: v' + APP_VERSION + (upd.localBuild ? ' (build ' + upd.localBuild + ')' : '') + (upd.apkVersion ? ' · app file v' + upd.apkVersion : '')];
+  if (upd.remote) lines.push('Newest published: v' + (upd.remote.web || '?') + ' (build ' + upd.remote.build + ')');
+  lines.push('Last checked: ' + updFmtTime(upd.checkedAt));
+  if (upd.error) lines.push('Problem: ' + upd.error);
+  det.textContent = lines.join('\n'); det.style.display = '';
+}
+
+async function openApkLink(){
+  try { const B = nativePlugin('Browser'); if (B){ await B.open({ url: UPDATE_APK_URL }); return; } } catch (e) {}
+  try { window.open(UPDATE_APK_URL, '_blank'); } catch (e) {}
+}
+function closeUpdateSheet(){ const b = document.getElementById('update-sheet'); if (b) b.classList.remove('open'); }
+function openUpdateSheet(){
+  const old = document.getElementById('update-sheet'); if (old) old.remove();
+  const r = upd.remote || {};
+  const ver = r.web ? 'v' + r.web : 'a newer version';
+  const needApk = upd.apkNeeded || upd.applyFailed;
+  const title = upd.apkNeeded ? 'Install the new app version' : (upd.applyFailed ? 'Update needs a download' : 'New version available');
+  let body;
+  if (upd.apkNeeded) body = 'Creator Booth ' + ver + ' has changes that can only arrive as a fresh install. Download it, open the file when it finishes and tap Install. Your chats stay in your account.';
+  else if (upd.applyFailed) body = 'The quick update did not work this time. You can still get ' + ver + ': download it, open the file when it finishes and tap Install.';
+  else body = 'Creator Booth ' + ver + ' is ready. It takes a few seconds and the app restarts by itself. You are on v' + APP_VERSION + '.';
+  const box = document.createElement('div'); box.id = 'update-sheet';
+  box.innerHTML = '<div class="promo-card" role="dialog" aria-modal="true" aria-label="' + title + '">'
+    + '<div class="promo-head"><svg width="40" height="35" aria-hidden="true"><use href="#cb-logo"/></svg><div class="promo-title"></div></div>'
+    + '<p class="upd-text"></p>'
+    + (upd.applyFailed && upd.error ? '<p class="upd-err"></p>' : '')
+    + '<button type="button" class="promo-dl" data-a="go"></button>'
+    + '<div class="promo-links"><button type="button" data-a="later">Not now</button></div>'
+    + '</div>';
+  box.querySelector('.promo-title').textContent = title;
+  box.querySelector('.upd-text').textContent = body;
+  const er = box.querySelector('.upd-err'); if (er) er.textContent = 'Reason: ' + upd.error;
+  const go = box.querySelector('[data-a="go"]'); go.textContent = needApk ? 'Download update' : 'Update now';
+  go.addEventListener('click', () => { if (needApk){ openApkLink(); } else { applyUpdate(go); } });
+  box.querySelector('[data-a="later"]').addEventListener('click', () => { updSnooze(); closeUpdateSheet(); });
+  box.addEventListener('click', (e) => { if (e.target === box){ updSnooze(); closeUpdateSheet(); } });
+  document.body.appendChild(box);
+  box.classList.add('open');
+}
+
+// Downloads bundle.zip, then restarts the app on it. Any failure moves to the "Download update" fallback.
+async function applyUpdate(btn){
+  const Updater = nativePlugin('CapacitorUpdater'), remote = upd.remote;
+  if (btn){ btn.disabled = true; btn.textContent = 'Downloading…'; }
+  upd.status = 'applying'; upd.applyFailed = false; upd.error = ''; updRender();
   try {
-    const base = 'https://github.com/' + UPDATE_REPO + '/releases/download/latest/';
-    const local = await fetch('./version.json', { cache: 'no-store' }).then((r) => r.json());
-    const remote = (await Http.get({ url: base + 'version.json?t=' + Date.now(), responseType: 'json' })).data;
-    if (!remote || !(Number(remote.build) > Number(local.build))) { updateState = 'idle'; return; }
-    const bundle = await Updater.download({ url: base + 'bundle.zip', version: String(remote.version) });
-    await Updater.next({ id: bundle.id });   // applies on next launch even if the banner is ignored
-    updateState = 'ready';
-    showUpdateBanner(bundle);
-  } catch (err) {
-    updateState = 'idle'; // offline / GitHub hiccup: try again at the next check
+    if (!Updater || !remote) throw new Error('this app file has no updater; install the newest app file once');
+    const version = String(remote.version || remote.web || remote.build);
+    let bundle = null;
+    try {
+      // A half-finished earlier attempt can leave the same version behind and block a new download: reuse it or clear it.
+      const list = await Updater.list();
+      const same = ((list && list.bundles) || []).filter(b => b && b.version === version);
+      bundle = same.find(b => b.status === 'success') || null;
+      for (const b of same){ if (b !== bundle){ try { await Updater.delete({ id: b.id }); } catch (e) {} } }
+    } catch (e) { /* listing is optional */ }
+    if (!bundle) bundle = await updTimeout(Updater.download({ url: updReleaseBase() + 'bundle.zip', version }), 90000, 'the download');
+    if (!bundle || !bundle.id) throw new Error('the download did not finish');
+    if (btn) btn.textContent = 'Restarting…';
+    await Updater.set({ id: bundle.id }); // reloads the app on the new files; nothing after this line runs
+  } catch (e) {
+    console.warn('update failed:', e);
+    upd.status = 'available'; upd.applyFailed = true; upd.error = updErr(e);
+    updRender(); openUpdateSheet();
+  }
+}
+
+// Reads the published version.json and compares it with this copy. Never throws.
+async function checkForAppUpdate(manual){
+  if (!NATIVE || updBusy || upd.status === 'applying') return;
+  if (!manual && Date.now() - (checkForAppUpdate._t || 0) < 5 * 60 * 1000) return;
+  checkForAppUpdate._t = Date.now();
+  updBusy = true; upd.status = 'checking'; upd.error = ''; updRender();
+  try {
+    if (UPDATE_REPO.indexOf('__') === 0) throw new Error('this build was not stamped with its update address');
+    const [remote, local, apkVersion] = await Promise.all([updFetchRemote(), updReadLocal(), updApkVersion()]);
+    upd.remote = remote; upd.apkVersion = apkVersion; upd.localBuild = local && local.build != null ? String(local.build) : '';
+    const newer = remote.web ? verCompare(remote.web, APP_VERSION) > 0 : Number(remote.build) > Number(local.build || 0);
+    upd.apkNeeded = !!(remote.minApk && apkVersion && verCompare(apkVersion, remote.minApk) < 0);
+    upd.applyFailed = false;
+    upd.status = (newer || upd.apkNeeded) ? 'available' : 'uptodate';
+  } catch (e) {
+    console.warn('update check failed:', e);
+    upd.status = 'error'; upd.error = updErr(e);
+  }
+  updBusy = false; upd.checkedAt = Date.now();
+  try { localStorage.setItem(UPDATE_KEY, JSON.stringify({ checkedAt: upd.checkedAt, error: upd.error })); } catch (e) {}
+  updRender();
+  if (upd.status === 'available' && (manual || !updSnoozed())) openUpdateSheet();
+  if (manual){
+    if (upd.status === 'uptodate') showToast('You have the newest version');
+    else if (upd.status === 'error') showToast("Couldn't check: see the details below");
   }
 }
 if (NATIVE){
@@ -4265,9 +4424,11 @@ if (NATIVE){
   if (AppPlugin){
     AppPlugin.addListener('appUrlOpen', (e) => handleAuthDeepLink(e && e.url));
     AppPlugin.getLaunchUrl().then((l) => { if (l && l.url) handleAuthDeepLink(l.url); }).catch(() => {});
-    AppPlugin.addListener('appStateChange', (st) => { if (st && st.isActive) checkForAppUpdate(); });
+    AppPlugin.addListener('appStateChange', (st) => { if (st && st.isActive) checkForAppUpdate(false); });
   }
-  checkForAppUpdate();
+  updRender();
+  setTimeout(() => checkForAppUpdate(false), 4000); // after the first screen is up, so it never slows the start
+  document.getElementById('row-update').addEventListener('click', () => { if (upd.status === 'available') openUpdateSheet(); else checkForAppUpdate(true); });
 }
 
 showView('chat');

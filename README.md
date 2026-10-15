@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.2.4**
+**v1.3.4**
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by live web search and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
@@ -8,7 +8,7 @@ A football-only AI chat app for fans and creators: match and player analysis, re
 
 - `GEMINI_API_KEY` — your Gemini key
 - `GEMINI_MODEL` — one or more model names, comma-separated, in priority order (default `gemini-3.5-flash-lite,gemini-3.5-flash`)
-- `GROQ_API_KEY` — used for the backup AI, quick helper tasks and live web research (`groq/compound-mini`)
+- `GROQ_API_KEY` — used for the backup AI, quick helper tasks and live web research (`groq/compound-mini` for quick lookups, `groq/compound` for Deep, Debate mode and debated topics)
 - `API_SPORTS_KEY` — API-Football key (no spaces or quotes)
 
 ## Versioning
@@ -100,6 +100,15 @@ Until this column exists, tapping thumbs up/down still gives visual feedback but
 Attached images are now compressed client-side (max 1024px, JPEG ~70% quality) and saved as base64 directly in the `messages.media` jsonb column — not Supabase Storage. This is the simpler option and fine for personal/moderate use, but it counts against Supabase's free-tier **database** size limit (500MB), not the separate Storage limit (1GB), and base64 is ~33% larger than the raw bytes. If image use grows heavy, migrating to Supabase Storage (storing a URL instead of the bytes) would be the next step — flagging now so it's a deliberate choice later, not a surprise.
 
 ### Changelog
+
+- **v1.3.4** — Update notice in the Android app, and a better-researched, more honest chat. (Website code is shared with the app, so the update code is inert in a browser tab.)
+  1. **Update notice (app only).** The app reads `version.json` from the GitHub release and, when a newer version exists, opens an "Update available" sheet with **Update now** (downloads the web files and restarts). If that fails, or the release needs a fresh install, the sheet shows **Download update** (the APK, via `/download` on this site). Before this, the notice only appeared after a silent background download had already succeeded, so any failure meant no notice at all.
+  2. **Settings → App updates** (app only) shows the installed version, the newest published version, the last check time and the exact error if a check failed, plus a "Check now" tap. "Not now" snoozes that version for 12 hours.
+  3. **Research depth no longer depends on the Short/Deep toggle.** Debates, awards, rumours, theories and "why did X lose" questions (`isDebatedTopic`) always use the multi-search model (`groq/compound`). Short now only controls how long the answer is, and may use about 200 words on a debated topic. Plain questions in Short still use the fast model, and if it fails the stronger one is tried (never more than about 40 s of trying).
+  4. **No more confident "correcting" without evidence.** If no live search happened (Gemini's own or the research step) and the answer reads like a denial ("slight confusion", "never happened", "famously won..."), it is not shown. The person gets the normal retry message instead. The no-search notes now also forbid calling the person confused or mistaken.
+  5. The date note no longer tells the model to use a search tool it may not have; it says to use the web research when provided, otherwise to say it cannot confirm.
+  6. Settings groups round the last *visible* row (a hidden row used to leave the group with square corners).
+  7. This README was stale (it still said v1.2.4). Releases v1.2.5 to v1.3.3 are described in the Android app project's README, which shares this code.
 
 - **v1.2.4** — About the author filled in (About page → "About the author"): name, short bio, a round avatar made from the pPrince logo, and a link to the freeCodeCamp Responsive Web Design certificate. Personal email and phone number are deliberately NOT shown on the public page. Edit the `ABOUT_AUTHOR` object in `index.html` to change any of it; leave `bio` empty to hide the section again. Inside the app, links open in the phone's browser.
 - **v1.2.3** — Everything since v1.2.2, in one release. (An earlier build of this work was labelled v1.3.0; the correct number is v1.2.3 because only the last number is bumped.)
