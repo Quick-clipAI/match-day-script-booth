@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#000000">
+<title>Creator Booth · Data Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#000; --s1:#0e0e0f; --s2:#161617; --s3:#1f1f21; --line:#2a2a2d;
+  --tx:#f2efe9; --mut:#9a968d; --accent:#c96442; --brand:#FF6A1A;
+  --ok:#5fbf7f; --warn:#e8b04a; --bad:#e5655b; --info:#6aa7e8;
+  --r:14px; --mono:'JetBrains Mono',ui-monospace,Menlo,monospace; --sans:'Inter',system-ui,sans-serif; --serif:'Source Serif 4',Georgia,serif;
+}
+:root[data-theme="light"]{--bg:#faf8f4;--s1:#fff;--s2:#f3f0ea;--s3:#e9e5dd;--line:#dcd7cc;--tx:#1c1b19;--mut:#6b675e;--accent:#b4502f;--ok:#2f8f55;--warn:#a6730f;--bad:#c0392b;--info:#2f6fb8}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#faf8f4;--s1:#fff;--s2:#f3f0ea;--s3:#e9e5dd;--line:#dcd7cc;--tx:#1c1b19;--mut:#6b675e;--accent:#b4502f;--ok:#2f8f55;--warn:#a6730f;--bad:#c0392b;--info:#2f6fb8}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 var(--sans);padding-bottom:env(safe-area-inset-bottom)}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px 80px}
+header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top .in{max-width:980px;margin:0 auto;padding:12px 16px 0}
+.brand{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.brand h1{font:600 20px/1.1 var(--serif);margin:0;letter-spacing:-.01em}
+.brand h1 b{color:var(--brand);font-weight:600}
+.brand small{font:400 11px var(--mono);color:var(--mut);display:block;margin-top:3px;letter-spacing:.04em;text-transform:uppercase}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:10px -16px 0;padding:0 12px}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 12px;color:var(--mut);font-weight:500;white-space:nowrap;cursor:pointer;position:relative}
+nav.tabs button[aria-selected=true]{color:var(--tx);border-color:var(--brand)}
+nav.tabs .dot{position:absolute;top:6px;right:2px;min-width:16px;height:16px;border-radius:8px;background:var(--bad);color:#fff;font:600 10px/16px var(--mono);text-align:center;padding:0 4px}
+h2{font:600 22px/1.2 var(--serif);margin:26px 0 4px;letter-spacing:-.01em}
+.sub{color:var(--mut);margin:0 0 14px;font-size:14px}
+.card{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin:10px 0}
+.card.flat{padding:0;overflow:hidden}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grow{flex:1 1 auto;min-width:0}
+.mono{font-family:var(--mono)}
+.mut{color:var(--mut)}
+.btn{background:var(--s3);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer;min-height:40px}
+.btn:hover{border-color:var(--mut)}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:#1a0b00}
+.btn.sm{padding:6px 10px;min-height:32px;font-size:13px}
+.btn.bad{color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+input,select,textarea{background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%;min-height:40px}
+input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--brand) 60%,transparent);outline-offset:1px;border-color:var(--brand)}
+textarea{font:13px/1.45 var(--mono);min-height:180px;resize:vertical}
+label.f{display:block;font-size:12px;color:var(--mut);margin:0 0 4px;font-weight:500}
+.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.chip{display:inline-flex;align-items:center;gap:5px;font:600 11px var(--mono);padding:3px 8px;border-radius:999px;border:1px solid var(--line);background:var(--s2);white-space:nowrap}
+.chip.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+.chip.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.chip.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+.chip.info{color:var(--info)}
+.banner{border-radius:var(--r);padding:12px 14px;margin:14px 0;border:1px solid;display:flex;gap:10px;align-items:flex-start}
+.banner.ok{border-color:color-mix(in srgb,var(--ok) 40%,transparent);background:color-mix(in srgb,var(--ok) 8%,transparent)}
+.banner.warn{border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:color-mix(in srgb,var(--warn) 9%,transparent)}
+.banner.bad{border-color:color-mix(in srgb,var(--bad) 45%,transparent);background:color-mix(in srgb,var(--bad) 9%,transparent)}
+.lg{padding:14px;border-top:1px solid var(--line)}
+.lg:first-child{border-top:0}
+.lg h3{margin:0;font:600 16px var(--sans)}
+.bar{height:6px;border-radius:3px;background:var(--s3);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--ok)}
+.bar i.part{background:var(--warn)}
+.seas{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px dashed var(--line);cursor:pointer;flex-wrap:wrap}
+.lg .row + .seas{border-top:0}
+.seas .l{font:600 13px var(--mono);width:64px}
+.m{padding:12px 14px;border-top:1px solid var(--line)}
+.m:first-child{border-top:0}
+.m .teams{font-weight:600}
+.m .meta{font:12px var(--mono);color:var(--mut)}
+.score{width:56px;text-align:center;font:600 16px var(--mono);padding:6px}
+.empty{padding:26px 16px;text-align:center;color:var(--mut)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--s3);border:1px solid var(--line);padding:11px 16px;border-radius:12px;z-index:50;max-width:92vw;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.toast.bad{border-color:var(--bad)}
+.toast.ok{border-color:var(--ok)}
+dialog{background:var(--s1);color:var(--tx);border:1px solid var(--line);border-radius:18px;padding:18px;width:min(520px,94vw);max-height:90vh}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+.login{max-width:380px;margin:14vh auto 0;padding:0 16px}
+.login h1{font:600 30px/1.1 var(--serif);margin:0 0 6px}
+.login h1 b{color:var(--brand)}
+table.t{width:100%;border-collapse:collapse;font:13px var(--mono)}
+table.t td,table.t th{padding:7px 8px;border-top:1px solid var(--line);text-align:right}
+table.t th{color:var(--mut);font-weight:400}
+table.t td:nth-child(2),table.t th:nth-child(2){text-align:left;font-family:var(--sans)}
+.pre{font:12px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word;color:var(--mut)}
+.hide{display:none!important}
+@media (prefers-reduced-motion:no-preference){.card,.banner{animation:in .25s ease both}@keyframes in{from{opacity:0;transform:translateY(4px)}}}
+</style>
+</head>
+<body>
+
+<div id="loginView" class="login hide">
+  <h1>Creator <b>Booth</b></h1>
+  <p class="mut" style="margin:0 0 22px">Data bank · admin</p>
+  <label class="f" for="key">Admin key</label>
+  <input id="key" type="password" autocomplete="current-password" placeholder="the ADMIN_KEY you set in Vercel">
+  <p id="loginErr" class="mut" style="color:var(--bad);min-height:22px;margin:8px 0"></p>
+  <button class="btn pri" id="loginBtn" style="width:100%">Open the bank</button>
+  <p class="mut" style="font-size:13px;margin-top:18px">The key stays in this tab only and is forgotten when you close it.</p>
+</div>
+
+<div id="appView" class="hide">
+<header class="top"><div class="in">
+  <div class="brand">
+    <div><h1>Creator <b>Booth</b></h1><small>Data bank · <span id="todayLbl"></span></small></div>
+    <button class="btn sm" id="logout">Lock</button>
+  </div>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+</div></header>
+<main class="wrap" id="main"></main>
+</div>
+
+<dialog id="dlg"></dialog>
+<div id="toast" class="toast hide"></div>
+
+<script>
+'use strict';
+// ---------------------------------------------------------------- plumbing
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let KEY = '';
+try { KEY = sessionStorage.getItem('cb_admin') || ''; } catch (e) { /* storage blocked: key lives in memory only */ }
+const state = { tab: 'overview', ov: null, nav: {}, filters: { league: '', season: '', club: '', mode: 'all' } };
+const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+
+async function api(action, body = {}) {
+  let res;
+  try {
+    res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': KEY }, body: JSON.stringify({ action, today: todayISO(), ...body }) });
+  } catch (e) { throw new Error('Could not reach the server. Check your connection.'); }
+  let j = null; try { j = await res.json(); } catch (e) { /* not json */ }
+  if (res.status === 401) { const e = new Error('Wrong admin key.'); e.auth = true; throw e; }
+  if (!res.ok) { const e = new Error((j && j.error) || ('Server answered ' + res.status)); e.data = j; throw e; }
+  return j;
+}
+let toastT;
+function toast(msg, kind = '') { const t = $('#toast'); t.textContent = msg; t.className = 'toast ' + kind; clearTimeout(toastT); toastT = setTimeout(() => t.classList.add('hide'), kind === 'bad' ? 6000 : 2600); }
+function busy(btn, on, label) { if (!btn) return; if (on) { btn.dataset.l = btn.textContent; btn.textContent = label || 'Working…'; btn.disabled = true; } else { btn.textContent = btn.dataset.l || btn.textContent; btn.disabled = false; } }
+async function run(btn, fn, label) { busy(btn, true, label); try { return await fn(); } catch (e) { if (e.auth) return lock(); toast(e.message, 'bad'); } finally { busy(btn, false); } }
+function dlg(html) { const d = $('#dlg'); d.innerHTML = html; if (!d.open) d.showModal(); return d; }
+function closeDlg() { const d = $('#dlg'); if (d.open) d.close(); }
+const fmt = iso => { if (!iso) return '–'; const d = new Date(iso + 'T00:00:00Z'); return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }); };
+const ago = iso => { const m = Math.round((Date.now() - new Date(iso)) / 60000); if (m < 2) return 'just now'; if (m < 90) return m + ' min ago'; const h = Math.round(m / 60); if (h < 48) return h + ' h ago'; return Math.round(h / 24) + ' days ago'; };
+const seasonLbl = s => s + '/' + String(s + 1).slice(-2);
+const leagueName = k => (state.ov && state.ov.leagues.find(l => l.key === k) || {}).short || k;
+const leagueOpts = (sel, all = true) => (all ? '<option value="">All leagues</option>' : '') + (state.ov ? state.ov.leagues : []).map(l => `<option value="${l.key}" ${l.key === sel ? 'selected' : ''}>${esc(l.name)}</option>`).join('');
+
+// ---------------------------------------------------------------- login / lock
+function lock() { KEY = ''; try { sessionStorage.removeItem('cb_admin'); } catch (e) { } $('#appView').classList.add('hide'); $('#loginView').classList.remove('hide'); $('#key').value = ''; }
+async function tryLogin() {
+  const k = $('#key').value.trim() || KEY; if (!k) return;
+  KEY = k; $('#loginErr').textContent = '';
+  const b = $('#loginBtn'); busy(b, true, 'Checking…');
+  try {
+    await api('ping');
+    try { sessionStorage.setItem('cb_admin', KEY); } catch (e) { }
+    $('#loginView').classList.add('hide'); $('#appView').classList.remove('hide'); await boot();
+  } catch (e) { KEY = ''; $('#loginErr').textContent = e.message; $('#loginView').classList.remove('hide'); }
+  finally { busy(b, false); }
+}
+$('#loginBtn').onclick = tryLogin; $('#key').onkeydown = e => { if (e.key === 'Enter') tryLogin(); };
+$('#logout').onclick = lock;
+
+// ---------------------------------------------------------------- tabs
+const TABS = [['overview', 'Overview'], ['gaps', 'Gaps'], ['import', 'Import'], ['matches', 'Matches'], ['clubs', 'Clubs'], ['inbox', 'Inbox'], ['facts', 'Facts'], ['log', 'Log']];
+function drawTabs() {
+  $('#tabs').innerHTML = TABS.map(([k, l]) => {
+    let dot = '';
+    if (state.ov) {
+      if (k === 'gaps') { const n = state.ov.summary.reduce((a, s) => a + (s.gaps || 0), 0); if (n) dot = n; }
+      if (k === 'inbox' && state.ov.inboxCount) dot = state.ov.inboxCount;
+      if (k === 'overview') { const n = state.ov.summary.reduce((a, s) => a + (s.conflicts || 0), 0); if (n) dot = n; }
+    }
+    return `<button role="tab" data-t="${k}" aria-selected="${state.tab === k}">${l}${dot ? `<span class="dot">${dot}</span>` : ''}</button>`;
+  }).join('');
+  $('#tabs').querySelectorAll('button').forEach(b => b.onclick = () => go(b.dataset.t));
+}
+async function go(tab, nav) { state.tab = tab; state.nav = nav || {}; drawTabs(); window.scrollTo(0, 0); await render(); }
+async function refreshOv() { state.ov = await api('overview'); $('#todayLbl').textContent = fmt(state.ov.today); drawTabs(); }
+async function boot() { try { await refreshOv(); } catch (e) { if (e.auth) return lock(); toast(e.message, 'bad'); } await render(); }
+async function render() {
+  const m = $('#main'); m.innerHTML = '<p class="empty">Loading…</p>';
+  try { await VIEWS[state.tab](m); } catch (e) { if (e.auth) return lock(); m.innerHTML = `<div class="banner bad"><div><b>Could not load this page.</b><br>${esc(e.message)}</div></div>`; }
+}
+const head = (t, s) => `<h2>${t}</h2><p class="sub">${s || ''}</p>`;
+
+// ---------------------------------------------------------------- overview
+const VIEWS = {};
+VIEWS.overview = async m => {
+  await refreshOv();
+  const ov = state.ov; let ping = null; try { ping = await api('ping'); } catch (e) { }
+  const ls = ov.lastSync; let banner = '';
+  if (!ls) banner = `<div class="banner warn"><div><b>The daily update has not run yet.</b><br>It runs by itself at 05:00 UTC once the cron is deployed. You can run it now from the Log tab.</div></div>`;
+  else {
+    const hrs = (Date.now() - new Date(ls.at)) / 36e5;
+    if (!ls.ok) banner = `<div class="banner bad"><div><b>The last daily update failed</b> (${ago(ls.at)}).<br><span class="mut">${esc(ls.summary)}</span></div></div>`;
+    else if (hrs > 36) banner = `<div class="banner warn"><div><b>No daily update for ${Math.round(hrs)} hours.</b><br><span class="mut">Last: ${esc(ls.summary)}</span></div></div>`;
+    else banner = `<div class="banner ok"><div><b>Updating by itself.</b> Last run ${ago(ls.at)}.<br><span class="mut">${esc(ls.summary)}</span></div></div>`;
+  }
+  let env = '';
+  if (ping) {
+    const miss = Object.entries(ping.env).filter(([k, v]) => !v && k !== 'CRON_SECRET').map(([k]) => k);
+    if (miss.length) env = `<div class="banner warn"><div><b>Missing in Vercel:</b> <span class="mono">${miss.join(', ')}</span><br><span class="mut">Add them in Settings → Environment Variables, then redeploy.</span></div></div>`;
+  }
+  const by = {}; ov.summary.forEach(s => (by[s.league] = by[s.league] || []).push(s));
+  const cards = ov.leagues.map(l => {
+    const seasons = (by[l.key] || []).sort((a, b) => b.season - a.season);
+    const body = seasons.length ? seasons.map(s => {
+      const pct = s.total ? Math.round(s.finished / s.total * 100) : 0;
+      const chips = [
+        l.teams && s.total === l.teams * (l.teams - 1) && s.finished === s.total ? '<span class="chip ok">complete</span>' : `<span class="chip">${s.finished}/${s.total}</span>`,
+        s.gaps ? `<span class="chip warn">${s.gaps} gap${s.gaps > 1 ? 's' : ''}</span>` : '',
+        s.conflicts ? `<span class="chip bad">${s.conflicts} conflict${s.conflicts > 1 ? 's' : ''}</span>` : '',
+        s.postponed ? `<span class="chip info">${s.postponed} postponed</span>` : ''
+      ].join('');
+      return `<div class="seas" data-l="${l.key}" data-s="${s.season}"><span class="l">${seasonLbl(s.season)}</span>${chips}<span class="grow"></span><span class="mut mono" style="font-size:11px">${s.last_result ? 'last ' + fmt(s.last_result) : ''}</span></div>`;
+    }).join('') : `<p class="mut" style="margin:8px 0 0;font-size:14px">Nothing stored yet.</p>`;
+    return `<div class="lg"><div class="row"><h3 class="grow">${esc(l.name)}</h3>${l.hasOf && !seasons.length ? `<button class="btn sm" data-of="${l.key}">Load</button>` : ''}</div>${body}</div>`;
+  }).join('');
+  m.innerHTML = head('Bank at a glance', 'Tap a season to see its matches.') + banner + env + `<div class="card flat">${cards}</div>`;
+  m.querySelectorAll('.seas').forEach(e => e.onclick = () => { state.filters = { league: e.dataset.l, season: e.dataset.s, club: '', mode: 'all' }; go('matches'); });
+  m.querySelectorAll('[data-of]').forEach(b => b.onclick = () => go('import', { openfootball: b.dataset.of }));
+};
+
+// ---------------------------------------------------------------- gaps
+function scoreRow(r, opts = {}) {
+  const id = esc(r.id);
+  return `<div class="m" data-id="${id}" data-l="${r.league}" data-s="${r.season}">
+    <div class="row"><div class="grow"><div class="teams">${esc(r.home)} <span class="mut">v</span> ${esc(r.away)}</div>
+    <div class="meta">${leagueName(r.league)} · ${esc(r.round || '')} · ${fmt(r.date)}${r.time ? ' ' + esc(r.time) : ''}</div></div></div>
+    <div class="row" style="margin-top:8px">
+      <input class="score" inputmode="numeric" maxlength="2" aria-label="Home goals" data-h placeholder="–"><span class="mut">:</span>
+      <input class="score" inputmode="numeric" maxlength="2" aria-label="Away goals" data-a placeholder="–">
+      <button class="btn pri sm" data-save>Save</button>
+      <button class="btn sm" data-pp>Postponed</button>
+    </div></div>`;
+}
+function wireScoreRows(root, after) {
+  root.querySelectorAll('.m[data-id]').forEach(el => {
+    const find = () => state.cache.rows.find(x => x.id === el.dataset.id);
+    el.querySelector('[data-save]').onclick = ev => run(ev.target, async () => {
+      const h = el.querySelector('[data-h]').value.trim(), a = el.querySelector('[data-a]').value.trim();
+      if (!/^\d{1,2}$/.test(h) || !/^\d{1,2}$/.test(a)) return toast('Enter both scores as whole numbers.', 'bad');
+      await api('saveMatch', { match: { ...find(), status: 'finished', hg: +h, ag: +a } });
+      toast('Saved and marked verified', 'ok'); el.remove(); await refreshOv(); after && after();
+    });
+    el.querySelector('[data-pp]').onclick = ev => run(ev.target, async () => {
+      const r = find(); await api('setStatus', { id: r.id, league: r.league, season: r.season, status: 'postponed' });
+      toast('Marked postponed', 'ok'); el.remove(); await refreshOv(); after && after();
+    });
+  });
+}
+state.cache = { rows: [] };
+VIEWS.gaps = async m => {
+  const r = await api('matches', { mode: 'gaps', limit: 400 });
+  state.cache.rows = r.rows;
+  m.innerHTML = head('Gaps to fill', 'Matches whose date has passed but have no result. The daily update fills most; type the rest here (full-time score, after extra time if it went there).')
+    + (r.rows.length ? `<div class="card flat" id="gl">${r.rows.map(x => scoreRow(x)).join('')}</div>` : `<div class="banner ok"><div><b>No gaps.</b> Every match that has been played has a result.</div></div>`)
+    + `<div class="card"><b>Many at once?</b><p class="mut" style="margin:6px 0 10px">Paste a block of results as JSON on the Import tab instead.</p><button class="btn" id="toImp">Go to Import</button></div>`;
+  wireScoreRows(m); const b = $('#toImp'); if (b) b.onclick = () => go('import');
+};
+
+// ---------------------------------------------------------------- import
+const FORMAT_PROMPT = `I will give you football results. Reply with ONLY valid JSON (no commentary, no code fence) in exactly this shape:
+
+{
+  "league": "EPL",            // one of: EPL, LALIGA, SERIEA, BUNDESLIGA, LIGUE1, SPL, UCL, UEL, UECL, INTERMIAMI
+  "season": 2025,             // the year the season STARTS (2025 = 2025/26)
+  "matches": [
+    { "date": "2025-08-15", "home": "Liverpool", "away": "Bournemouth", "hg": 4, "ag": 2, "round": "Matchday 1" }
+  ]
+}
+
+Rules:
+- date is YYYY-MM-DD. hg/ag are full-time goals (after extra time if played); omit both for matches not played yet.
+- Use the club names exactly as the source writes them. Do not invent matches or scores. If you are not sure of a result, leave the match out and tell me which ones.
+- For UCL/UEL/UECL and Inter Miami, add "comp": "Leagues Cup" (or the competition name) when it is not obvious.`;
+VIEWS.import = async m => {
+  const nav = state.nav || {};
+  const thisSeason = state.ov ? state.ov.leagues[0].currentSeason : new Date().getFullYear();
+  const seasons = []; for (let s = thisSeason + 1; s >= 2005; s--) seasons.push(s);
+  const ofLeagues = state.ov.leagues.filter(l => l.hasOf);
+  m.innerHTML = head('Import', 'Paste JSON and check what will change before anything is saved.') + `
+  <div class="card">
+    <div class="grid">
+      <div><label class="f">League (only if the JSON doesn't say)</label><select id="iLg">${leagueOpts('')}</select></div>
+      <div><label class="f">Season (year it starts)</label><select id="iSe"><option value="">From the file</option>${seasons.map(s => `<option value="${s}">${seasonLbl(s)}</option>`).join('')}</select></div>
+    </div>
+    <label class="f" style="margin-top:12px" for="iTx">JSON</label>
+    <textarea id="iTx" spellcheck="false" placeholder='Paste an openfootball file, an API-Football answer, or our format…'></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn pri" id="iPrev">Preview changes</button>
+      <button class="btn" id="iFmt">Copy format for ChatGPT / Gemini</button>
+    </div>
+  </div>
+  <div id="iOut"></div>
+  <h2 style="margin-top:34px">Load from openfootball</h2>
+  <p class="sub">Free public fixtures and results files. The server downloads them for you. They are maintained by volunteers, so recent results can lag a few days; fill the gap on the Gaps tab.</p>
+  <div class="card">
+    <div class="grid">
+      <div><label class="f">Season</label><select id="oSe">${seasons.map(s => `<option value="${s}" ${s === thisSeason ? 'selected' : ''}>${seasonLbl(s)}</option>`).join('')}</select></div>
+    </div>
+    <label class="f" style="margin-top:12px">Leagues</label>
+    <div class="row">${ofLeagues.map(l => `<label class="chip" style="cursor:pointer"><input type="checkbox" style="width:auto;min-height:0" value="${l.key}" ${nav.openfootball ? (nav.openfootball === l.key ? 'checked' : '') : 'checked'}> ${esc(l.short)}</label>`).join('')}</div>
+    <div class="row" style="margin-top:12px"><button class="btn pri" id="oPrev">Preview</button></div>
+  </div>
+  <div id="oOut"></div>`;
+  $('#iFmt').onclick = async () => { try { await navigator.clipboard.writeText(FORMAT_PROMPT); toast('Copied. Paste it to your AI with the results.', 'ok'); } catch (e) { dlg(`<h3>Format</h3><textarea readonly style="min-height:300px">${esc(FORMAT_PROMPT)}</textarea><div class="row" style="margin-top:10px"><button class="btn" onclick="closeDlg()">Close</button></div>`); } };
+  const picked = () => [...m.querySelectorAll('#oSe ~ *, label.chip input')].filter(x => x.checked).map(x => x.value);
+  $('#iPrev').onclick = ev => runImport(ev.target, 'i', true);
+  $('#oPrev').onclick = ev => runOf(ev.target, true);
+  if (nav.openfootball) $('#oPrev').scrollIntoView();
+};
+
+function reportHtml(rep, kind) {
+  const t = rep.totals; const bits = [];
+  const row = (c, n, l) => n ? `<span class="chip ${c}">${n} ${l}</span>` : '';
+  bits.push(row('ok', t.fresh, 'new'), row('ok', t.filled, 'results filled'), row('info', t.rescheduled, 'rescheduled'), row('', t.same, 'already stored'), row('warn', t.conflicts, 'conflicts'), row('warn', t.unknown, 'unknown clubs'), row('', t.keptVerified, 'kept (you verified)'));
+  let h = `<div class="card"><b>${rep.applied ? 'Saved' : 'Preview — nothing saved yet'}</b><div class="row" style="margin-top:8px">${bits.join('')}</div>`;
+  (rep.groups || []).forEach(g => {
+    const s = g.samples; const line = (arr, f) => arr && arr.length ? `<div class="pre" style="margin:4px 0 0">${arr.map(f).join('\n')}</div>` : '';
+    h += `<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><b>${esc(g.name)} ${seasonLbl(g.season)}</b> <span class="mut">${g.fresh} new · ${g.filled} filled · ${g.same} same</span>`
+      + line(s.fresh, x => `+ ${x.date} ${x.home} ${x.hg ?? ''}${x.hg != null ? '-' + x.ag : 'v'} ${x.away}`)
+      + line(s.filled, x => `✓ ${x.date} ${x.home} ${x.hg}-${x.ag} ${x.away}`)
+      + line(s.rescheduled, x => `↻ ${x.home} v ${x.away}: ${x.was} → ${x.date}`)
+      + (g.warnings || []).map(w => `<div style="color:var(--warn);font-size:13px;margin-top:4px">⚠ ${esc(w)}</div>`).join('') + '</div>';
+  });
+  (rep.warnings || []).filter(w => !(rep.groups || []).some(g => (g.warnings || []).includes(w))).forEach(w => h += `<div style="color:var(--warn);font-size:13px;margin-top:6px">⚠ ${esc(w)}</div>`);
+  if (rep.problemCount) h += `<div style="margin-top:10px;color:var(--warn);font-size:13px"><b>${rep.problemCount} rows skipped:</b><div class="pre">${(rep.problems || []).map(esc).join('\n')}</div></div>`;
+  if (rep.skippedCompetitions) h += `<div class="mut" style="margin-top:8px;font-size:13px">Skipped competitions we don't track: ${esc(JSON.stringify(rep.skippedCompetitions))}</div>`;
+  h += '</div>';
+  return h;
+}
+function unknownHtml(rep) {
+  if (!rep.unknownTeams || !rep.unknownTeams.length) return '';
+  return `<div class="card"><b>Club names I don't recognise</b><p class="mut" style="margin:4px 0 10px">Choose which club each one is, or type the name to add it as a new club.</p>` + rep.unknownTeams.map((u, i) => `
+    <div style="margin-top:10px"><div class="mono" style="font-size:13px">“${esc(u.name)}” <span class="mut">· ${esc(leagueName(u.league))} ${seasonLbl(u.season)} · ${u.rows} matches</span></div>
+    <div class="row" style="margin-top:4px">${(u.suggestions || []).map(s => `<button class="btn sm" data-sug="${i}" data-v="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+    <input data-map="${esc(u.name)}" id="map${i}" placeholder="Name to use" style="margin-top:6px"></div>`).join('') + '</div>';
+}
+function conflictsHtml(rep) {
+  const c = (rep.groups || []).flatMap(g => g.samples.conflicts.map(x => ({ ...x, g })));
+  if (!c.length) return '';
+  return `<div class="card"><b>The file disagrees with what is stored</b><p class="mut" style="margin:4px 0 10px">By default the stored score is kept and the difference is flagged for you. Tick any you want replaced.</p>`
+    + c.map(x => `<label class="row" style="margin:6px 0;cursor:pointer"><input type="checkbox" data-cf="${esc(x.id)}" style="width:auto;min-height:0"><span>${esc(x.home)} v ${esc(x.away)} · ${fmt(x.date)}<br><span class="mono mut">stored ${x.have} → file ${x.incoming}</span></span></label>`).join('') + '</div>';
+}
+function collect(out) {
+  const mappings = {}; out.querySelectorAll('[data-map]').forEach(i => { if (i.value.trim()) mappings[i.dataset.map] = i.value.trim(); });
+  const ids = [...out.querySelectorAll('[data-cf]:checked')].map(i => i.dataset.cf);
+  return { mappings, applyConflicts: ids.length ? ids : false };
+}
+function wireSug(out) { out.querySelectorAll('[data-sug]').forEach(b => b.onclick = () => { $('#map' + b.dataset.sug).value = b.dataset.v; }); }
+
+async function runImport(btn, p, preview) {
+  const text = $('#iTx').value.trim(); if (!text) return toast('Paste some JSON first.', 'bad');
+  const out = $('#iOut');
+  const extra = preview ? {} : collect(out);
+  let rep;
+  try {
+    rep = await run(btn, () => api('import', { text, league: $('#iLg').value || undefined, season: $('#iSe').value || undefined, dryRun: preview, ...extra }), preview ? 'Reading…' : 'Saving…');
+  } catch (e) { return; }
+  if (!rep) { // run() swallowed an error; fetch the data attached to a 400 to show hints
+    return;
+  }
+  out.innerHTML = reportHtml(rep) + unknownHtml(rep) + conflictsHtml(rep) + (preview ? `<div class="row"><button class="btn pri" id="iApply">Save these changes</button></div>` : `<div class="banner ok"><div><b>Done.</b> The chat can use this straight away.</div></div>`);
+  wireSug(out);
+  const ap = $('#iApply'); if (ap) ap.onclick = async ev => { await runImport(ev.target, 'i', false); await refreshOv(); };
+  if (!preview) { toast('Saved', 'ok'); await refreshOv(); }
+  out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+async function runOf(btn, preview) {
+  const leagues = [...document.querySelectorAll('label.chip input:checked')].map(x => x.value);
+  if (!leagues.length) return toast('Pick at least one league.', 'bad');
+  const out = $('#oOut'); const extra = preview ? {} : collect(out);
+  const r = await run(btn, () => api('importOpenfootball', { season: $('#oSe').value, leagues, dryRun: preview, ...extra }), 'Downloading…');
+  if (!r) return;
+  const fails = (r.per || []).filter(x => x.error);
+  out.innerHTML = `<div class="card"><div class="pre" style="color:var(--tx)">${esc(r.summary)}</div>${fails.length ? `<div style="color:var(--warn);font-size:13px;margin-top:8px">Could not load: ${fails.map(f => esc(f.league) + ' (' + esc(f.error) + ')').join(', ')}. That file may not exist for this season.</div>` : ''}</div>`
+    + (r.report ? reportHtml(r.report) + unknownHtml(r.report) + conflictsHtml(r.report) : '')
+    + (preview && r.report ? `<div class="row"><button class="btn pri" id="oApply">Save these changes</button></div>` : '');
+  wireSug(out);
+  const ap = $('#oApply'); if (ap) ap.onclick = ev => runOf(ev.target, false);
+  if (!preview) { toast('Saved', 'ok'); await refreshOv(); }
+}
+
+// ---------------------------------------------------------------- matches
+VIEWS.matches = async m => {
+  const f = state.filters; const thisSeason = state.ov.leagues[0].currentSeason;
+  const seasons = []; for (let s = thisSeason + 1; s >= 2005; s--) seasons.push(s);
+  m.innerHTML = head('Matches', 'Filter, then tap a match to correct it.') + `
+  <div class="card"><div class="grid">
+    <div><label class="f">League</label><select id="fLg">${leagueOpts(f.league)}</select></div>
+    <div><label class="f">Season</label><select id="fSe"><option value="">All</option>${seasons.map(s => `<option value="${s}" ${String(s) === String(f.season) ? 'selected' : ''}>${seasonLbl(s)}</option>`).join('')}</select></div>
+    <div><label class="f">Club</label><input id="fCl" value="${esc(f.club)}" placeholder="exact name"></div>
+    <div><label class="f">Show</label><select id="fMo">${[['all', 'Everything'], ['gaps', 'Gaps'], ['conflicts', 'Conflicts'], ['unverified', 'Results not verified by me']].map(([v, l]) => `<option value="${v}" ${f.mode === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+  </div>
+  <div class="row" style="margin-top:10px"><button class="btn pri" id="fGo">Show</button><button class="btn" id="fNew">Add a match</button><button class="btn" id="fTab" ${f.league && f.season ? '' : 'disabled'}>Table</button></div></div><div id="mOut"></div>`;
+  const read = () => { state.filters = { league: $('#fLg').value, season: $('#fSe').value, club: $('#fCl').value.trim(), mode: $('#fMo').value }; return state.filters; };
+  const load = async () => {
+    const r = await api('matches', { ...read(), limit: 300 }); state.cache.rows = r.rows;
+    $('#fTab').disabled = !(state.filters.league && state.filters.season);
+    $('#mOut').innerHTML = `<p class="mut" style="font-size:13px">${r.total} match${r.total === 1 ? '' : 'es'}${r.total > 300 ? ' (showing the first 300, narrow the filter)' : ''}</p>` + (r.rows.length ? `<div class="card flat">${r.rows.map(x => `<div class="m" data-id="${esc(x.id)}" style="cursor:pointer"><div class="row"><div class="grow"><div class="teams">${esc(x.home)} <span class="mono" style="color:${x.status === 'finished' ? 'var(--tx)' : 'var(--mut)'}">${x.status === 'finished' ? x.hg + '–' + x.ag : 'v'}</span> ${esc(x.away)}</div><div class="meta">${leagueName(x.league)} ${seasonLbl(x.season)} · ${esc(x.round || '')} · ${fmt(x.date)}</div></div>${x.verified ? '<span class="chip ok">verified</span>' : ''}${x.conflict ? `<span class="chip bad">conflict ${x.conflict.hg}-${x.conflict.ag}</span>` : ''}${x.status !== 'finished' && x.status !== 'scheduled' ? `<span class="chip info">${x.status}</span>` : ''}</div></div>`).join('')}</div>` : '<div class="empty">No matches here.</div>');
+    $('#mOut').querySelectorAll('.m').forEach(el => el.onclick = () => editMatch(state.cache.rows.find(x => x.id === el.dataset.id), load));
+  };
+  $('#fGo').onclick = ev => run(ev.target, load);
+  $('#fNew').onclick = () => editMatch(null, load);
+  $('#fTab').onclick = ev => run(ev.target, async () => { read(); const r = await api('table', { league: state.filters.league, season: Number(state.filters.season) }); showTable(r); });
+  await load();
+};
+function showTable(r) {
+  const c = r.coverage, rows = r.table.rows;
+  dlg(`<h3 style="margin:0 0 4px">Table from stored results</h3><p class="mut" style="margin:0 0 10px;font-size:13px">${c.finished} of ${c.expected || c.total} matches have a result${c.gaps ? ` · ${c.gaps} gap(s)` : ''}.${r.table.tieUndecided ? ' <span style="color:var(--warn)">Some teams are level on every tie-break we can compute.</span>' : ''}</p>
+  <div style="max-height:60vh;overflow:auto"><table class="t"><tr><th>#</th><th>Club</th><th>P</th><th>GD</th><th>Pts</th></tr>${rows.map(x => `<tr><td>${x.rank}</td><td>${esc(x.team)}</td><td>${x.P}</td><td>${x.GD > 0 ? '+' : ''}${x.GD}</td><td><b>${x.Pts}</b></td></tr>`).join('')}</table></div>
+  <div class="row" style="margin-top:12px"><button class="btn" onclick="closeDlg()">Close</button></div>`);
+}
+function editMatch(r, reload) {
+  const isNew = !r; r = r || { league: state.filters.league || 'EPL', season: Number(state.filters.season) || state.ov.leagues[0].currentSeason, date: todayISO(), status: 'scheduled' };
+  const d = dlg(`<h3 style="margin:0 0 12px">${isNew ? 'Add a match' : 'Edit match'}</h3>
+  <div class="grid">
+    <div><label class="f">League</label><select id="eLg">${leagueOpts(r.league, false)}</select></div>
+    <div><label class="f">Season (start year)</label><input id="eSe" inputmode="numeric" value="${r.season}"></div>
+    <div><label class="f">Date</label><input id="eDt" type="date" value="${r.date}"></div>
+    <div><label class="f">Round</label><input id="eRd" value="${esc(r.round || '')}" placeholder="Matchday 7"></div>
+    <div><label class="f">Home</label><input id="eHo" value="${esc(r.home || '')}"></div>
+    <div><label class="f">Away</label><input id="eAw" value="${esc(r.away || '')}"></div>
+    <div><label class="f">Status</label><select id="eSt">${['scheduled', 'finished', 'postponed', 'cancelled'].map(s => `<option ${s === r.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+    <div><label class="f">Competition (cups, Inter Miami)</label><input id="eCp" value="${esc(r.comp_name || '')}"></div>
+    <div><label class="f">Home goals (full time)</label><input id="eHg" inputmode="numeric" value="${r.hg ?? ''}"></div>
+    <div><label class="f">Away goals</label><input id="eAg" inputmode="numeric" value="${r.ag ?? ''}"></div>
+  </div>
+  <label class="f" style="margin-top:10px">Note (e.g. “penalties 4-3”)</label><input id="eNt" value="${esc(r.note || '')}">
+  ${r.conflict ? `<div class="banner warn" style="margin:12px 0 0"><div>Another source said <b>${r.conflict.hg}-${r.conflict.ag}</b> (${esc(r.conflict.source || '')}). Saving here keeps your version and clears the flag.</div></div>` : ''}
+  <div class="row" style="margin-top:14px"><button class="btn pri" id="eSave">Save (marks verified)</button><button class="btn" onclick="closeDlg()">Cancel</button>${isNew ? '' : '<span class="grow"></span><button class="btn bad" id="eDel">Delete</button>'}</div>`);
+  $('#eSave').onclick = ev => run(ev.target, async () => {
+    const g = id => $(id).value.trim();
+    const num = v => v === '' ? null : Number(v);
+    await api('saveMatch', { match: { id: r.id, league: g('#eLg'), season: Number(g('#eSe')), date: g('#eDt'), round: g('#eRd'), home: g('#eHo'), away: g('#eAw'), status: g('#eSt'), comp_name: g('#eCp') || undefined, hg: num(g('#eHg')), ag: num(g('#eAg')), note: g('#eNt') || null, time: r.time, ht_h: r.ht_h, ht_a: r.ht_a } });
+    closeDlg(); toast('Saved', 'ok'); await refreshOv(); reload && reload();
+  });
+  const del = $('#eDel'); if (del) del.onclick = ev => { if (!confirm('Delete this match from the bank?')) return; run(ev.target, async () => { await api('deleteMatch', { ids: [r.id] }); closeDlg(); toast('Deleted', 'ok'); await refreshOv(); reload && reload(); }); };
+}
+
+// ---------------------------------------------------------------- clubs
+VIEWS.clubs = async m => {
+  const lg = state.nav.league || state.filters.league || 'EPL';
+  const r = await api('teams', { league: lg });
+  const cfg = state.ov.leagues.find(l => l.key === lg);
+  const recent = r.clubs.filter(c => c.last_season >= state.ov.leagues[0].currentSeason - 1);
+  m.innerHTML = head('Clubs', 'Every club name stored per league. If one club appears twice under different spellings, merge them.') + `
+  <div class="card"><label class="f">League</label><select id="cLg">${leagueOpts(lg, false)}</select></div>
+  ${cfg && cfg.teams && recent.length > cfg.teams ? `<div class="banner warn"><div><b>${recent.length} clubs seen in the last two seasons.</b> A normal league has ${cfg.teams}, plus promoted/relegated clubs. If you see the same club twice below, merge it.</div></div>` : ''}
+  <div class="card flat">${r.clubs.map(c => `<div class="m"><div class="row"><div class="grow"><b>${esc(c.club)}</b><div class="meta">${c.matches} matches · last season ${seasonLbl(c.last_season)}</div></div><button class="btn sm" data-merge="${esc(c.club)}">Merge into…</button></div></div>`).join('') || '<div class="empty">No clubs yet.</div>'}</div>
+  <p class="mut" style="font-size:13px">${r.aliases.length} spelling${r.aliases.length === 1 ? '' : 's'} learned so far.</p>`;
+  $('#cLg').onchange = e => go('clubs', { league: e.target.value });
+  m.querySelectorAll('[data-merge]').forEach(b => b.onclick = () => {
+    const from = b.dataset.merge;
+    dlg(`<h3 style="margin:0 0 6px">Merge “${esc(from)}”</h3><p class="mut" style="margin:0 0 12px;font-size:14px">Every match of “${esc(from)}” in ${esc(cfg.short)} is moved to the club you choose, and the spelling is remembered for future imports.</p>
+    <label class="f">Into which club</label><select id="mTo">${r.clubs.filter(c => c.club !== from).map(c => `<option>${esc(c.club)}</option>`).join('')}</select>
+    <div class="row" style="margin-top:14px"><button class="btn pri" id="mGo">Merge</button><button class="btn" onclick="closeDlg()">Cancel</button></div>`);
+    $('#mGo').onclick = ev => run(ev.target, async () => { const o = await api('mergeTeams', { league: lg, from, to: $('#mTo').value }); closeDlg(); toast(`Moved ${o.moved} matches${o.dropped ? ', ' + o.dropped + ' duplicates dropped' : ''}`, 'ok'); await refreshOv(); render(); });
+  });
+};
+
+// ---------------------------------------------------------------- inbox
+VIEWS.inbox = async m => {
+  const r = await api('inbox'); const by = {};
+  r.items.forEach(i => { const k = i.league + '|' + i.team; (by[k] = by[k] || { league: i.league, team: i.team, n: 0, sample: i.row }).n++; });
+  const list = Object.values(by);
+  m.innerHTML = head('Inbox', 'Matches the daily update could not place because a club name looked new. Say which club it is and they are added.')
+    + (list.length ? `<div class="card flat">${list.map((x, i) => `<div class="m"><div class="teams">“${esc(x.team)}”</div><div class="meta">${leagueName(x.league)} · ${x.n} match${x.n > 1 ? 'es' : ''} · e.g. ${esc(x.sample.home)} v ${esc(x.sample.away)} ${fmt(x.sample.date)}</div>
+      <div class="row" style="margin-top:8px"><input id="ib${i}" placeholder="Club name to use" class="grow"><button class="btn pri sm" data-ib="${i}">Add</button></div></div>`).join('')}</div>`
+      : `<div class="banner ok"><div><b>Inbox is empty.</b></div></div>`);
+  m.querySelectorAll('[data-ib]').forEach(b => b.onclick = () => { const x = list[+b.dataset.ib]; const v = $('#ib' + b.dataset.ib).value.trim(); if (!v) return toast('Type the club name.', 'bad'); run(b, async () => { await api('resolveInbox', { team: x.team, mapTo: v }); toast('Added', 'ok'); await refreshOv(); render(); }); });
+};
+
+// ---------------------------------------------------------------- facts
+VIEWS.facts = async m => {
+  const r = await api('facts');
+  m.innerHTML = head('Facts', 'Things the AI should be told as hard facts: honours, awards, records, a coach appointment. They are shown only when a question contains one of their keywords.')
+    + `<button class="btn pri" id="fNew">Add a fact</button>`
+    + `<div class="card flat" style="margin-top:12px">${r.facts.map(f => `<div class="m"><div class="teams">${esc(f.title)}</div><div style="margin:4px 0">${esc(f.body)}</div><div class="meta">keywords: ${esc((f.tags || []).join(', '))}${f.as_of ? ' · as of ' + fmt(f.as_of) : ''}${f.source ? ' · ' + esc(f.source) : ''}</div><div class="row" style="margin-top:8px"><button class="btn sm" data-e="${f.id}">Edit</button><button class="btn sm bad" data-d="${f.id}">Delete</button></div></div>`).join('') || '<div class="empty">No facts yet.</div>'}</div>`;
+  const edit = f => {
+    f = f || {};
+    dlg(`<h3 style="margin:0 0 12px">${f.id ? 'Edit fact' : 'New fact'}</h3>
+    <label class="f">Title</label><input id="tT" value="${esc(f.title || '')}" placeholder="La Liga 2024/25 champions">
+    <label class="f" style="margin-top:10px">Fact</label><textarea id="tB" style="min-height:110px;font-family:var(--sans)">${esc(f.body || '')}</textarea>
+    <label class="f" style="margin-top:10px">Keywords (comma separated)</label><input id="tK" value="${esc((f.tags || []).join(', '))}" placeholder="la liga, champions, barcelona">
+    <div class="grid" style="margin-top:10px"><div><label class="f">As of</label><input id="tA" type="date" value="${esc(f.as_of || '')}"></div><div><label class="f">Source</label><input id="tS" value="${esc(f.source || '')}"></div></div>
+    <div class="row" style="margin-top:14px"><button class="btn pri" id="tSave">Save</button><button class="btn" onclick="closeDlg()">Cancel</button></div>`);
+    $('#tSave').onclick = ev => run(ev.target, async () => { await api('saveFact', { fact: { id: f.id, title: $('#tT').value, body: $('#tB').value, tags: $('#tK').value, as_of: $('#tA').value || null, source: $('#tS').value } }); closeDlg(); toast('Saved', 'ok'); render(); });
+  };
+  $('#fNew').onclick = () => edit();
+  m.querySelectorAll('[data-e]').forEach(b => b.onclick = () => edit(r.facts.find(x => String(x.id) === b.dataset.e)));
+  m.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { if (confirm('Delete this fact?')) run(b, async () => { await api('deleteFact', { id: Number(b.dataset.d) }); render(); }); });
+};
+
+// ---------------------------------------------------------------- log
+VIEWS.log = async m => {
+  const r = await api('log', { n: 60 });
+  m.innerHTML = head('Log', 'What the daily update and your imports have done.')
+    + `<div class="row"><button class="btn pri" id="syncNow">Run the daily update now</button></div>`
+    + `<div class="card flat" style="margin-top:12px">${r.logs.map(l => `<div class="m"><div class="row"><span class="chip ${l.ok ? 'ok' : 'bad'}">${l.ok ? 'ok' : 'failed'}</span><span class="chip">${esc(l.kind)}</span><span class="mut mono" style="font-size:11px">${ago(l.at)}</span></div><div style="margin-top:6px;font-size:14px">${esc(l.summary || '')}</div></div>`).join('') || '<div class="empty">Nothing logged yet.</div>'}</div>`;
+  $('#syncNow').onclick = ev => run(ev.target, async () => { const o = await api('sync'); toast(o.ok ? 'Update finished' : 'Update had problems', o.ok ? 'ok' : 'bad'); await refreshOv(); render(); }, 'Updating…');
+};
+
+// ---------------------------------------------------------------- start
+if (KEY) { $('#loginView').classList.add('hide'); tryLogin(); } else $('#loginView').classList.remove('hide');
+</script>
+</body>
+</html>

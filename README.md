@@ -1,15 +1,41 @@
 # Creator Booth
 
-**v1.3.4**
+**v1.3.6**
 
-A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by live web search and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
+A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
 ## Vercel settings (Project → Settings → Environment Variables, then redeploy)
 
-- `GEMINI_API_KEY` — your Gemini key
-- `GEMINI_MODEL` — one or more model names, comma-separated, in priority order (default `gemini-3.5-flash-lite,gemini-3.5-flash`)
-- `GROQ_API_KEY` — used for the backup AI, quick helper tasks and live web research (`groq/compound-mini` for quick lookups, `groq/compound` for Deep, Debate mode and debated topics)
-- `API_SPORTS_KEY` — API-Football key (no spaces or quotes)
+- `GEMINI_API_KEY` — your Gemini key (free tier, no card)
+- `GEMINI_MODEL` — comma-separated, in priority order. **Recommended and now the default: `gemini-2.5-flash,gemini-2.5-flash-lite`.** Gemini 2.5 is used because Google Search grounding is free on it (500 searches/day shared); Gemini 3.x search needs a paid account. If a model is gone, busy or out of quota, the next one answers.
+- `GROQ_API_KEY` — backup AI only (plain `openai/gpt-oss-120b`, no search) plus small helper tasks (`openai/gpt-oss-20b`). Groq's search models (`groq/compound*`) were retired and are no longer used.
+- `API_SPORTS_KEY` — API-Football key (no spaces or quotes). Free plan: 100 requests/day, today ±1 day only.
+- `SUPABASE_URL` — `https://krmjvfemsufduqdofuqy.supabase.co` (same project as the app's database)
+- `SUPABASE_SERVICE_KEY` — Supabase → Project Settings → API Keys → the **secret** / `service_role` key. Server only; never put it in the website. Used by the data bank.
+- `ADMIN_KEY` — a long password you invent. It opens `/admin.html`.
+- `CRON_SECRET` — another long random string. Vercel sends it to the daily update so nobody else can trigger it.
+
+## Data bank (v1.3.6)
+
+Our own database of results so answers come from checked data, not the model's memory. Leagues covered: Premier League, La Liga, Serie A, Bundesliga, Ligue 1, Saudi Pro League, UEFA Champions League, Europa League, Conference League, and Inter Miami (any competition). Seasons are named by the year they start (2025 = 2025/26).
+
+**One-time setup**
+1. Supabase → SQL Editor → New query → paste `supabase/bank.sql` → Run. (Safe to run again.) The tables are private: the public key in the website cannot read or change them.
+2. Add the five env vars above in Vercel and redeploy.
+3. Open `https://creator-boot.vercel.app/admin.html`, enter `ADMIN_KEY`.
+4. Import tab → **Load from openfootball** → pick a season and the leagues → Preview → Save. Do the current and previous seasons first. (The file names for leagues other than the Premier League are not verified; if one fails it says so and nothing else is affected. Then paste JSON instead.)
+5. Gaps tab: type any missing results.
+
+**How it stays current**
+- Every day at 05:00 UTC (`vercel.json` cron → `/api/cron-sync`): API-Football for yesterday/today/tomorrow (fills results, kick-off times, postponements), then the openfootball file for the current season. Overview shows a red banner if the last run failed and an amber one if it is over 36 hours old. "Run the daily update now" is on the Log tab.
+- Free API-Football only serves today ±1 day, so a result missing for longer than that has to come from openfootball or you.
+- Rules: a stored final score is never silently overwritten. If another source disagrees it is flagged as a **conflict** for you to decide; anything you saved by hand is marked **verified** and kept. A club name nobody recognises goes to the **Inbox** instead of creating a duplicate club.
+
+**Admin tabs** — Overview (completeness per league and season, gaps, conflicts, sync health) · Gaps (type scores or mark postponed) · Import (paste JSON with a preview of what changes, or load from openfootball; "Copy format" gives you text to paste to ChatGPT/Gemini so it returns JSON in our shape) · Matches (filter, edit, delete, see the computed table) · Clubs (merge two spellings) · Inbox · Facts (hand-checked facts such as honours; shown to the AI only when a question contains one of their keywords) · Log.
+
+**How the chat uses it** — `GET /api/bank?q=…&today=…` works out which leagues, clubs and seasons the question is about and returns a block starting `=== VERIFIED DATA BANK ===` with the table, champion, recent results, next fixtures or head-to-head. It states how complete the season is (`COMPLETE`, or "N of 380 stored" plus which results are missing) so the AI says "not stored yet" instead of guessing. If the bank is down or empty the chat works as before.
+
+**Known limits** — Tables are computed from results: Serie A and the Saudi league tie-break rules are not verified (flagged in code), UEFA competitions show results/finals only, no tables. Only the leagues above exist; other competitions are ignored on import. Hobby-plan cron frequency was not verified against Vercel's docs; daily is the lowest limit I know of.
 
 ## Versioning
 
@@ -100,6 +126,10 @@ Until this column exists, tapping thumbs up/down still gives visual feedback but
 Attached images are now compressed client-side (max 1024px, JPEG ~70% quality) and saved as base64 directly in the `messages.media` jsonb column — not Supabase Storage. This is the simpler option and fine for personal/moderate use, but it counts against Supabase's free-tier **database** size limit (500MB), not the separate Storage limit (1GB), and base64 is ~33% larger than the raw bytes. If image use grows heavy, migrating to Supabase Storage (storing a URL instead of the bytes) would be the next step — flagging now so it's a deliberate choice later, not a surprise.
 
 ### Changelog
+
+- **v1.3.6** — **Gemini 2.5 + data bank.** Gemini 2.5 Flash / Flash-Lite are the primary models (free Google Search grounding); a model that is gone, busy or out of quota hands over to the next. Groq live research (`groq/compound*`) is **removed** — it was retired by Groq. If Gemini's search is refused, the answer is written without search and the orange note says why ("Gemini search limit reached for now"). Groq is now only a plain backup (`gpt-oss-120b`, no tools); with an attached image and Gemini down the app says so honestly instead of guessing. New: data bank (`/api/bank`, `/api/cron-sync`, `/api/admin`, `admin.html`, `supabase/bank.sql`) — see "Data bank". `/api/groq` now only accepts `openai/gpt-oss-120b` and `openai/gpt-oss-20b` and caps request size. The "denial" guard no longer blocks an answer that used verified data. The Verified badge no longer says "API-Football". Tests: bank 36, API handlers 21, chat flow 20, update flow 28, unit 10.
+
+- **v1.3.5** — The orange "no live web search" note now ends with the reason the research step failed, e.g. `[research: too slow]` or the Groq error text, so a failure can be diagnosed from a screenshot. No other change.
 
 - **v1.3.4** — Update notice in the Android app, and a better-researched, more honest chat. (Website code is shared with the app, so the update code is inert in a browser tab.)
   1. **Update notice (app only).** The app reads `version.json` from the GitHub release and, when a newer version exists, opens an "Update available" sheet with **Update now** (downloads the web files and restarts). If that fails, or the release needs a fresh install, the sheet shows **Download update** (the APK, via `/download` on this site). Before this, the notice only appeared after a silent background download had already succeeded, so any failure meant no notice at all.
@@ -427,7 +457,13 @@ index.html                    the app — chat UI, all client-side logic
 terms.html                    Terms of Service (short placeholder)
 privacy.html                  Privacy Policy (short placeholder)
 api/gemini.js                 proxies Gemini generateContent (grounding + vision + system_instruction passthrough)
-api/groq.js                   proxies Groq chat completions (text + vision fallback)
+api/groq.js                   proxies Groq chat completions (plain backup only; two allowed models)
+api/bank.js                   public read: verified-data block for a question
+api/admin.js                  admin actions (needs ADMIN_KEY)
+api/cron-sync.js              daily update (Vercel cron, needs CRON_SECRET)
+lib/                          bank logic: bank-core, bank-sync, bank-context, bank-store, sync-run, apisports
+supabase/bank.sql             tables for the data bank (run once)
+admin.html                    the admin page (website only; not bundled in the Android app)
 api/football/[...path].js     proxies any API-Football endpoint, e.g.
                                /api/football/fixtures?date=2026-07-27
 api/google-tts.js             unused by the current frontend — leftover from the old voiceover pipeline

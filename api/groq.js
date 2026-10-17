@@ -25,16 +25,26 @@ export default async function handler(req, res) {
     });
   }
 
-  const { model, messages, tools } = req.body || {};
-  if (!messages) {
+  // Only the two models that work on our free key, plain chat only (no tools, no search): Groq's search models
+  // were retired and cost far more than the free daily allowance. Anything else is refused so the open endpoint
+  // cannot be used to burn the daily token budget on other models.
+  const ALLOWED = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
+  const { model, messages } = req.body || {};
+  if (!Array.isArray(messages) || !messages.length) {
     return res.status(400).json({ error: { message: 'Missing "messages" in request body.' } });
+  }
+  if (model && !ALLOWED.includes(model)) {
+    return res.status(400).json({ error: { message: 'Model not allowed: ' + String(model).slice(0, 60) } });
+  }
+  if (JSON.stringify(messages).length > 120000) {
+    return res.status(413).json({ error: { message: 'Request too large.' } });
   }
 
   try {
     const upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ model: model || 'openai/gpt-oss-120b', messages, tools })
+      body: JSON.stringify({ model: model || ALLOWED[0], messages })
     });
 
     const data = await upstream.json().catch(() => ({}));
