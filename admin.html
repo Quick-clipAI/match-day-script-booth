@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#000000">
+<link rel="manifest" href="/admin.webmanifest">
+<link rel="icon" href="/admin-192.png">
+<link rel="apple-touch-icon" href="/admin-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Creator Booth · Data Bank</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
@@ -109,7 +114,7 @@ table.t td:nth-child(2),table.t th:nth-child(2){text-align:left;font-family:var(
 <header class="top"><div class="in">
   <div class="brand">
     <div><h1>Creator <b>Booth</b></h1><small>Data bank · <span id="todayLbl"></span></small></div>
-    <button class="btn sm" id="logout">Lock</button>
+    <div class="row" style="gap:6px"><button class="btn sm hide" id="installBtn">Install app</button><button class="btn sm" id="logout">Lock</button></div>
   </div>
   <nav class="tabs" role="tablist" id="tabs"></nav>
 </div></header>
@@ -528,6 +533,13 @@ VIEWS.log = async m => {
     + `<div class="card flat" style="margin-top:12px">${r.logs.map(l => `<div class="m"><div class="row"><span class="chip ${l.ok ? 'ok' : 'bad'}">${l.ok ? 'ok' : 'failed'}</span><span class="chip">${esc(l.kind)}</span><span class="mut mono" style="font-size:11px">${ago(l.at)}</span></div><div style="margin-top:6px;font-size:14px">${esc(l.summary || '')}</div></div>`).join('') || '<div class="empty">Nothing logged yet.</div>'}</div>`;
   $('#syncNow').onclick = ev => run(ev.target, async () => { const o = await api('sync'); toast(o.ok ? 'Update finished' : 'Update had problems', o.ok ? 'ok' : 'bad'); await refreshOv(); render(); }, 'Updating…');
 };
+
+// ---------------------------------------------------------------- install as an app (always the newest version: nothing is cached)
+if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
+let installEv = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
+$('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
+window.addEventListener('appinstalled', () => { $('#installBtn').classList.add('hide'); toast('Installed. Open it from your home screen.', 'ok'); });
 
 // ---------------------------------------------------------------- start
 if (KEY) { $('#loginView').classList.add('hide'); tryLogin(); } else $('#loginView').classList.remove('hide');

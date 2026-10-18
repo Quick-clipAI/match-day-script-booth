@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.3.6**
+**v1.3.8**
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
@@ -458,6 +458,7 @@ terms.html                    Terms of Service (short placeholder)
 privacy.html                  Privacy Policy (short placeholder)
 api/gemini.js                 proxies Gemini generateContent (grounding + vision + system_instruction passthrough)
 api/groq.js                   proxies Groq chat completions (plain backup only; two allowed models)
+api/download.js               /download: newest APK (Supabase copy first, GitHub fallback)
 api/bank.js                   public read: verified-data block for a question
 api/admin.js                  admin actions (needs ADMIN_KEY)
 api/cron-sync.js              daily update (Vercel cron, needs CRON_SECRET)
@@ -477,6 +478,17 @@ version — safe to delete if you're not planning to bring voiceover back, kept
 for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
+
+## v1.3.8 — faster app updates, installable admin
+
+- **App updates no longer depend on GitHub's download speed.** Each app build also uploads `bundle.zip`, `version.json` and the APK to a public Supabase Storage bucket named `app-updates` (the same host the app already uses for chats and sign-in). The app checks both Supabase and GitHub, takes the newest version, downloads from that host and automatically tries the other if it fails. The update is the web files only (expected to be well under 1 MB; not measured here because the real build needs the app repo's CI), not the 5 MB app file.
+- **If an update still fails the sheet now says why:** it shows a connection test for each host (status code and seconds), so a screenshot tells us whether the phone, GitHub or Supabase is the problem.
+- **`/download`** (the APK link) now goes to the Supabase copy when it exists (`api/download.js`), otherwise GitHub as before.
+- **Admin is installable.** Open `/admin.html` in Chrome on the phone → ⋮ → Install app (or tap **Install app** in the page header). It gets its own "ADMIN" icon. It caches nothing, so it is always the newest admin page; deploying the website IS the admin update. `admin.webmanifest`, `admin-sw.js`, `admin-*.png`.
+- The app files needed from the website are only `index.html` (unchanged flow: copy it into the app repo's `www/`). `admin.html` is never part of the app.
+- **One-time setup** (see the app README): create the bucket `app-updates` (public) in Supabase and add two GitHub secrets to the APP repo, `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`. Without them the build still works and updates come from GitHub as before.
+- A phone on an older app version (v1.3.4 or earlier) still uses the old GitHub path, so it needs one APK install to get the new updater.
+- Tests: update flow 35, chat flow 20, bank 36, API handlers 27, players 4, unit 10.
 
 ## v1.3.7 — players, more competitions, two fixes
 
