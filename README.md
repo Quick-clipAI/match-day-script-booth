@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.3.8**
+**v1.3.9**
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
@@ -478,6 +478,15 @@ version — safe to delete if you're not planning to bring voiceover back, kept
 for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
+
+## v1.3.9 — import JSON from a file
+
+- **Players tab:** new **Choose JSON file(s)…** button. Pick one file or several at once (for example one per club). The file is read in the browser, split into parts of under 1 MB and sent one part at a time, so the clipboard limit and the server's ~4.5 MB request limit no longer matter. A progress label shows "Checking 2/3…" or "Saving 2/3…".
+- Preview first, then Save, as before. Problems in the file are now listed on the page (before, a bad file only showed "Server answered 400"). A repeated player inside the import is flagged. Pasted text is ignored while files are loaded; **Clear files** goes back to pasting. A file that is not valid JSON, or was cut off, is rejected with nothing loaded.
+- If a later part fails during Save, the earlier parts are already saved; saving again is safe (same players overwrite themselves).
+- **Import tab (results):** new **Choose JSON file…** button that loads the file into the box, then Preview as usual. Files over 4 MB are refused with a message.
+- Known limit: the repeated-shirt and two-clubs warnings are checked per part against what is already stored, not across parts of the same file. The in-file repeated-player check covers the whole file.
+- Only `admin.html`, `README.md` and `package.json` changed. No SQL, no environment variables, no app update.
 
 ## v1.3.8 — faster app updates, installable admin
 

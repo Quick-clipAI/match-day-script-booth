@@ -299,6 +299,7 @@ VIEWS.import = async m => {
     </div>
     <label class="f" style="margin-top:12px" for="iTx">JSON</label>
     <textarea id="iTx" spellcheck="false" placeholder='Paste an openfootball file, an API-Football answer, or our format…'></textarea>
+    <div class="row" style="margin-top:10px"><button class="btn" id="iFileBtn">Choose JSON file…</button><span class="mut" id="iFileInfo" style="font-size:13px">Or load a file instead of pasting.</span><input type="file" id="iFile" accept=".json,.txt,application/json,text/plain" class="hide"></div>
     <div class="row" style="margin-top:10px">
       <button class="btn pri" id="iPrev">Preview changes</button>
       <button class="btn" id="iFmt">Copy format for ChatGPT / Gemini</button>
@@ -318,6 +319,13 @@ VIEWS.import = async m => {
   <div id="oOut"></div>`;
   $('#iFmt').onclick = async () => { try { await navigator.clipboard.writeText(FORMAT_PROMPT); toast('Copied. Paste it to your AI with the results.', 'ok'); } catch (e) { dlg(`<h3>Format</h3><textarea readonly style="min-height:300px">${esc(FORMAT_PROMPT)}</textarea><div class="row" style="margin-top:10px"><button class="btn" onclick="closeDlg()">Close</button></div>`); } };
   const picked = () => [...m.querySelectorAll('#oSe ~ *, label.chip input')].filter(x => x.checked).map(x => x.value);
+  $('#iFileBtn').onclick = () => $('#iFile').click();
+  $('#iFile').onchange = async ev => {
+    const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+    if (f.size > 4 * 1024 * 1024) return toast('That file is ' + (f.size / 1048576).toFixed(1) + ' MB. The server accepts about 4 MB per import here. Split it into smaller files.', 'bad');
+    try { $('#iTx').value = await f.text(); } catch (e) { return toast('Could not read that file.', 'bad'); }
+    $('#iFileInfo').textContent = f.name + ' · ' + (f.size / 1024).toFixed(0) + ' KB loaded. Tap Preview changes.';
+  };
   $('#iPrev').onclick = ev => runImport(ev.target, 'i', true);
   $('#oPrev').onclick = ev => runOf(ev.target, true);
   if (nav.openfootball) $('#oPrev').scrollIntoView();
@@ -511,18 +519,62 @@ VIEWS.players = async m => {
   m.innerHTML = head('Players & squads', 'Import squad data as JSON. Player age is calculated from date of birth when displayed; the database stores the DOB, not a fixed age.') + `
   <div class="card"><b>JSON format</b><p class="mut" style="margin:6px 0 10px">Use one club per group. Season is the starting year (2026 means 2026/27). You can paste one group or an array of groups.</p>
   <pre class="pre" style="white-space:pre-wrap">${esc(JSON.stringify({league:'EPL',season:2026,club:'Arsenal',players:[{name:'Player Name',shirt:7,dob:'2000-01-31',position:'Forward',nationality:'England'}]},null,2))}</pre>
-  <label class="f" for="pTx">Squad JSON</label><textarea id="pTx" spellcheck="false" placeholder="Paste squad JSON here…"></textarea>
+  <label class="f">Load from file(s)</label>
+  <div class="row"><button class="btn" id="pFileBtn">Choose JSON file(s)…</button><button class="btn sm hide" id="pFileClear">Clear files</button><input type="file" id="pFile" accept=".json,.txt,application/json,text/plain" multiple class="hide"></div>
+  <div class="mut" id="pFileInfo" style="font-size:13px;margin:6px 0 12px">No file chosen. You can pick several files at once (for example one per club). Large files are sent to the server in small parts automatically.</div>
+  <label class="f" for="pTx">Or paste squad JSON</label><textarea id="pTx" spellcheck="false" placeholder="Paste squad JSON here… (ignored while files are loaded)"></textarea>
   <div class="row" style="margin-top:10px"><button class="btn pri" id="pPreview">Preview import</button></div></div><div id="pOut"></div>
   <h3 style="margin-top:28px">Stored players (${r.total})</h3><div class="card flat">${r.rows.map(p=>`<div class="m"><div class="teams">${esc(p.name)} ${p.shirt!=null?'#'+esc(p.shirt):''}</div><div class="meta">${esc(p.club)} · ${esc(p.league)} · ${p.season}/${String(Number(p.season)+1).slice(-2)}${p.position?' · '+esc(p.position):''}${p.nationality?' · '+esc(p.nationality):''}${p.dob?' · DOB '+esc(p.dob):''}</div></div>`).join('') || '<div class="empty">No players imported yet.</div>'}</div>`;
-  async function preview(save) {
-    const out=$('#pOut'); let rep;
-    try { rep=await run($('#pPreview'),()=>api('importPlayers',{text:$('#pTx').value,dryRun:!save}),save?'Saving…':'Checking…'); } catch(e){return;}
-    if(!rep)return;
-    out.innerHTML=`<div class="card"><b>${save?'Import complete':'Preview — nothing saved yet'}</b><p>${Number(rep.received)||0} player records found.</p>${(rep.problems||[]).map(x=>`<div style="color:var(--bad);margin-top:5px">⚠ ${esc(x)}</div>`).join('')}${(rep.warnings||[]).map(x=>`<div style="color:var(--warn);margin-top:5px">⚠ ${esc(x)}</div>`).join('')}${rep.duplicates?`<div class="mut">${rep.duplicates} duplicate IDs within this file; later copies may replace earlier copies.</div>`:''}${!save&&!rep.problems?.length?'<div class="row" style="margin-top:12px"><button class="btn pri" id="pApply">Save players</button></div>':''}</div>`;
-    const ap=$('#pApply'); if(ap)ap.onclick=()=>preview(true);
-    if(save){toast('Player data saved','ok');await render();}
+  // ---- files are read in the browser, split into small parts, and sent one part at a time
+  // (the server rejects a single request above ~4.5 MB, and a phone clipboard can cut long text).
+  let files = null; // { names: [], packs: [], bytes }
+  const PART_BYTES = 900 * 1024;
+  const parts = packs => { const out = []; let cur = [], size = 0; for (const k of packs) { const n = JSON.stringify(k).length; if (cur.length && size + n > PART_BYTES) { out.push(cur); cur = []; size = 0; } cur.push(k); size += n; } if (cur.length) out.push(cur); return out; };
+  const countPlayers = packs => packs.reduce((n, k) => n + (k && Array.isArray(k.players) ? k.players.length : 0), 0);
+  const info = t => { $('#pFileInfo').textContent = t; };
+  $('#pFileBtn').onclick = () => $('#pFile').click();
+  $('#pFileClear').onclick = () => { files = null; $('#pFileClear').classList.add('hide'); $('#pOut').innerHTML = ''; info('Files cleared. The pasted text will be used.'); };
+  $('#pFile').onchange = async ev => {
+    const list = [...ev.target.files]; ev.target.value = ''; if (!list.length) return;
+    const names = [], packs = []; let bytes = 0;
+    for (const f of list) {
+      let j; try { j = JSON.parse(await f.text()); } catch (e) { files = null; $('#pFileClear').classList.add('hide'); return toast(`${f.name}: not valid JSON, or the file was cut off. Nothing was loaded.`, 'bad'); }
+      (Array.isArray(j) ? j : [j]).forEach(k => packs.push(k)); names.push(f.name); bytes += f.size;
+    }
+    files = { names, packs, bytes };
+    $('#pFileClear').classList.remove('hide'); $('#pOut').innerHTML = '';
+    info(`${names.length} file(s) loaded: ${packs.length} club group(s), ${countPlayers(packs)} players, ${(bytes / 1024).toFixed(0)} KB. Tap Preview import. The pasted text is ignored while files are loaded.`);
+  };
+  const inFileDupes = packs => { const seen = new Map(), msg = []; for (const k of packs) { if (!k || !Array.isArray(k.players)) continue; for (const x of k.players) { const id = [k.league, k.season, String(k.club || '').toLowerCase(), String(x && x.name || '').toLowerCase()].join('|'); if (seen.has(id)) msg.push(`${k.club} / ${x.name}: listed more than once in this import (${k.season}).`); else seen.set(id, 1); } } return msg; };
+  async function sendAll(packs, save, btn) {
+    const batches = parts(packs); let offset = 0; const total = { received: 0, problems: [], warnings: [], duplicates: 0 };
+    for (let i = 0; i < batches.length; i++) {
+      busy(btn, true, (save ? 'Saving ' : 'Checking ') + (i + 1) + '/' + batches.length + '…');
+      let r;
+      try { r = await api('importPlayers', { data: batches[i], dryRun: !save }); }
+      catch (e) { if (e.auth) throw e; if (e.data && Array.isArray(e.data.problems)) r = e.data; else throw new Error(`Part ${i + 1} of ${batches.length}: ${e.message}` + (save && i ? ` Parts 1–${i} were already saved; saving again is safe.` : '')); }
+      total.received += Number(r.received) || 0; total.duplicates += Number(r.duplicates) || 0;
+      (r.problems || []).forEach(x => total.problems.push(x.replace(/Group (\d+)/, (m, n) => 'Group ' + (Number(n) + offset))));
+      (r.warnings || []).forEach(x => { if (!total.warnings.includes(x)) total.warnings.push(x); });
+      offset += batches[i].length;
+      if (save && r.problems && r.problems.length) break;
+    }
+    return total;
   }
-  $('#pPreview').onclick=()=>preview(false);
+  async function preview(save) {
+    const out = $('#pOut'); let packs;
+    if (files) packs = files.packs;
+    else { const t = $('#pTx').value.trim(); if (!t) return toast('Choose a file or paste some JSON first.', 'bad'); try { const j = JSON.parse(t); packs = Array.isArray(j) ? j : [j]; } catch (e) { return toast('Invalid JSON. Check commas and quotation marks, or load it as a file.', 'bad'); } }
+    const btn = $('#pPreview'); btn.disabled = true; let rep;
+    try { rep = await sendAll(packs, save, btn); } catch (e) { busy(btn, false); btn.disabled = false; if (e.auth) return lock(); return toast(e.message, 'bad'); }
+    busy(btn, false); btn.disabled = false;
+    const dupes = inFileDupes(packs); const warnings = [...rep.warnings, ...dupes.filter(x => !rep.warnings.includes(x))];
+    const bad = rep.problems.length > 0;
+    out.innerHTML = `<div class="card"><b>${save ? (bad ? 'Stopped — fix the problems below' : 'Import complete') : 'Preview — nothing saved yet'}</b><p>${rep.received} player records found${files ? ' in ' + files.names.length + ' file(s)' : ''}.</p>${rep.problems.slice(0, 40).map(x => `<div style="color:var(--bad);margin-top:5px">⚠ ${esc(x)}</div>`).join('')}${rep.problems.length > 40 ? `<div class="mut">…and ${rep.problems.length - 40} more problems.</div>` : ''}${warnings.slice(0, 40).map(x => `<div style="color:var(--warn);margin-top:5px">⚠ ${esc(x)}</div>`).join('')}${warnings.length > 40 ? `<div class="mut">…and ${warnings.length - 40} more warnings.</div>` : ''}${rep.duplicates ? `<div class="mut">${rep.duplicates} duplicate IDs within one part of this import; later copies replace earlier copies.</div>` : ''}${!save && !bad ? '<div class="row" style="margin-top:12px"><button class="btn pri" id="pApply">Save players</button></div>' : ''}</div>`;
+    const ap = $('#pApply'); if (ap) ap.onclick = () => preview(true);
+    if (save && !bad) { toast('Player data saved', 'ok'); files = null; await render(); }
+  }
+  $('#pPreview').onclick = () => preview(false);
 };
 
 // ---------------------------------------------------------------- log
