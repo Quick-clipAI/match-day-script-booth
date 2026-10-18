@@ -168,7 +168,7 @@ $('#loginBtn').onclick = tryLogin; $('#key').onkeydown = e => { if (e.key === 'E
 $('#logout').onclick = lock;
 
 // ---------------------------------------------------------------- tabs
-const TABS = [['overview', 'Overview'], ['gaps', 'Gaps'], ['import', 'Import'], ['matches', 'Matches'], ['clubs', 'Clubs'], ['inbox', 'Inbox'], ['facts', 'Facts'], ['log', 'Log']];
+const TABS = [['overview', 'Overview'], ['gaps', 'Gaps'], ['import', 'Import'], ['matches', 'Matches'], ['clubs', 'Clubs'], ['players', 'Players'], ['inbox', 'Inbox'], ['facts', 'Facts'], ['log', 'Log']];
 function drawTabs() {
   $('#tabs').innerHTML = TABS.map(([k, l]) => {
     let dot = '';
@@ -498,6 +498,26 @@ VIEWS.facts = async m => {
   $('#fNew').onclick = () => edit();
   m.querySelectorAll('[data-e]').forEach(b => b.onclick = () => edit(r.facts.find(x => String(x.id) === b.dataset.e)));
   m.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { if (confirm('Delete this fact?')) run(b, async () => { await api('deleteFact', { id: Number(b.dataset.d) }); render(); }); });
+};
+
+// ---------------------------------------------------------------- players
+VIEWS.players = async m => {
+  const r = await api('players', { limit: 1000 });
+  m.innerHTML = head('Players & squads', 'Import squad data as JSON. Player age is calculated from date of birth when displayed; the database stores the DOB, not a fixed age.') + `
+  <div class="card"><b>JSON format</b><p class="mut" style="margin:6px 0 10px">Use one club per group. Season is the starting year (2026 means 2026/27). You can paste one group or an array of groups.</p>
+  <pre class="pre" style="white-space:pre-wrap">${esc(JSON.stringify({league:'EPL',season:2026,club:'Arsenal',players:[{name:'Player Name',shirt:7,dob:'2000-01-31',position:'Forward',nationality:'England'}]},null,2))}</pre>
+  <label class="f" for="pTx">Squad JSON</label><textarea id="pTx" spellcheck="false" placeholder="Paste squad JSON here…"></textarea>
+  <div class="row" style="margin-top:10px"><button class="btn pri" id="pPreview">Preview import</button></div></div><div id="pOut"></div>
+  <h3 style="margin-top:28px">Stored players (${r.total})</h3><div class="card flat">${r.rows.map(p=>`<div class="m"><div class="teams">${esc(p.name)} ${p.shirt!=null?'#'+esc(p.shirt):''}</div><div class="meta">${esc(p.club)} · ${esc(p.league)} · ${p.season}/${String(Number(p.season)+1).slice(-2)}${p.position?' · '+esc(p.position):''}${p.nationality?' · '+esc(p.nationality):''}${p.dob?' · DOB '+esc(p.dob):''}</div></div>`).join('') || '<div class="empty">No players imported yet.</div>'}</div>`;
+  async function preview(save) {
+    const out=$('#pOut'); let rep;
+    try { rep=await run($('#pPreview'),()=>api('importPlayers',{text:$('#pTx').value,dryRun:!save}),save?'Saving…':'Checking…'); } catch(e){return;}
+    if(!rep)return;
+    out.innerHTML=`<div class="card"><b>${save?'Import complete':'Preview — nothing saved yet'}</b><p>${Number(rep.received)||0} player records found.</p>${(rep.problems||[]).map(x=>`<div style="color:var(--bad);margin-top:5px">⚠ ${esc(x)}</div>`).join('')}${(rep.warnings||[]).map(x=>`<div style="color:var(--warn);margin-top:5px">⚠ ${esc(x)}</div>`).join('')}${rep.duplicates?`<div class="mut">${rep.duplicates} duplicate IDs within this file; later copies may replace earlier copies.</div>`:''}${!save&&!rep.problems?.length?'<div class="row" style="margin-top:12px"><button class="btn pri" id="pApply">Save players</button></div>':''}</div>`;
+    const ap=$('#pApply'); if(ap)ap.onclick=()=>preview(true);
+    if(save){toast('Player data saved','ok');await render();}
+  }
+  $('#pPreview').onclick=()=>preview(false);
 };
 
 // ---------------------------------------------------------------- log

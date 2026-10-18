@@ -20,7 +20,7 @@ A football-only AI chat app for fans and creators: match and player analysis, re
 Our own database of results so answers come from checked data, not the model's memory. Leagues covered: Premier League, La Liga, Serie A, Bundesliga, Ligue 1, Saudi Pro League, UEFA Champions League, Europa League, Conference League, and Inter Miami (any competition). Seasons are named by the year they start (2025 = 2025/26).
 
 **One-time setup**
-1. Supabase → SQL Editor → New query → paste `supabase/bank.sql` → Run. (Safe to run again.) The tables are private: the public key in the website cannot read or change them.
+1. Supabase → SQL Editor → New query → paste the contents of `bank.sql` (kept outside this repo; already run for this project) → Run. The tables are private: the public key in the website cannot read or change them.
 2. Add the five env vars above in Vercel and redeploy.
 3. Open `https://creator-boot.vercel.app/admin.html`, enter `ADMIN_KEY`.
 4. Import tab → **Load from openfootball** → pick a season and the leagues → Preview → Save. Do the current and previous seasons first. (The file names for leagues other than the Premier League are not verified; if one fails it says so and nothing else is affected. Then paste JSON instead.)
@@ -462,7 +462,7 @@ api/bank.js                   public read: verified-data block for a question
 api/admin.js                  admin actions (needs ADMIN_KEY)
 api/cron-sync.js              daily update (Vercel cron, needs CRON_SECRET)
 lib/                          bank logic: bank-core, bank-sync, bank-context, bank-store, sync-run, apisports
-supabase/bank.sql             tables for the data bank (run once)
+(SQL files are run in Supabase and not stored in this repo)
 admin.html                    the admin page (website only; not bundled in the Android app)
 api/football/[...path].js     proxies any API-Football endpoint, e.g.
                                /api/football/fixtures?date=2026-07-27
@@ -476,3 +476,14 @@ package.json                  name/version/description only — no build step
 version — safe to delete if you're not planning to bring voiceover back, kept
 for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
+
+
+## v1.3.7 — players, more competitions, two fixes
+
+- **Players tab** (admin): paste a squad as JSON, one club per group, e.g. `{"league":"EPL","season":2026,"club":"Arsenal","players":[{"name":"…","shirt":7,"dob":"2000-01-31","position":"Forward","nationality":"England"}]}` (or an array of groups). Preview warns about a repeated shirt number in a club/season and about the same player at two clubs. Date of birth is stored; age is calculated when shown. Do not import unverified players.
+- **New competition keys** for manual import: `CLUBFRIENDLY`, `NATIONFRIENDLY`, `WORLD_CUP`, `EURO`, `AFCON`, `COPA_AMERICA`, `WC_QUALIFIERS`, `EURO_QUALIFIERS`, `AFCON_QUALIFIERS`. They are competition categories; no results are included.
+- **Needs a database change first.** Run `1-competitions-and-players.sql` once in Supabase (paste its contents into SQL Editor). It widens the allowed competition list and creates the private `bank_players` table. The SQL is kept out of this repo on purpose.
+- Fix: the Supabase store now really saves/loads players (before, only the test store could).
+- Fix: club-spelling aliases that name several spellings (Union SG etc.) crashed the chat's bank lookup; they no longer do.
+- Ligue 1 matcher fix (Paris FC vs Paris Saint-Germain) is included: `node tests/matcher.test.mjs`.
+- Not changed: `index.html` (still v1.3.6), so the Android app needs no update.

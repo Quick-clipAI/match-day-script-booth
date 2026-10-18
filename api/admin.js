@@ -46,6 +46,42 @@ export default async function handler(req, res) {
         const lastSync = (await store.recentLogs(60)).find(l => l.kind === 'sync-api');
         return res.status(200).json({ today: now, summary, logs, inboxCount: inbox.length, lastSync: lastSync || null, leagues: LEAGUE_KEYS.map(k => ({ key: k, name: LEAGUES[k].name, short: LEAGUES[k].short, type: LEAGUES[k].type, teams: LEAGUES[k].teams || null, hasOf: !!LEAGUES[k].of, currentSeason: currentSeason(null, now) })) });
       }
+      case 'players': {
+        const rows = await store.listPlayers({ league: body.league || undefined, season: body.season !== undefined && body.season !== '' ? Number(body.season) : undefined, club: body.club || undefined });
+        return res.status(200).json({ total: rows.length, rows: rows.slice(0, Number(body.limit) || 1000) });
+      }
+      case 'importPlayers': {
+        let parsed; try { parsed = typeof body.text === 'string' ? JSON.parse(body.text) : body.data; } catch (e) { return fail(res, 400, 'Invalid JSON. Check commas and quotation marks.'); }
+        const packs = Array.isArray(parsed) ? parsed : [parsed];
+        const problems = [], incoming = [];
+        for (let pi=0; pi<packs.length; pi++) {
+          const pack = packs[pi] || {}; const league = String(pack.league || body.league || '').trim(); const season = Number(pack.season ?? body.season);
+          const club = String(pack.club || '').trim();
+          if (!league || !LEAGUES[league]) { problems.push(`Group ${pi+1}: unknown or missing league key.`); continue; }
+          if (!Number.isInteger(season) || season < 1900 || season > 2200) { problems.push(`Group ${pi+1}: season must be the starting year, e.g. 2026.`); continue; }
+          if (!club) { problems.push(`Group ${pi+1}: missing club.`); continue; }
+          if (!Array.isArray(pack.players)) { problems.push(`Group ${pi+1}: players must be an array.`); continue; }
+          for (let i=0;i<pack.players.length;i++) {
+            const x=pack.players[i] || {}; const name=String(x.name||'').trim(); if(!name){problems.push(`${club} player ${i+1}: missing name.`);continue;}
+            const shirt = x.shirt == null || x.shirt === '' ? null : Number(x.shirt);
+            if (shirt != null && (!Number.isInteger(shirt) || shirt < 0 || shirt > 999)) { problems.push(`${club} / ${name}: shirt must be a number.`); continue; }
+            const dob = x.dob ? String(x.dob).slice(0,10) : null;
+            if (dob && !isIsoDate(dob)) { problems.push(`${club} / ${name}: DOB must be YYYY-MM-DD.`); continue; }
+            const id = `${league}|${season}|${club.toLowerCase()}|${name.toLowerCase()}`;
+            incoming.push({ id, league, season, club, name, shirt, dob, position: String(x.position||'').trim().slice(0,80)||null, nationality: String(x.nationality||'').trim().slice(0,80)||null, updated_at: new Date().toISOString() });
+          }
+        }
+        const existing = await store.listPlayers(); const merged = new Map(existing.map(p => [p.id, p])); incoming.forEach(p => merged.set(p.id, p)); const combined = [...merged.values()];
+        const shirtDupes = [], multiClub = [], seenShirts = new Set(), seenPlayer = new Map();
+        for (const p of combined) {
+          if (p.shirt != null) { const k=`${p.league}|${p.season}|${p.club.toLowerCase()}|${p.shirt}`; if(seenShirts.has(k)) shirtDupes.push(`${p.club}: shirt ${p.shirt} appears more than once in ${p.season}/${String(p.season+1).slice(-2)}.`); seenShirts.add(k); }
+          const k=`${p.league}|${p.season}|${p.name.toLowerCase()}`; if(seenPlayer.has(k) && seenPlayer.get(k).club.toLowerCase() !== p.club.toLowerCase()) multiClub.push(`${p.name}: listed for both ${seenPlayer.get(k).club} and ${p.club}.`); else seenPlayer.set(k,p);
+        }
+        const report={ok:problems.length===0, preview:body.dryRun!==false, received:incoming.length, problems, warnings:[...new Set([...shirtDupes,...multiClub])], duplicates:incoming.length-new Set(incoming.map(p=>p.id)).size};
+        if(problems.length) return res.status(400).json(report);
+        if(body.dryRun===false){ await store.upsertPlayers(incoming); await store.addLog({kind:'players-import',ok:true,summary:`Imported ${incoming.length} player records across ${new Set(incoming.map(p=>p.club)).size} club(s).`}); report.saved=incoming.length; }
+        return res.status(200).json(report);
+      }
       case 'matches': {
         const f = { league: body.league || undefined, season: body.season != null && body.season !== '' ? Number(body.season) : undefined, club: body.club || undefined };
         let rows = await store.listMatches(f);
