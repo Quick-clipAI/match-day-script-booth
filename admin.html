@@ -113,7 +113,7 @@ table.t td:nth-child(2),table.t th:nth-child(2){text-align:left;font-family:var(
 <div id="appView" class="hide">
 <header class="top"><div class="in">
   <div class="brand">
-    <div><h1>Creator <b>Booth</b></h1><small>Data bank · <span id="todayLbl"></span></small></div>
+    <div><h1>Creator <b>Booth</b></h1><small>Data bank · <span id="todayLbl"></span> · <span id="admVer"></span></small></div>
     <div class="row" style="gap:6px"><button class="btn sm hide" id="installBtn">Install app</button><button class="btn sm" id="logout">Lock</button></div>
   </div>
   <nav class="tabs" role="tablist" id="tabs"></nav>
@@ -513,9 +513,19 @@ VIEWS.facts = async m => {
   m.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { if (confirm('Delete this fact?')) run(b, async () => { await api('deleteFact', { id: Number(b.dataset.d) }); render(); }); });
 };
 
+const CAREER_EXAMPLE = JSON.stringify({ profiles: [{
+  name: 'Player Name', dob: '2000-01-31', nationality: 'England', source: 'where you found it', as_of: '2026-10-14',
+  totals: { appearances: 250, goals: 80, assists: 60 },
+  seasons: [{ season: 2025, club: 'Arsenal', competition: 'Premier League', appearances: 36, goals: 14, assists: 11, dribbles_attempted: 120, dribbles_successful: 70, passes_completed: 1400, crosses_completed: 45, touches_in_opposition_box: 310 }],
+  awards: [{ name: 'Premier League Player of the Month', season: 2025 }],
+  market_values: [{ amount: 120000000, currency: 'EUR', date: '2026-06-01', source: 'Transfermarkt' }],
+  transfers: [{ date: '2019-07-01', from: 'Club A', to: 'Club B', fee: 5000000, currency: 'EUR', type: 'permanent' }]
+}] }, null, 2);
+const CAREER_PROMPT = `Return ONLY valid JSON (no explanation, no markdown) in exactly this shape for the football players I name:\n\n${CAREER_EXAMPLE}\n\nRules:\n- Leave out any field, season, award or transfer you cannot confirm. Never guess or estimate.\n- as_of is the date the career totals and season stats are correct up to (YYYY-MM-DD).\n- Money is a plain number in full (120000000, not "120m"). Every market value needs its date.\n- season is the starting year (2025 means 2025/26).\n- Stat names are lowercase with underscores. Preferred names: appearances, starts, minutes, goals, assists, shots, shots_on_target, key_passes, dribbles_attempted, dribbles_successful, passes_attempted, passes_completed, crosses_attempted, crosses_completed, touches_in_opposition_box, tackles, interceptions, yellow_cards, red_cards, clean_sheets, saves.\n- Put where each profile's information came from in "source".\n\nPlayers: `;
 // ---------------------------------------------------------------- players
 VIEWS.players = async m => {
   const r = await api('players', { limit: 1000 });
+  let cr; try { cr = await api('career', { limit: 500 }); } catch (e) { if (e.auth) throw e; cr = { total: 0, rows: [], missing: e.message }; }
   m.innerHTML = head('Players & squads', 'Import squad data as JSON. Player age is calculated from date of birth when displayed; the database stores the DOB, not a fixed age.') + `
   <div class="card"><b>JSON format</b><p class="mut" style="margin:6px 0 10px">Use one club per group. Season is the starting year (2026 means 2026/27). You can paste one group or an array of groups.</p>
   <pre class="pre" style="white-space:pre-wrap">${esc(JSON.stringify({league:'EPL',season:2026,club:'Arsenal',players:[{name:'Player Name',shirt:7,dob:'2000-01-31',position:'Forward',nationality:'England'}]},null,2))}</pre>
@@ -524,57 +534,81 @@ VIEWS.players = async m => {
   <div class="mut" id="pFileInfo" style="font-size:13px;margin:6px 0 12px">No file chosen. You can pick several files at once (for example one per club). Large files are sent to the server in small parts automatically.</div>
   <label class="f" for="pTx">Or paste squad JSON</label><textarea id="pTx" spellcheck="false" placeholder="Paste squad JSON here… (ignored while files are loaded)"></textarea>
   <div class="row" style="margin-top:10px"><button class="btn pri" id="pPreview">Preview import</button></div></div><div id="pOut"></div>
+  <h3 style="margin-top:28px">Career profiles</h3>
+  ${cr.missing ? `<div class="banner bad"><div><b>Career profiles are not ready.</b><br>Run <code>2-career-profiles.sql</code> once in Supabase → SQL Editor, then reload this page. (${esc(cr.missing)})</div></div>` : ''}
+  <div class="card"><b>Career stats, awards, value and transfers</b><p class="mut" style="margin:6px 0 10px">One profile per player, any sections you have. Nothing is required except the name, and <b>as_of</b> whenever you give totals or seasons: that is the date the figures are correct up to. Later matches you record in the bank count from that date on, so the two are never added together by mistake. Importing again adds to a profile; it only replaces a value when you give a new one, and the preview lists every value it would overwrite.</p>
+  <pre class="pre" style="white-space:pre-wrap">${esc(CAREER_EXAMPLE)}</pre>
+  <div class="row" style="margin:8px 0 12px"><button class="btn sm" id="cPrompt">Copy prompt for ChatGPT / Gemini</button></div>
+  <label class="f">Load from file(s)</label>
+  <div class="row"><button class="btn" id="cFileBtn">Choose JSON file(s)…</button><button class="btn sm hide" id="cFileClear">Clear files</button><input type="file" id="cFile" accept=".json,.txt,application/json,text/plain" multiple class="hide"></div>
+  <div class="mut" id="cFileInfo" style="font-size:13px;margin:6px 0 12px">No file chosen.</div>
+  <label class="f" for="cTx">Or paste career JSON</label><textarea id="cTx" spellcheck="false" placeholder="Paste career JSON here… (ignored while files are loaded)"></textarea>
+  <div class="row" style="margin-top:10px"><button class="btn pri" id="cPreview">Preview import</button></div></div><div id="cOut"></div>
+  <div class="card flat" style="margin-top:12px"><div class="mut" style="padding:8px 12px;font-size:13px">Stored career profiles (${cr.total})</div>${cr.rows.map(p => `<div class="m"><div class="teams">${esc(p.name)}</div><div class="meta">${esc(p.summary)}${p.dob ? ' · DOB ' + esc(p.dob) : ''}${p.source ? ' · ' + esc(p.source) : ''}</div><div class="row" style="margin-top:6px"><button class="btn sm" data-cdel="${esc(p.id)}" data-cname="${esc(p.name)}">Delete</button></div></div>`).join('') || '<div class="empty">No career profiles yet.</div>'}</div>
   <h3 style="margin-top:28px">Stored players (${r.total})</h3><div class="card flat">${r.rows.map(p=>`<div class="m"><div class="teams">${esc(p.name)} ${p.shirt!=null?'#'+esc(p.shirt):''}</div><div class="meta">${esc(p.club)} · ${esc(p.league)} · ${p.season}/${String(Number(p.season)+1).slice(-2)}${p.position?' · '+esc(p.position):''}${p.nationality?' · '+esc(p.nationality):''}${p.dob?' · DOB '+esc(p.dob):''}</div></div>`).join('') || '<div class="empty">No players imported yet.</div>'}</div>`;
-  // ---- files are read in the browser, split into small parts, and sent one part at a time
-  // (the server rejects a single request above ~4.5 MB, and a phone clipboard can cut long text).
-  let files = null; // { names: [], packs: [], bytes }
+  // ---- Files are read in the browser, split into parts under 1 MB and sent one part at a time
+  // (the server rejects one request above ~4.5 MB, and a phone clipboard can cut long text).
   const PART_BYTES = 900 * 1024;
-  const parts = packs => { const out = []; let cur = [], size = 0; for (const k of packs) { const n = JSON.stringify(k).length; if (cur.length && size + n > PART_BYTES) { out.push(cur); cur = []; size = 0; } cur.push(k); size += n; } if (cur.length) out.push(cur); return out; };
-  const countPlayers = packs => packs.reduce((n, k) => n + (k && Array.isArray(k.players) ? k.players.length : 0), 0);
-  const info = t => { $('#pFileInfo').textContent = t; };
-  $('#pFileBtn').onclick = () => $('#pFile').click();
-  $('#pFileClear').onclick = () => { files = null; $('#pFileClear').classList.add('hide'); $('#pOut').innerHTML = ''; info('Files cleared. The pasted text will be used.'); };
-  $('#pFile').onchange = async ev => {
-    const list = [...ev.target.files]; ev.target.value = ''; if (!list.length) return;
-    const names = [], packs = []; let bytes = 0;
-    for (const f of list) {
-      let j; try { j = JSON.parse(await f.text()); } catch (e) { files = null; $('#pFileClear').classList.add('hide'); return toast(`${f.name}: not valid JSON, or the file was cut off. Nothing was loaded.`, 'bad'); }
-      (Array.isArray(j) ? j : [j]).forEach(k => packs.push(k)); names.push(f.name); bytes += f.size;
+  const parts = items => { const out = []; let cur = [], size = 0; for (const k of items) { const n = JSON.stringify(k).length; if (cur.length && size + n > PART_BYTES) { out.push(cur); cur = []; size = 0; } cur.push(k); size += n; } if (cur.length) out.push(cur); return out; };
+  const list = j => Array.isArray(j) ? j : (j && Array.isArray(j.profiles) ? j.profiles : [j]);
+  function uploader(c) {   // c: { p: id prefix, action, count(items), dupes(items), what, saved(rep) }
+    let files = null; const $$ = id => $('#' + c.p + id);
+    const info = t => { $$('FileInfo').textContent = t; };
+    $$('FileBtn').onclick = () => $$('File').click();
+    $$('FileClear').onclick = () => { files = null; $$('FileClear').classList.add('hide'); $$('Out').innerHTML = ''; info('Files cleared. The pasted text will be used.'); };
+    $$('File').onchange = async ev => {
+      const picked = [...ev.target.files]; ev.target.value = ''; if (!picked.length) return;
+      const names = [], items = []; let bytes = 0;
+      for (const f of picked) {
+        let j; try { j = JSON.parse(await f.text()); } catch (e) { files = null; $$('FileClear').classList.add('hide'); return toast(`${f.name}: not valid JSON, or the file was cut off. Nothing was loaded.`, 'bad'); }
+        list(j).forEach(k => items.push(k)); names.push(f.name); bytes += f.size;
+      }
+      files = { names, items, bytes }; $$('FileClear').classList.remove('hide'); $$('Out').innerHTML = '';
+      info(`${names.length} file(s) loaded: ${c.count(items)}, ${(bytes / 1024).toFixed(0)} KB. Tap Preview import. The pasted text is ignored while files are loaded.`);
+    };
+    async function sendAll(items, save, btn) {
+      const batches = parts(items); let offset = 0; const t = { received: 0, created: 0, updated: 0, problems: [], warnings: [], changes: [], changesTotal: 0, duplicates: 0 };
+      for (let i = 0; i < batches.length; i++) {
+        busy(btn, true, (save ? 'Saving ' : 'Checking ') + (i + 1) + '/' + batches.length + '…');
+        let r;
+        try { r = await api(c.action, { data: batches[i], dryRun: !save }); }
+        catch (e) { if (e.auth) throw e; if (e.data && Array.isArray(e.data.problems)) r = e.data; else throw new Error(`Part ${i + 1} of ${batches.length}: ${e.message}` + (save && i ? ` Parts 1–${i} were already saved; saving again is safe.` : '')); }
+        for (const k of ['received', 'created', 'updated', 'duplicates', 'changesTotal']) t[k] += Number(r[k]) || 0;
+        (r.problems || []).forEach(x => t.problems.push(x.replace(/(Group|Profile) (\d+)/, (m, w, n) => w + ' ' + (Number(n) + offset))));
+        (r.warnings || []).forEach(x => { if (!t.warnings.includes(x)) t.warnings.push(x); });
+        (r.changes || []).forEach(x => t.changes.push(x));
+        offset += batches[i].length;
+        if (save && r.problems && r.problems.length) break;
+      }
+      return t;
     }
-    files = { names, packs, bytes };
-    $('#pFileClear').classList.remove('hide'); $('#pOut').innerHTML = '';
-    info(`${names.length} file(s) loaded: ${packs.length} club group(s), ${countPlayers(packs)} players, ${(bytes / 1024).toFixed(0)} KB. Tap Preview import. The pasted text is ignored while files are loaded.`);
-  };
-  const inFileDupes = packs => { const seen = new Map(), msg = []; for (const k of packs) { if (!k || !Array.isArray(k.players)) continue; for (const x of k.players) { const id = [k.league, k.season, String(k.club || '').toLowerCase(), String(x && x.name || '').toLowerCase()].join('|'); if (seen.has(id)) msg.push(`${k.club} / ${x.name}: listed more than once in this import (${k.season}).`); else seen.set(id, 1); } } return msg; };
-  async function sendAll(packs, save, btn) {
-    const batches = parts(packs); let offset = 0; const total = { received: 0, problems: [], warnings: [], duplicates: 0 };
-    for (let i = 0; i < batches.length; i++) {
-      busy(btn, true, (save ? 'Saving ' : 'Checking ') + (i + 1) + '/' + batches.length + '…');
-      let r;
-      try { r = await api('importPlayers', { data: batches[i], dryRun: !save }); }
-      catch (e) { if (e.auth) throw e; if (e.data && Array.isArray(e.data.problems)) r = e.data; else throw new Error(`Part ${i + 1} of ${batches.length}: ${e.message}` + (save && i ? ` Parts 1–${i} were already saved; saving again is safe.` : '')); }
-      total.received += Number(r.received) || 0; total.duplicates += Number(r.duplicates) || 0;
-      (r.problems || []).forEach(x => total.problems.push(x.replace(/Group (\d+)/, (m, n) => 'Group ' + (Number(n) + offset))));
-      (r.warnings || []).forEach(x => { if (!total.warnings.includes(x)) total.warnings.push(x); });
-      offset += batches[i].length;
-      if (save && r.problems && r.problems.length) break;
+    async function run(save) {
+      const out = $$('Out'); let items;
+      if (files) items = files.items;
+      else { const t = $$('Tx').value.trim(); if (!t) return toast('Choose a file or paste some JSON first.', 'bad'); try { items = list(JSON.parse(t)); } catch (e) { return toast('Invalid JSON. Check commas and quotation marks, or load it as a file.', 'bad'); } }
+      const btn = $$('Preview'); btn.disabled = true; let rep;
+      try { rep = await sendAll(items, save, btn); } catch (e) { busy(btn, false); btn.disabled = false; if (e.auth) return lock(); return toast(e.message, 'bad'); }
+      busy(btn, false); btn.disabled = false;
+      const dupes = c.dupes(items); const warnings = [...rep.warnings, ...dupes.filter(x => !rep.warnings.includes(x))];
+      const bad = rep.problems.length > 0;
+      const li = (arr, col, n) => arr.slice(0, n).map(x => `<div style="color:var(${col});margin-top:5px">⚠ ${esc(x)}</div>`).join('') + (arr.length > n ? `<div class="mut">…and ${arr.length - n} more.</div>` : '');
+      out.innerHTML = `<div class="card"><b>${save ? (bad ? 'Stopped — fix the problems below' : 'Import complete') : 'Preview — nothing saved yet'}</b><p>${c.summary(rep, files)}</p>${li(rep.problems, '--bad', 40)}${rep.changesTotal ? `<div style="margin-top:8px"><b>${rep.changesTotal} existing value(s) will be ${save ? 'were ' : ''}replaced:</b></div>` + rep.changes.slice(0, 40).map(x => `<div class="mut" style="margin-top:3px">${esc(x)}</div>`).join('') + (rep.changesTotal > 40 ? `<div class="mut">…and ${rep.changesTotal - 40} more.</div>` : '') : ''}${li(warnings, '--warn', 40)}${rep.duplicates ? `<div class="mut">${rep.duplicates} duplicate IDs within one part of this import; later copies replace earlier copies.</div>` : ''}${!save && !bad ? `<div class="row" style="margin-top:12px"><button class="btn pri" id="${c.p}Apply">Save</button></div>` : ''}</div>`;
+      const ap = $$('Apply'); if (ap) ap.onclick = () => run(true);
+      if (save && !bad) { toast(c.what + ' saved', 'ok'); files = null; await render(); }
     }
-    return total;
+    $$('Preview').onclick = () => run(false);
   }
-  async function preview(save) {
-    const out = $('#pOut'); let packs;
-    if (files) packs = files.packs;
-    else { const t = $('#pTx').value.trim(); if (!t) return toast('Choose a file or paste some JSON first.', 'bad'); try { const j = JSON.parse(t); packs = Array.isArray(j) ? j : [j]; } catch (e) { return toast('Invalid JSON. Check commas and quotation marks, or load it as a file.', 'bad'); } }
-    const btn = $('#pPreview'); btn.disabled = true; let rep;
-    try { rep = await sendAll(packs, save, btn); } catch (e) { busy(btn, false); btn.disabled = false; if (e.auth) return lock(); return toast(e.message, 'bad'); }
-    busy(btn, false); btn.disabled = false;
-    const dupes = inFileDupes(packs); const warnings = [...rep.warnings, ...dupes.filter(x => !rep.warnings.includes(x))];
-    const bad = rep.problems.length > 0;
-    out.innerHTML = `<div class="card"><b>${save ? (bad ? 'Stopped — fix the problems below' : 'Import complete') : 'Preview — nothing saved yet'}</b><p>${rep.received} player records found${files ? ' in ' + files.names.length + ' file(s)' : ''}.</p>${rep.problems.slice(0, 40).map(x => `<div style="color:var(--bad);margin-top:5px">⚠ ${esc(x)}</div>`).join('')}${rep.problems.length > 40 ? `<div class="mut">…and ${rep.problems.length - 40} more problems.</div>` : ''}${warnings.slice(0, 40).map(x => `<div style="color:var(--warn);margin-top:5px">⚠ ${esc(x)}</div>`).join('')}${warnings.length > 40 ? `<div class="mut">…and ${warnings.length - 40} more warnings.</div>` : ''}${rep.duplicates ? `<div class="mut">${rep.duplicates} duplicate IDs within one part of this import; later copies replace earlier copies.</div>` : ''}${!save && !bad ? '<div class="row" style="margin-top:12px"><button class="btn pri" id="pApply">Save players</button></div>' : ''}</div>`;
-    const ap = $('#pApply'); if (ap) ap.onclick = () => preview(true);
-    if (save && !bad) { toast('Player data saved', 'ok'); files = null; await render(); }
-  }
-  $('#pPreview').onclick = () => preview(false);
+  const playersIn = packs => packs.reduce((n, k) => n + (k && Array.isArray(k.players) ? k.players.length : 0), 0);
+  uploader({ p: 'p', action: 'importPlayers', what: 'Player data',
+    count: it => `${it.length} club group(s), ${playersIn(it)} players`,
+    summary: (r, f) => `${r.received} player records found${f ? ' in ' + f.names.length + ' file(s)' : ''}.`,
+    dupes: packs => { const seen = new Map(), msg = []; for (const k of packs) { if (!k || !Array.isArray(k.players)) continue; for (const x of k.players) { const id = [k.league, k.season, String(k.club || '').toLowerCase(), String(x && x.name || '').toLowerCase()].join('|'); if (seen.has(id)) msg.push(`${k.club} / ${x.name}: listed more than once in this import (${k.season}).`); else seen.set(id, 1); } } return msg; } });
+  uploader({ p: 'c', action: 'importCareer', what: 'Career data',
+    count: it => `${it.length} profile(s)`,
+    summary: (r, f) => `${r.received} profile(s)${f ? ' in ' + f.names.length + ' file(s)' : ''}: ${r.created} new, ${r.updated} already stored and extended.`,
+    dupes: items => { const seen = new Set(), msg = []; for (const x of items) { const id = String(x && x.name || '').toLowerCase() + '|' + (x && x.dob || ''); if (seen.has(id)) msg.push(`${x.name}: listed more than once in this import. The entries are merged in order.`); else seen.add(id); } return msg; } });
+  $('#cPrompt').onclick = async () => { try { await navigator.clipboard.writeText(CAREER_PROMPT); toast('Prompt copied', 'ok'); } catch (e) { toast('Could not copy. Long-press the example above and copy it by hand.', 'bad'); } };
+  m.querySelectorAll('[data-cdel]').forEach(b => b.onclick = async () => { if (!confirm('Delete the career profile of ' + b.dataset.cname + '?')) return; try { await api('deleteCareer', { ids: [b.dataset.cdel] }); toast('Deleted', 'ok'); await render(); } catch (e) { toast(e.message, 'bad'); } });
 };
 
 // ---------------------------------------------------------------- log
@@ -589,6 +623,9 @@ VIEWS.log = async m => {
 // ---------------------------------------------------------------- install as an app (always the newest version: nothing is cached)
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
+// Bump this together with package.json on every release (see README → Versioning).
+const ADMIN_VERSION = '1.3.10';
+{ const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
 window.addEventListener('appinstalled', () => { $('#installBtn').classList.add('hide'); toast('Installed. Open it from your home screen.', 'ok'); });

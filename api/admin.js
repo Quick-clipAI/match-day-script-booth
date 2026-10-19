@@ -5,6 +5,7 @@ import { LEAGUES, LEAGUE_KEYS, makeRow, matchId, isIsoDate, currentSeason, cover
 import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } from '../lib/bank-sync.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { fetchText } from '../lib/apisports.js';
+import { normalizeProfile, mergeProfile, findStored, careerId, describe as describeCareer } from '../lib/bank-career.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const fail = (res, code, msg) => res.status(code).json({ error: msg });
@@ -80,6 +81,48 @@ export default async function handler(req, res) {
         const report={ok:problems.length===0, preview:body.dryRun!==false, received:incoming.length, problems, warnings:[...new Set([...shirtDupes,...multiClub])], duplicates:incoming.length-new Set(incoming.map(p=>p.id)).size};
         if(problems.length) return res.status(400).json(report);
         if(body.dryRun===false){ await store.upsertPlayers(incoming); await store.addLog({kind:'players-import',ok:true,summary:`Imported ${incoming.length} player records across ${new Set(incoming.map(p=>p.club)).size} club(s).`}); report.saved=incoming.length; }
+        return res.status(200).json(report);
+      }
+      case 'career': {
+        const rows = await store.listCareer();
+        return res.status(200).json({ total: rows.length, rows: rows.slice(0, Number(body.limit) || 500).map(r => ({ id: r.id, name: r.name, dob: r.dob, as_of: r.as_of, summary: describeCareer({ ...r.data, as_of: r.as_of }), source: r.data && r.data.source || null })) });
+      }
+      case 'deleteCareer': {
+        const ids = (Array.isArray(body.ids) ? body.ids : [body.id]).filter(i => typeof i === 'string' && i);
+        if (!ids.length) return fail(res, 400, 'Nothing to delete.');
+        await store.deleteCareer(ids); await store.addLog({ kind: 'career-delete', ok: true, summary: `Deleted ${ids.length} career profile(s).` });
+        return res.status(200).json({ deleted: ids.length });
+      }
+      case 'importCareer': {
+        let parsed; try { parsed = typeof body.text === 'string' ? JSON.parse(body.text) : body.data; } catch (e) { return fail(res, 400, 'Invalid JSON. Check commas and quotation marks.'); }
+        const list = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.profiles) ? parsed.profiles : [parsed]);
+        const problems = [], warnings = [], changes = [], notes = [];
+        const stored = await store.listCareer();
+        const work = new Map(stored.map(r => [r.id, { ...r.data, name: r.name, dob: r.dob, as_of: r.as_of }]));
+        const touched = new Map(), dropIds = new Set(); let created = 0, updated = 0;
+        for (let i = 0; i < list.length; i++) {
+          const r = normalizeProfile(list[i], { today: today() });
+          problems.push(...r.problems.map(x => `Profile ${i + 1}: ${x}`)); warnings.push(...r.warnings);
+          if (!r.profile) continue;
+          const rows = [...work.entries()].map(([id, p]) => ({ id, name: p.name, dob: p.dob }));
+          const f = findStored(rows, r.profile);
+          if (f.ambiguous) { problems.push(`Profile ${i + 1}: ${r.profile.name} matches more than one stored player. Add dob to say which.`); continue; }
+          const old = f.match ? work.get(f.match.id) : null;
+          const { merged, changes: ch, notes: nt } = mergeProfile(old, r.profile);
+          const newId = careerId(merged.name, merged.dob);
+          if (f.match && f.match.id !== newId) { work.delete(f.match.id); touched.delete(f.match.id); dropIds.add(f.match.id); }
+          dropIds.delete(newId); work.set(newId, merged); touched.set(newId, merged);
+          changes.push(...ch); notes.push(...nt); if (old) updated++; else created++;
+        }
+        const report = { ok: problems.length === 0, preview: body.dryRun !== false, received: list.length, created, updated, problems, warnings: [...new Set([...warnings, ...notes])], changes: changes.slice(0, 200), changesTotal: changes.length };
+        if (problems.length) return res.status(400).json(report);
+        if (body.dryRun === false) {
+          const rows = [...touched.entries()].map(([id, p]) => { const { name, dob, as_of, ...data } = p; return { id, name, dob: dob || null, as_of: as_of || null, data, updated_at: new Date().toISOString() }; });
+          if (dropIds.size) await store.deleteCareer([...dropIds]);
+          await store.upsertCareer(rows);
+          await store.addLog({ kind: 'career-import', ok: true, summary: `Career profiles: ${created} new, ${updated} updated${changes.length ? `, ${changes.length} existing value(s) changed` : ''}.` });
+          report.saved = rows.length;
+        }
         return res.status(200).json(report);
       }
       case 'matches': {

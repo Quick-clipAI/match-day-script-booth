@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.3.9**
+**v1.3.10**
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
@@ -479,6 +479,18 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.3.10 — career profiles
+
+- **Players tab → Career profiles.** One profile per player with any of: career `totals`, per-season stats (`seasons`), `awards`, `market_values` (each with a date) and `transfers`. Every section is optional; only `name` is required, plus `as_of` whenever totals or seasons are given.
+- **`as_of` is the guard.** It is the date the figures are correct up to. Matches recorded in the bank count from that date on, so recorded matches and imported career figures are never added together. A newer import replaces older stats; an import dated *older* than what is stored leaves the stored totals and seasons alone (awards, transfers and values are still added).
+- **Importing again adds, it does not wipe.** Values that already exist are replaced only when you give a new one, and the preview lists every one it would replace ("totals.goals: 50 → 55"). Same file loading and chunking as squads (several files, parts under 1 MB).
+- **Checks before saving:** stat values must be plain numbers ≥ 0; successful can't exceed attempted (dribbles, passes, crosses, shots on target, penalties); seasons can't add up to more than the career total; no future `as_of`; money must be a plain number with a date; duplicate season rows are refused. A stat name that isn't a standard one is kept but warned about (catches `assits`).
+- **Matching players:** by normalised name plus date of birth. Without a dob a profile matches a unique stored name; two stored players with the same name need a dob. Adding a dob later to a profile saved without one updates that profile rather than creating a second.
+- **Copy prompt for ChatGPT / Gemini** button gives a ready prompt that returns JSON in this format, told not to guess.
+- **Needs a database change first:** run `2-career-profiles.sql` once in Supabase (creates the private `bank_career` table). Until then the card shows a "not ready" notice and nothing else on the page breaks.
+- **Not wired into the chat yet.** Neither squads nor career profiles are read by the AI; they are stored and reviewable only. That is the next step.
+- Tests: `node tests/career.test.mjs`.
+
 ## v1.3.9 — import JSON from a file
 
 - **Players tab:** new **Choose JSON file(s)…** button. Pick one file or several at once (for example one per club). The file is read in the browser, split into parts of under 1 MB and sent one part at a time, so the clipboard limit and the server's ~4.5 MB request limit no longer matter. A progress label shows "Checking 2/3…" or "Saving 2/3…".
@@ -486,7 +498,9 @@ routes are broken.
 - If a later part fails during Save, the earlier parts are already saved; saving again is safe (same players overwrite themselves).
 - **Import tab (results):** new **Choose JSON file…** button that loads the file into the box, then Preview as usual. Files over 4 MB are refused with a message.
 - Known limit: the repeated-shirt and two-clubs warnings are checked per part against what is already stored, not across parts of the same file. The in-file repeated-player check covers the whole file.
-- Only `admin.html`, `README.md` and `package.json` changed. No SQL, no environment variables, no app update.
+- **Version tag on the admin page** (header, next to the date), from `ADMIN_VERSION` in `admin.html`. Bump it with `package.json` on every release.
+- **APK file name carries the version.** `/download` now saves the file as `creator-booth-v<version>.apk` (read from the published `version.json`), so downloads are recognisable. The browser still adds `(1)`, `(2)` if you download the same version twice; delete old copies. Once the app is on v1.3.8 or later, updates arrive inside the app and the APK is not needed again. If the Supabase copy is missing, GitHub is used and keeps the plain name `creator-booth.apk`.
+- Changed: `admin.html`, `api/download.js`, `README.md`, `package.json`. No SQL, no environment variables, no app update.
 
 ## v1.3.8 — faster app updates, installable admin
 
