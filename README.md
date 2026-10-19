@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.3.10**
+**v1.4.1**
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
@@ -479,7 +479,19 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
-## v1.3.10 — career profiles
+## v1.4.1 — nations, clubs and tournaments in career profiles
+
+- **Nationality travels with the player.** `nationality` is the country he represents at senior level (or is eligible for if uncapped); `other_nationalities` lists any other citizenships. A national team is built later by grouping on this, so players are never entered twice.
+- **`tournaments`: registered squads only.** Each entry is `tournament`, `year`, `nation`, `status` (`registered` or `withdrew_injured`) and optional `stats`. Allowed tournaments: FIFA World Cup, UEFA European Championship, Copa América, Africa Cup of Nations, AFC Asian Cup, CONCACAF Gold Cup, Olympic Games (common short names such as "World Cup" or "Euros" are accepted). A player who was not in the final squad simply has no entry, so each tournament's squad can be rebuilt from the profiles.
+- **`totals` now means club career only.** National-team figures live in the new **`international`** list: one row per nation and level (`senior`, `Olympic`, `U23` … `U16`), so a player who switched nations has one row for each.
+- **`by_club`:** one row per spell at a club (`from`, `to`, and that spell's stats). Dates alone are fine; stats are optional. The rows can never add up to more than `totals`.
+- **Seasons:** an "All competitions" row can no longer be mixed with per-competition rows for the same club and season (it would be counted twice).
+- **Awards** take `kind`: `individual` or `team`.
+- Merging: tournaments, clubs and national-team rows are matched by their own keys and added to; any value that would be replaced is listed in the preview. The `as_of` rule is unchanged and covers club, season and national-team stats alike.
+- **Research prompts** for Deep Research (one per league plus Inter Miami) are kept outside the repo. Their example JSON is checked against this importer.
+- No SQL change (profiles are stored as JSON). Only `admin.html`, `lib/bank-career.js`, `tests/career.test.mjs`, `README.md` and `package.json` changed.
+
+## v1.4.0 — career profiles
 
 - **Players tab → Career profiles.** One profile per player with any of: career `totals`, per-season stats (`seasons`), `awards`, `market_values` (each with a date) and `transfers`. Every section is optional; only `name` is required, plus `as_of` whenever totals or seasons are given.
 - **`as_of` is the guard.** It is the date the figures are correct up to. Matches recorded in the bank count from that date on, so recorded matches and imported career figures are never added together. A newer import replaces older stats; an import dated *older* than what is stored leaves the stored totals and seasons alone (awards, transfers and values are still added).

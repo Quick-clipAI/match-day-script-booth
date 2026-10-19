@@ -514,14 +514,18 @@ VIEWS.facts = async m => {
 };
 
 const CAREER_EXAMPLE = JSON.stringify({ profiles: [{
-  name: 'Player Name', dob: '2000-01-31', nationality: 'England', source: 'where you found it', as_of: '2026-10-14',
+  name: 'Player Name', dob: '2000-01-31', nationality: 'England', other_nationalities: ['Nigeria'], source: 'Transfermarkt; FBref; accessed 2026-10-19',
+  as_of: '2026-10-14',
   totals: { appearances: 250, goals: 80, assists: 60 },
-  seasons: [{ season: 2025, club: 'Arsenal', competition: 'Premier League', appearances: 36, goals: 14, assists: 11, dribbles_attempted: 120, dribbles_successful: 70, passes_completed: 1400, crosses_completed: 45, touches_in_opposition_box: 310 }],
-  awards: [{ name: 'Premier League Player of the Month', season: 2025 }],
+  by_club: [{ club: 'Club A', from: '2018-07', to: '2022-06', appearances: 120, goals: 30, assists: 20 }, { club: 'Club B', from: '2022-07', to: null, appearances: 130, goals: 50, assists: 40 }],
+  seasons: [{ season: 2025, club: 'Club B', competition: 'Premier League', appearances: 36, goals: 14, assists: 11, dribbles_attempted: 120, dribbles_successful: 70, crosses_completed: 45, touches_in_opposition_box: 310 }],
+  international: [{ nation: 'England', level: 'U21', from: '2019-09', to: '2021-06', appearances: 10, goals: 3 }, { nation: 'England', level: 'senior', from: '2021-03', to: null, appearances: 30, goals: 9 }],
+  tournaments: [{ tournament: 'FIFA World Cup', year: 2026, nation: 'England', status: 'registered', stats: { appearances: 4, goals: 1 } }],
+  awards: [{ name: 'Premier League Player of the Month', season: 2025, kind: 'individual' }],
   market_values: [{ amount: 120000000, currency: 'EUR', date: '2026-06-01', source: 'Transfermarkt' }],
-  transfers: [{ date: '2019-07-01', from: 'Club A', to: 'Club B', fee: 5000000, currency: 'EUR', type: 'permanent' }]
+  transfers: [{ date: '2022-07-01', from: 'Club A', to: 'Club B', fee: 5000000, currency: 'EUR', type: 'permanent' }]
 }] }, null, 2);
-const CAREER_PROMPT = `Return ONLY valid JSON (no explanation, no markdown) in exactly this shape for the football players I name:\n\n${CAREER_EXAMPLE}\n\nRules:\n- Leave out any field, season, award or transfer you cannot confirm. Never guess or estimate.\n- as_of is the date the career totals and season stats are correct up to (YYYY-MM-DD).\n- Money is a plain number in full (120000000, not "120m"). Every market value needs its date.\n- season is the starting year (2025 means 2025/26).\n- Stat names are lowercase with underscores. Preferred names: appearances, starts, minutes, goals, assists, shots, shots_on_target, key_passes, dribbles_attempted, dribbles_successful, passes_attempted, passes_completed, crosses_attempted, crosses_completed, touches_in_opposition_box, tackles, interceptions, yellow_cards, red_cards, clean_sheets, saves.\n- Put where each profile's information came from in "source".\n\nPlayers: `;
+const CAREER_PROMPT = `Return ONLY valid JSON (no explanation, no markdown) in exactly this shape for the football players I name:\n\n${CAREER_EXAMPLE}\n\nRules:\n- Leave out any field, season, award, tournament or transfer you cannot confirm. Never guess or estimate.\n- as_of is the date the stats are correct up to (YYYY-MM-DD).\n- totals = senior CLUB career only (all clubs, all competitions). National-team numbers go in "international", one row per nation and level. by_club must not add up to more than totals.\n- tournaments: only tournaments where he was in his nation's official final squad. Allowed names: FIFA World Cup, UEFA European Championship, Copa América, Africa Cup of Nations, AFC Asian Cup, CONCACAF Gold Cup, Olympic Games.\n- Money is a plain number in full (120000000, not "120m"). Every market value needs its date.\n- season is the starting year (2025 means 2025/26).\n- Stat names: lowercase with underscores: appearances, starts, minutes, goals, assists, shots, shots_on_target, key_passes, dribbles_attempted, dribbles_successful, passes_attempted, passes_completed, crosses_attempted, crosses_completed, touches_in_opposition_box, tackles, interceptions, yellow_cards, red_cards, clean_sheets, saves. Successful can't exceed attempted.\n- Put where the information came from in "source".\n\nPlayers: `;
 // ---------------------------------------------------------------- players
 VIEWS.players = async m => {
   const r = await api('players', { limit: 1000 });
@@ -536,7 +540,7 @@ VIEWS.players = async m => {
   <div class="row" style="margin-top:10px"><button class="btn pri" id="pPreview">Preview import</button></div></div><div id="pOut"></div>
   <h3 style="margin-top:28px">Career profiles</h3>
   ${cr.missing ? `<div class="banner bad"><div><b>Career profiles are not ready.</b><br>Run <code>2-career-profiles.sql</code> once in Supabase → SQL Editor, then reload this page. (${esc(cr.missing)})</div></div>` : ''}
-  <div class="card"><b>Career stats, awards, value and transfers</b><p class="mut" style="margin:6px 0 10px">One profile per player, any sections you have. Nothing is required except the name, and <b>as_of</b> whenever you give totals or seasons: that is the date the figures are correct up to. Later matches you record in the bank count from that date on, so the two are never added together by mistake. Importing again adds to a profile; it only replaces a value when you give a new one, and the preview lists every value it would overwrite.</p>
+  <div class="card"><b>Career stats, awards, value and transfers</b><p class="mut" style="margin:6px 0 10px">One profile per player, any sections you have: club totals, clubs, seasons, national teams (by nation and level), registered tournaments, awards, value, transfers. Nothing is required except the name, and <b>as_of</b> whenever you give stats. <b>totals</b> are club-only; national-team numbers go under <b>international</b>. Put a player in a tournament only if he was in the final squad, so nations can be built later from this list without adding anyone again. <b>as_of</b> is the date the figures are correct up to. Later matches you record in the bank count from that date on, so the two are never added together by mistake. Importing again adds to a profile; it only replaces a value when you give a new one, and the preview lists every value it would overwrite.</p>
   <pre class="pre" style="white-space:pre-wrap">${esc(CAREER_EXAMPLE)}</pre>
   <div class="row" style="margin:8px 0 12px"><button class="btn sm" id="cPrompt">Copy prompt for ChatGPT / Gemini</button></div>
   <label class="f">Load from file(s)</label>
@@ -624,7 +628,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.3.10';
+const ADMIN_VERSION = '1.4.1';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

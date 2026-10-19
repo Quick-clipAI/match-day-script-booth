@@ -48,4 +48,41 @@ const run = async () => {
   n += 8;
 };
 await run();
+
+// ---- v1.4.1: nations, clubs, tournaments
+ok('nationality + registered tournaments only (light profile)', () => {
+  const r = normalizeProfile({ name: 'L P', dob: '1999-05-05', nationality: 'England', other_nationalities: ['Jamaica', 'Jamaica'], tournaments: [{ tournament: 'World Cup', year: 2026, nation: 'England' }, { tournament: 'Euros', year: 2024, nation: 'England', status: 'registered', stats: { appearances: 3, goals: 1 } }], source: 's' }, T);
+  assert.equal(r.problems.length, 0); assert.deepEqual(r.profile.other_nationalities, ['Jamaica']); assert.equal(r.profile.tournaments[0].tournament, 'FIFA World Cup'); assert.equal(r.profile.tournaments[1].tournament, 'UEFA European Championship');
+});
+ok('unknown tournament, bad status, duplicate year rejected', () => {
+  assert.ok(normalizeProfile({ name: 'A', tournaments: [{ tournament: 'Kings Cup', year: 2024, nation: 'X' }] }, T).problems.length);
+  assert.ok(normalizeProfile({ name: 'A', tournaments: [{ tournament: 'World Cup', year: 2022, nation: 'X', status: 'maybe' }] }, T).problems.length);
+  assert.ok(normalizeProfile({ name: 'A', tournaments: [{ tournament: 'World Cup', year: 2022, nation: 'X' }, { tournament: 'FIFA World Cup', year: 2022, nation: 'X' }] }, T).problems.length);
+});
+ok('by_club and international by nation + level; switching nations works', () => {
+  const r = normalizeProfile({ name: 'A', as_of: '2026-10-01', totals: { goals: 50 }, by_club: [{ club: 'X', from: '2018-07', to: '2022-06', goals: 20 }, { club: 'Y', from: '2022-07', to: null, goals: 30 }, { club: 'Z', from: '2015' }],
+    international: [{ nation: 'Germany', level: 'U21', appearances: 8, goals: 2 }, { nation: 'Turkey', level: 'senior', from: '2020-09', appearances: 30, goals: 9 }] }, T);
+  assert.equal(r.problems.length, 0); assert.equal(r.profile.by_club.length, 3); assert.equal(r.profile.international[1].stats.goals, 9);
+});
+ok('clubs may not exceed club total; same nation+level twice; bad level', () => {
+  assert.ok(normalizeProfile({ name: 'A', as_of: '2026-10-01', totals: { goals: 10 }, by_club: [{ club: 'X', goals: 8 }, { club: 'Y', goals: 8 }] }, T).problems.some(p => /clubs add up/.test(p)));
+  assert.ok(normalizeProfile({ name: 'A', as_of: '2026-10-01', international: [{ nation: 'Spain', level: 'senior', goals: 1 }, { nation: 'spain', level: 'senior', goals: 2 }] }, T).problems.length);
+  assert.ok(normalizeProfile({ name: 'A', as_of: '2026-10-01', international: [{ nation: 'Spain', level: 'B team', goals: 1 }] }, T).problems.length);
+});
+ok('club-stats need as_of; international-only stats need as_of too', () => { assert.ok(normalizeProfile({ name: 'A', international: [{ nation: 'Spain', level: 'senior', appearances: 4 }] }, T).problems.some(p => /as_of is required/.test(p))); });
+ok('All competitions row cannot mix with competition rows', () => { assert.ok(normalizeProfile({ name: 'A', as_of: '2026-10-01', seasons: [{ season: 2024, club: 'X', competition: 'All competitions', goals: 9 }, { season: 2024, club: 'X', competition: 'Premier League', goals: 7 }] }, T).problems.length); });
+ok('merge: light profile then full profile; tournaments + nations kept', () => {
+  const a = normalizeProfile({ name: 'A', dob: '2000-01-01', nationality: 'England', tournaments: [{ tournament: 'World Cup', year: 2026, nation: 'England' }], source: 's' }, T).profile;
+  const b = normalizeProfile({ name: 'A', dob: '2000-01-01', as_of: '2026-10-01', international: [{ nation: 'England', level: 'senior', appearances: 20, goals: 5 }], tournaments: [{ tournament: 'World Cup', year: 2026, nation: 'England', stats: { goals: 1 } }, { tournament: 'Euros', year: 2024, nation: 'England' }] }, T).profile;
+  const m = mergeProfile(a, b); assert.equal(m.merged.tournaments.length, 2); assert.equal(m.merged.tournaments[1].stats.goals, 1); assert.equal(m.merged.international[0].stats.goals, 5); assert.equal(m.changes.length, 0);
+  const c = normalizeProfile({ name: 'A', dob: '2000-01-01', as_of: '2026-10-10', international: [{ nation: 'England', level: 'senior', appearances: 21, goals: 6 }] }, T).profile;
+  assert.deepEqual(mergeProfile(m.merged, c).changes, ['A England senior appearances: 20 → 21', 'A England senior goals: 5 → 6']);
+});
+await (async () => {
+  const P2 = { name: 'Jude Test', dob: '2003-06-29', nationality: 'England', source: 's', as_of: '2026-10-14', by_club: [{ club: 'Dortmund', from: '2020-07', to: '2023-06', goals: 24 }, { club: 'Real Madrid', from: '2023-07', goals: 40 }], totals: { goals: 64 }, international: [{ nation: 'England', level: 'U21', appearances: 5 }, { nation: 'England', level: 'senior', appearances: 40, goals: 6 }], tournaments: [{ tournament: 'FIFA World Cup', year: 2022, nation: 'England' }], awards: [{ name: 'Golden Boy', season: 2022, kind: 'individual' }] };
+  let r = await call({ action: 'importCareer', data: [P2], dryRun: false }); assert.equal(r.code, 200, JSON.stringify(r));
+  r = await call({ action: 'career' }); const row = r.rows.find(x => x.name === 'Jude Test'); assert.match(row.summary, /England · stats to 2026-10-14 · 2 clubs · 2 national teams · 1 tournament · 1 award/);
+  n += 3;
+})();
 console.log(`career tests passed (${n})`);
+
