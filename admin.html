@@ -527,12 +527,18 @@ const CAREER_EXAMPLE = JSON.stringify({ profiles: [{
 }] }, null, 2);
 const CAREER_PROMPT = `Return ONLY valid JSON (no explanation, no markdown) in exactly this shape for the football players I name:\n\n${CAREER_EXAMPLE}\n\nRules:\n- Leave out any field, season, award, tournament or transfer you cannot confirm. Never guess or estimate.\n- as_of is the date the stats are correct up to (YYYY-MM-DD).\n- totals = senior CLUB career only (all clubs, all competitions). National-team numbers go in "international", one row per nation and level. by_club must not add up to more than totals.\n- tournaments: only tournaments where he was in his nation's official final squad. Allowed names: FIFA World Cup, UEFA European Championship, Copa América, Africa Cup of Nations, AFC Asian Cup, CONCACAF Gold Cup, Olympic Games.\n- Money is a plain number in full (120000000, not "120m"). Every market value needs its date.\n- season is the starting year (2025 means 2025/26).\n- Stat names: lowercase with underscores: appearances, starts, minutes, goals, assists, shots, shots_on_target, key_passes, dribbles_attempted, dribbles_successful, passes_attempted, passes_completed, crosses_attempted, crosses_completed, touches_in_opposition_box, tackles, interceptions, yellow_cards, red_cards, clean_sheets, saves. Successful can't exceed attempted.\n- Put where the information came from in "source".\n\nPlayers: `;
 // ---------------------------------------------------------------- players
+const SQUAD_EXAMPLE = JSON.stringify([{ league: 'EPL', season: 2026, club: 'Arsenal', as_of: '2026-10-17', coach: { name: 'Coach Name', nationality: 'Spain' },
+  players: [
+    { name: 'Player One', shirt: 7, dob: '2001-09-05', position: 'Forward', nationality: 'England', club_status: 'Active', national_status: 'Active' },
+    { name: 'Player Two', shirt: 24, dob: null, age: 19, position: 'Defender', nationality: 'Brazil', club_status: 'Active', national_status: 'Not capped' },
+    { name: 'Veteran', shirt: null, dob: '1989-03-02', position: 'Midfielder', nationality: 'Spain', club_status: 'Retired (2026)', national_status: 'Retired (2022)' }
+  ] }], null, 2);
 VIEWS.players = async m => {
-  const r = await api('players', { limit: 1000 });
+  const r = await api('players', { q: (state.nav && state.nav.q) || '', league: (state.nav && state.nav.league) || undefined, club: (state.nav && state.nav.club) || undefined, season: (state.nav && state.nav.season) || undefined });
   let cr; try { cr = await api('career', { limit: 500 }); } catch (e) { if (e.auth) throw e; cr = { total: 0, rows: [], missing: e.message }; }
-  m.innerHTML = head('Players & squads', 'Import squad data as JSON. Player age is calculated from date of birth when displayed; the database stores the DOB, not a fixed age.') + `
+  m.innerHTML = head('Players & squads', 'Squads and head coaches. One group per club; a whole league (or all leagues) can be one file. Date of birth is kept when known; otherwise an age is kept together with the date it was true.') + `
   <div class="card"><b>JSON format</b><p class="mut" style="margin:6px 0 10px">Use one club per group. Season is the starting year (2026 means 2026/27). You can paste one group or an array of groups.</p>
-  <pre class="pre" style="white-space:pre-wrap">${esc(JSON.stringify({league:'EPL',season:2026,club:'Arsenal',players:[{name:'Player Name',shirt:7,dob:'2000-01-31',position:'Forward',nationality:'England'}]},null,2))}</pre>
+  <pre class="pre" style="white-space:pre-wrap">${esc(SQUAD_EXAMPLE)}</pre>
   <label class="f">Load from file(s)</label>
   <div class="row"><button class="btn" id="pFileBtn">Choose JSON file(s)…</button><button class="btn sm hide" id="pFileClear">Clear files</button><input type="file" id="pFile" accept=".json,.txt,application/json,text/plain" multiple class="hide"></div>
   <div class="mut" id="pFileInfo" style="font-size:13px;margin:6px 0 12px">No file chosen. You can pick several files at once (for example one per club). Large files are sent to the server in small parts automatically.</div>
@@ -549,7 +555,14 @@ VIEWS.players = async m => {
   <label class="f" for="cTx">Or paste career JSON</label><textarea id="cTx" spellcheck="false" placeholder="Paste career JSON here… (ignored while files are loaded)"></textarea>
   <div class="row" style="margin-top:10px"><button class="btn pri" id="cPreview">Preview import</button></div></div><div id="cOut"></div>
   <div class="card flat" style="margin-top:12px"><div class="mut" style="padding:8px 12px;font-size:13px">Stored career profiles (${cr.total})</div>${cr.rows.map(p => `<div class="m"><div class="teams">${esc(p.name)}</div><div class="meta">${esc(p.summary)}${p.dob ? ' · DOB ' + esc(p.dob) : ''}${p.source ? ' · ' + esc(p.source) : ''}</div><div class="row" style="margin-top:6px"><button class="btn sm" data-cdel="${esc(p.id)}" data-cname="${esc(p.name)}">Delete</button></div></div>`).join('') || '<div class="empty">No career profiles yet.</div>'}</div>
-  <h3 style="margin-top:28px">Stored players (${r.total})</h3><div class="card flat">${r.rows.map(p=>`<div class="m"><div class="teams">${esc(p.name)} ${p.shirt!=null?'#'+esc(p.shirt):''}</div><div class="meta">${esc(p.club)} · ${esc(p.league)} · ${p.season}/${String(Number(p.season)+1).slice(-2)}${p.position?' · '+esc(p.position):''}${p.nationality?' · '+esc(p.nationality):''}${p.dob?' · DOB '+esc(p.dob):''}</div></div>`).join('') || '<div class="empty">No players imported yet.</div>'}</div>`;
+  <h3 style="margin-top:28px">Stored squads (${r.total} players, ${r.coachTotal} coaches)</h3>
+  <div class="card"><label class="f" for="pQ">Find a player</label><div class="row"><input id="pQ" class="grow" placeholder="name" value="${esc((state.nav && state.nav.q) || '')}"><button class="btn" id="pFind">Search</button></div></div>
+  ${r.rows.length ? `<div class="card flat">${r.rows.map(p => `<div class="m"><div class="teams">${esc(p.name)} ${p.shirt != null ? '#' + esc(p.shirt) : ''} ${p.club_status === 'retired' ? '<span class="chip warn">retired' + (p.club_retired_year ? ' ' + p.club_retired_year : '') + '</span>' : ''}</div><div class="meta">${esc(p.club)} · ${esc(p.league)} · ${p.season}/${String(Number(p.season) + 1).slice(-2)}${p.position ? ' · ' + esc(p.position) : ''}${p.nationality ? ' · ' + esc(p.nationality) : ''}${p.dob ? ' · born ' + esc(p.dob) : (p.age != null ? ' · age ' + p.age + ' (on ' + esc(p.age_as_of || '?') + ')' : ' · no birth info')}${p.national_status ? ' · national: ' + esc(p.national_status.replace('_', ' ')) + (p.national_retired_year ? ' ' + p.national_retired_year : '') : ''}</div></div>`).join('')}</div>` : ''}
+  <div class="card flat" style="margin-top:12px">${r.clubs.map(c => `<div class="m"><div class="row"><div class="grow"><div class="teams">${esc(c.club)}</div><div class="meta">${esc(c.league)} · ${c.season}/${String(c.season + 1).slice(-2)} · ${c.players} players${c.retired ? ' · ' + c.retired + ' retired' : ''}${c.noBirth ? ' · ' + c.noBirth + ' without birth info' : ''} · coach: ${c.coach ? esc(c.coach) : '<span style="color:var(--warn)">none</span>'}</div></div><button class="btn sm" data-sq="${esc(c.club)}|${esc(c.league)}|${c.season}">Players</button><button class="btn sm bad" data-sqdel="${esc(c.club)}|${esc(c.league)}|${c.season}">Delete</button></div></div>`).join('') || '<div class="empty">No squads imported yet.</div>'}</div>`;
+  $('#pFind').onclick = () => { state.nav = { q: $('#pQ').value.trim() }; render(); };
+  $('#pQ').onkeydown = e => { if (e.key === 'Enter') $('#pFind').click(); };
+  m.querySelectorAll('[data-sq]').forEach(b => b.onclick = () => { const [club, league, season] = b.dataset.sq.split('|'); state.nav = { club, league, season }; render(); });
+  m.querySelectorAll('[data-sqdel]').forEach(b => b.onclick = async () => { const [club, league, season] = b.dataset.sqdel.split('|'); if (!confirm('Delete the whole ' + club + ' squad (' + season + ')?')) return; try { const o = await api('deleteClubSquad', { club, league, season }); toast('Deleted ' + o.deleted + ' players', 'ok'); state.nav = {}; await render(); } catch (e) { toast(e.message, 'bad'); } });
   // ---- Files are read in the browser, split into parts under 1 MB and sent one part at a time
   // (the server rejects one request above ~4.5 MB, and a phone clipboard can cut long text).
   const PART_BYTES = 900 * 1024;
@@ -571,16 +584,17 @@ VIEWS.players = async m => {
       info(`${names.length} file(s) loaded: ${c.count(items)}, ${(bytes / 1024).toFixed(0)} KB. Tap Preview import. The pasted text is ignored while files are loaded.`);
     };
     async function sendAll(items, save, btn) {
-      const batches = parts(items); let offset = 0; const t = { received: 0, created: 0, updated: 0, problems: [], warnings: [], changes: [], changesTotal: 0, duplicates: 0 };
+      const batches = parts(items); let offset = 0; const t = { notes: [], coaches: 0, noBirthInfo: 0, received: 0, created: 0, updated: 0, problems: [], warnings: [], changes: [], changesTotal: 0, duplicates: 0 };
       for (let i = 0; i < batches.length; i++) {
         busy(btn, true, (save ? 'Saving ' : 'Checking ') + (i + 1) + '/' + batches.length + '…');
         let r;
         try { r = await api(c.action, { data: batches[i], dryRun: !save }); }
         catch (e) { if (e.auth) throw e; if (e.data && Array.isArray(e.data.problems)) r = e.data; else throw new Error(`Part ${i + 1} of ${batches.length}: ${e.message}` + (save && i ? ` Parts 1–${i} were already saved; saving again is safe.` : '')); }
-        for (const k of ['received', 'created', 'updated', 'duplicates', 'changesTotal']) t[k] += Number(r[k]) || 0;
+        for (const k of ['received', 'created', 'updated', 'duplicates', 'changesTotal', 'coaches', 'noBirthInfo']) t[k] += Number(r[k]) || 0;
         (r.problems || []).forEach(x => t.problems.push(x.replace(/(Group|Profile) (\d+)/, (m, w, n) => w + ' ' + (Number(n) + offset))));
         (r.warnings || []).forEach(x => { if (!t.warnings.includes(x)) t.warnings.push(x); });
         (r.changes || []).forEach(x => t.changes.push(x));
+        (r.notes || []).forEach(x => { if (!t.notes.includes(x)) t.notes.push(x); });
         offset += batches[i].length;
         if (save && r.problems && r.problems.length) break;
       }
@@ -596,7 +610,7 @@ VIEWS.players = async m => {
       const dupes = c.dupes(items); const warnings = [...rep.warnings, ...dupes.filter(x => !rep.warnings.includes(x))];
       const bad = rep.problems.length > 0;
       const li = (arr, col, n) => arr.slice(0, n).map(x => `<div style="color:var(${col});margin-top:5px">⚠ ${esc(x)}</div>`).join('') + (arr.length > n ? `<div class="mut">…and ${arr.length - n} more.</div>` : '');
-      out.innerHTML = `<div class="card"><b>${save ? (bad ? 'Stopped — fix the problems below' : 'Import complete') : 'Preview — nothing saved yet'}</b><p>${c.summary(rep, files)}</p>${li(rep.problems, '--bad', 40)}${rep.changesTotal ? `<div style="margin-top:8px"><b>${rep.changesTotal} existing value(s) will be ${save ? 'were ' : ''}replaced:</b></div>` + rep.changes.slice(0, 40).map(x => `<div class="mut" style="margin-top:3px">${esc(x)}</div>`).join('') + (rep.changesTotal > 40 ? `<div class="mut">…and ${rep.changesTotal - 40} more.</div>` : '') : ''}${li(warnings, '--warn', 40)}${rep.duplicates ? `<div class="mut">${rep.duplicates} duplicate IDs within one part of this import; later copies replace earlier copies.</div>` : ''}${!save && !bad ? `<div class="row" style="margin-top:12px"><button class="btn pri" id="${c.p}Apply">Save</button></div>` : ''}</div>`;
+      out.innerHTML = `<div class="card"><b>${save ? (bad ? 'Stopped — fix the problems below' : 'Import complete') : 'Preview — nothing saved yet'}</b><p>${c.summary(rep, files)}</p>${li(rep.problems, '--bad', 40)}${rep.changesTotal ? `<div style="margin-top:8px"><b>${rep.changesTotal} existing value(s) will be ${save ? 'were ' : ''}replaced:</b></div>` + rep.changes.slice(0, 40).map(x => `<div class="mut" style="margin-top:3px">${esc(x)}</div>`).join('') + (rep.changesTotal > 40 ? `<div class="mut">…and ${rep.changesTotal - 40} more.</div>` : '') : ''}${rep.notes && rep.notes.length ? `<div class="mut" style="margin-top:8px">Club names matched to the bank’s spelling: ${rep.notes.slice(0, 12).map(esc).join(' · ')}${rep.notes.length > 12 ? ' …' : ''}</div>` : ''}${li(warnings, '--warn', 40)}${rep.duplicates ? `<div class="mut">${rep.duplicates} duplicate IDs within one part of this import; later copies replace earlier copies.</div>` : ''}${!save && !bad ? `<div class="row" style="margin-top:12px"><button class="btn pri" id="${c.p}Apply">Save</button></div>` : ''}</div>`;
       const ap = $$('Apply'); if (ap) ap.onclick = () => run(true);
       if (save && !bad) { toast(c.what + ' saved', 'ok'); files = null; await render(); }
     }
@@ -605,7 +619,7 @@ VIEWS.players = async m => {
   const playersIn = packs => packs.reduce((n, k) => n + (k && Array.isArray(k.players) ? k.players.length : 0), 0);
   uploader({ p: 'p', action: 'importPlayers', what: 'Player data',
     count: it => `${it.length} club group(s), ${playersIn(it)} players`,
-    summary: (r, f) => `${r.received} player records found${f ? ' in ' + f.names.length + ' file(s)' : ''}.`,
+    summary: (r, f) => `${r.received} players and ${r.coaches} coaches found${f ? ' in ' + f.names.length + ' file(s)' : ''}${r.noBirthInfo ? '; ' + r.noBirthInfo + ' with no birth date and no age' : ''}.`,
     dupes: packs => { const seen = new Map(), msg = []; for (const k of packs) { if (!k || !Array.isArray(k.players)) continue; for (const x of k.players) { const id = [k.league, k.season, String(k.club || '').toLowerCase(), String(x && x.name || '').toLowerCase()].join('|'); if (seen.has(id)) msg.push(`${k.club} / ${x.name}: listed more than once in this import (${k.season}).`); else seen.set(id, 1); } } return msg; } });
   uploader({ p: 'c', action: 'importCareer', what: 'Career data',
     count: it => `${it.length} profile(s)`,
@@ -628,7 +642,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.4.1';
+const ADMIN_VERSION = '1.4.2';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

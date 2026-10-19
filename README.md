@@ -479,6 +479,16 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.4.2 — squads with age, status and head coaches
+
+- **Squad import accepts what a research sheet really contains.** Per club group: `league`, `season`, `club`, `as_of` (date the list is true), `coach {name, nationality}` and `players` with `name`, `shirt`, `dob`, `age`, `position`, `nationality`, `club_status` ("Active" or "Retired (2026)") and `national_status` ("Active", "Retired (2022)" or "Not capped"). "NOT FOUND", blanks, N/A and "-" are stored as empty, never as text. A player with an age but no date of birth keeps the age and the `as_of` date it was true on.
+- **Checks:** league key, season, as_of not in the future, shirt 0-999, ISO dates, age 14-60, statuses, positions. Warnings (not blockers): age that disagrees with the date of birth, implausible ages, duplicate shirt numbers in a club, a player listed in two clubs, players with no birth info, no coach.
+- **Club names are matched to the bank's spelling** ("Man City FC" becomes "Manchester City") when the league already has matches stored; otherwise the name is kept as written with a warning.
+- **Admin, Players tab:** new example, per-club summary (players, retired, no birth info, coach), search, and Players / Delete buttons per club squad. New actions `deleteClubSquad`; `players` now returns per-club totals.
+- **Reliability:** the Supabase helper retries a transient 401 "JWT issued at future" (and 5xx on reads).
+- **Database:** run `3-squads-status-coaches.sql` once in Supabase -> SQL Editor (after `1-competitions-and-players.sql`). It is NOT inside the zip. Paste its contents, not the file name.
+- Tests: `node tests/squad.test.mjs`, `node tests/retry.test.mjs`, plus the older career and matcher tests.
+
 ## v1.4.1 — nations, clubs and tournaments in career profiles
 
 - **Nationality travels with the player.** `nationality` is the country he represents at senior level (or is eligible for if uncapped); `other_nationalities` lists any other citizenships. A national team is built later by grouping on this, so players are never entered twice.

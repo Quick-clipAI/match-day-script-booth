@@ -1,10 +1,11 @@
 // POST /api/admin   header: x-admin-key = ADMIN_KEY   body: { action, ... }
 // Everything the admin page does goes through here. Nothing is public: no key, no access.
 import { storeFromEnv } from '../lib/bank-store.js';
-import { LEAGUES, LEAGUE_KEYS, makeRow, matchId, isIsoDate, currentSeason, coverageOf, computeTable } from '../lib/bank-core.js';
+import { LEAGUES, LEAGUE_KEYS, norm, makeRow, matchId, isIsoDate, currentSeason, coverageOf, computeTable } from '../lib/bank-core.js';
 import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } from '../lib/bank-sync.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { fetchText } from '../lib/apisports.js';
+import { normalizeSquad } from '../lib/bank-squad.js';
 import { normalizeProfile, mergeProfile, findStored, careerId, describe as describeCareer } from '../lib/bank-career.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -48,40 +49,59 @@ export default async function handler(req, res) {
         return res.status(200).json({ today: now, summary, logs, inboxCount: inbox.length, lastSync: lastSync || null, leagues: LEAGUE_KEYS.map(k => ({ key: k, name: LEAGUES[k].name, short: LEAGUES[k].short, type: LEAGUES[k].type, teams: LEAGUES[k].teams || null, hasOf: !!LEAGUES[k].of, currentSeason: currentSeason(null, now) })) });
       }
       case 'players': {
-        const rows = await store.listPlayers({ league: body.league || undefined, season: body.season !== undefined && body.season !== '' ? Number(body.season) : undefined, club: body.club || undefined });
-        return res.status(200).json({ total: rows.length, rows: rows.slice(0, Number(body.limit) || 1000) });
+        const f = { league: body.league || undefined, season: body.season !== undefined && body.season !== '' ? Number(body.season) : undefined, club: body.club || undefined };
+        const [all, coaches] = await Promise.all([store.listPlayers(f), store.listCoaches(f).catch(() => [])]);
+        const byClub = new Map();
+        for (const x of all) {
+          const k = x.league + '|' + x.season + '|' + x.club;
+          if (!byClub.has(k)) byClub.set(k, { league: x.league, season: x.season, club: x.club, players: 0, retired: 0, noBirth: 0, coach: null });
+          const c = byClub.get(k); c.players++; if (x.club_status === 'retired') c.retired++; if (!x.dob && x.age == null) c.noBirth++;
+        }
+        for (const c of coaches) { const k = c.league + '|' + c.season + '|' + c.club; if (!byClub.has(k)) byClub.set(k, { league: c.league, season: c.season, club: c.club, players: 0, retired: 0, noBirth: 0, coach: null }); byClub.get(k).coach = c.name; }
+        const q = String(body.q || '').trim().toLowerCase();
+        const rows = (q || f.club) ? all.filter(x => !q || x.name.toLowerCase().includes(q)).slice(0, Number(body.limit) || 200) : [];
+        return res.status(200).json({ total: all.length, clubs: [...byClub.values()].sort((a, b) => a.league.localeCompare(b.league) || b.season - a.season || a.club.localeCompare(b.club)), rows, coachTotal: coaches.length });
       }
       case 'importPlayers': {
         let parsed; try { parsed = typeof body.text === 'string' ? JSON.parse(body.text) : body.data; } catch (e) { return fail(res, 400, 'Invalid JSON. Check commas and quotation marks.'); }
         const packs = Array.isArray(parsed) ? parsed : [parsed];
-        const problems = [], incoming = [];
-        for (let pi=0; pi<packs.length; pi++) {
-          const pack = packs[pi] || {}; const league = String(pack.league || body.league || '').trim(); const season = Number(pack.season ?? body.season);
-          const club = String(pack.club || '').trim();
-          if (!league || !LEAGUES[league]) { problems.push(`Group ${pi+1}: unknown or missing league key.`); continue; }
-          if (!Number.isInteger(season) || season < 1900 || season > 2200) { problems.push(`Group ${pi+1}: season must be the starting year, e.g. 2026.`); continue; }
-          if (!club) { problems.push(`Group ${pi+1}: missing club.`); continue; }
-          if (!Array.isArray(pack.players)) { problems.push(`Group ${pi+1}: players must be an array.`); continue; }
-          for (let i=0;i<pack.players.length;i++) {
-            const x=pack.players[i] || {}; const name=String(x.name||'').trim(); if(!name){problems.push(`${club} player ${i+1}: missing name.`);continue;}
-            const shirt = x.shirt == null || x.shirt === '' ? null : Number(x.shirt);
-            if (shirt != null && (!Number.isInteger(shirt) || shirt < 0 || shirt > 999)) { problems.push(`${club} / ${name}: shirt must be a number.`); continue; }
-            const dob = x.dob ? String(x.dob).slice(0,10) : null;
-            if (dob && !isIsoDate(dob)) { problems.push(`${club} / ${name}: DOB must be YYYY-MM-DD.`); continue; }
-            const id = `${league}|${season}|${club.toLowerCase()}|${name.toLowerCase()}`;
-            incoming.push({ id, league, season, club, name, shirt, dob, position: String(x.position||'').trim().slice(0,80)||null, nationality: String(x.nationality||'').trim().slice(0,80)||null, updated_at: new Date().toISOString() });
-          }
+        const problems = [], warnings = [], notes = [], incoming = [], coachRows = [];
+        // club names the bank already knows, per league (so a spelling variant joins the existing club)
+        const clubRows = await store.clubIndex(); const aliasRows = await store.listAliases();
+        const known = new Map(); clubRows.forEach(c => { if (!known.has(c.league)) known.set(c.league, new Map()); known.get(c.league).set(norm(c.club), c.club); });
+        const aliasMap = new Map(aliasRows.map(a => [a.alias, a.canonical]));
+        const ctx = { today: now, known, aliasMap, league: body.league, season: body.season };
+        let noBirthInfo = 0;
+        for (let pi = 0; pi < packs.length; pi++) {
+          const r = normalizeSquad(packs[pi], pi, ctx);
+          problems.push(...r.problems); warnings.push(...r.warnings); notes.push(...r.notes);
+          incoming.push(...r.rows); if (r.coach) coachRows.push(r.coach); noBirthInfo += r.noBirthInfo || 0;
         }
-        const existing = await store.listPlayers(); const merged = new Map(existing.map(p => [p.id, p])); incoming.forEach(p => merged.set(p.id, p)); const combined = [...merged.values()];
-        const shirtDupes = [], multiClub = [], seenShirts = new Set(), seenPlayer = new Map();
-        for (const p of combined) {
-          if (p.shirt != null) { const k=`${p.league}|${p.season}|${p.club.toLowerCase()}|${p.shirt}`; if(seenShirts.has(k)) shirtDupes.push(`${p.club}: shirt ${p.shirt} appears more than once in ${p.season}/${String(p.season+1).slice(-2)}.`); seenShirts.add(k); }
-          const k=`${p.league}|${p.season}|${p.name.toLowerCase()}`; if(seenPlayer.has(k) && seenPlayer.get(k).club.toLowerCase() !== p.club.toLowerCase()) multiClub.push(`${p.name}: listed for both ${seenPlayer.get(k).club} and ${p.club}.`); else seenPlayer.set(k,p);
+        const existing = await store.listPlayers(); const merged = new Map(existing.map(p => [p.id, p])); incoming.forEach(p => merged.set(p.id, p));
+        const seenShirts = new Map(), seenPlayer = new Map(), shirtDupes = [], multiClub = [];
+        for (const p of merged.values()) {
+          if (p.club_status === 'retired') continue;
+          if (p.shirt != null) { const k = `${p.league}|${p.season}|${p.club.toLowerCase()}|${p.shirt}`; if (seenShirts.has(k)) shirtDupes.push(`${p.club}: shirt ${p.shirt} is used by ${seenShirts.get(k)} and ${p.name} in ${p.season}/${String(p.season + 1).slice(-2)}.`); else seenShirts.set(k, p.name); }
+          const k = `${p.season}|${p.name.toLowerCase()}|${p.dob || ''}`; if (seenPlayer.has(k) && seenPlayer.get(k).club.toLowerCase() !== p.club.toLowerCase()) multiClub.push(`${p.name}: listed for both ${seenPlayer.get(k).club} and ${p.club} in ${p.season}/${String(p.season + 1).slice(-2)}.`); else seenPlayer.set(k, p);
         }
-        const report={ok:problems.length===0, preview:body.dryRun!==false, received:incoming.length, problems, warnings:[...new Set([...shirtDupes,...multiClub])], duplicates:incoming.length-new Set(incoming.map(p=>p.id)).size};
-        if(problems.length) return res.status(400).json(report);
-        if(body.dryRun===false){ await store.upsertPlayers(incoming); await store.addLog({kind:'players-import',ok:true,summary:`Imported ${incoming.length} player records across ${new Set(incoming.map(p=>p.club)).size} club(s).`}); report.saved=incoming.length; }
+        const mine = new Set(incoming.map(p => p.id));
+        const mineWarn = x => incoming.some(p => x.includes(p.name) || x.includes(p.club));   // only report clashes that involve this import
+        const report = { ok: problems.length === 0, preview: body.dryRun !== false, received: incoming.length, coaches: coachRows.length, noBirthInfo, problems, warnings: [...new Set([...warnings, ...shirtDupes.filter(mineWarn), ...multiClub.filter(mineWarn)])], notes: [...new Set(notes)], duplicates: incoming.length - mine.size, created: incoming.filter(p => !existing.some(e => e.id === p.id)).length };
+        report.updated = incoming.length - report.created - report.duplicates;
+        if (problems.length) return res.status(400).json(report);
+        if (body.dryRun === false) {
+          const uniq = [...new Map(incoming.map(p => [p.id, p])).values()];
+          await store.upsertPlayers(uniq);
+          if (coachRows.length) await store.upsertCoaches([...new Map(coachRows.map(c => [c.id, c])).values()]);
+          await store.addLog({ kind: 'players-import', ok: true, summary: `Imported ${uniq.length} players and ${coachRows.length} coaches across ${new Set(uniq.map(p => p.club)).size} club(s).` });
+          report.saved = uniq.length;
+        }
         return res.status(200).json(report);
+      }
+      case 'deleteClubSquad': {              // remove one club's squad (e.g. imported under the wrong club name)
+        const rows = await store.listPlayers({ league: body.league, season: Number(body.season), club: body.club });
+        await store.deletePlayers(rows.map(r => r.id));
+        return res.status(200).json({ ok: true, deleted: rows.length });
       }
       case 'career': {
         const rows = await store.listCareer();
