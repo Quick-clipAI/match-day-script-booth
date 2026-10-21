@@ -479,11 +479,34 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.4.4 — phone notification when a script is ready
+
+- When a background script finishes, the server sends a push notification through Firebase Cloud Messaging (free). It works with the app closed; tapping it opens the chat with the script.
+- Needs: Vercel env var `FIREBASE_SERVICE_ACCOUNT` (the whole service-account JSON), and **`6-device-tokens.sql`** run once in Supabase (paste the contents).
+- New endpoint `api/device-token.js` links a phone to the signed-in person (also removed on sign-out). Code: `lib/push.js` (no dependencies; signs the Google token with Node's crypto).
+- Needs the **new APK** (v1.4.4 app repo build). Older app files keep working but get no push; they still show the in-app notice.
+- If nothing is configured, the notifier is skipped silently and the script still lands in the chat.
+
+## v1.4.3 — Script Studio: plan first, then write in the background
+
+- A script request now gets a **short plan first** (angle, structure, what will be checked) with a **Start writing** button. Type a change and the plan is rewritten; nothing long is written until Start is pressed.
+- Signed-in people: Start sends the job to `/api/script-job` (up to 300 s, runs server-side). The chat says "I'm on it", you can leave, and the finished script is saved into the chat. The app shows a notice when it is ready (and when you next open it). A failure saves a visible message with a Regenerate hint.
+- Guests / offline / server unavailable: the script is written in the open chat as before.
+- **Run `5-script-jobs.sql`** once in the Supabase SQL Editor (paste the contents).
+- `vercel.json` now sets 300 s only for `api/script-job.js` (60 s for the others). On Vercel Hobby, 300 s needs **Fluid compute** (Settings → Functions) on older projects.
+- Push notification with the app closed comes in the next release (needs Firebase and a new APK).
+
 ## v1.4.2 — squads with age, status and head coaches
 
 - **Squad import accepts what a research sheet really contains.** Per club group: `league`, `season`, `club`, `as_of` (date the list is true), `coach {name, nationality}` and `players` with `name`, `shirt`, `dob`, `age`, `position`, `nationality`, `club_status` ("Active" or "Retired (2026)") and `national_status` ("Active", "Retired (2022)" or "Not capped"). "NOT FOUND", blanks, N/A and "-" are stored as empty, never as text. A player with an age but no date of birth keeps the age and the `as_of` date it was true on.
 - **Checks:** league key, season, as_of not in the future, shirt 0-999, ISO dates, age 14-60, statuses, positions. Warnings (not blockers): age that disagrees with the date of birth, implausible ages, duplicate shirt numbers in a club, a player listed in two clubs, players with no birth info, no coach.
 - **Club names are matched to the bank's spelling** ("Man City FC" becomes "Manchester City") when the league already has matches stored; otherwise the name is kept as written with a warning.
+- **Loans and national-team levels:** club status accepts Active / Permanent / On Loan (from club) / Retired (year); national status accepts Active (senior), Youth International, Former international, Former youth international, Retired (year), Not capped / Uncapped. Loans store `on_loan` and `loan_from`.
+- **Chats are listed by last use.** A chat moves to the top when you send, edit or regenerate in it, so the app opens the chat you used last. Needs `4-chats-last-used.sql` (adds `chats.updated_at`); until it is run, the order still works on the device you use but is not shared between devices.
+- **Loading logo is orange** (the brand colour) instead of white while the app starts.
+- **Coach, squad and form now reach the chat.** For any club named in a question, the data bank block now carries the head coach (from the squads you imported), the registered squad (names, shirt numbers, loans), the club's record and current run in the stored matches, and its league finishes in completed stored seasons (so "back-to-back champions" can be stated from data). If a club has no coach on file the block says so and forbids naming one from memory. The older API-Football coach lookup now runs when the bank has no coach, and only trusts a coach whose spell at the club is still open (it used to take the first name in the list, which can be a former manager). Fixes the "Xavi's Barcelona" mistake. Only competitions you have stored are counted: the chat cannot state a Champions League run that is not in the bank.
+- **Mode chips instead of editable starter text.** Tapping Match Analysis, Player Analysis, Football Research, Script Studio or Banter puts a locked chip (e.g. "Write a script") in the composer. You type only the topic; the chip is added when you send. Tap the chip's ✕ (or Backspace in an empty box) to remove it in one go.
+- Tests: `node tests/context.test.mjs`.
 - **Admin, Players tab:** new example, per-club summary (players, retired, no birth info, coach), search, and Players / Delete buttons per club squad. New actions `deleteClubSquad`; `players` now returns per-club totals.
 - **Reliability:** the Supabase helper retries a transient 401 "JWT issued at future" (and 5xx on reads).
 - **Database:** run `3-squads-status-coaches.sql` once in Supabase -> SQL Editor (after `1-competitions-and-players.sql`). It is NOT inside the zip. Paste its contents, not the file name.

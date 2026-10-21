@@ -1,8 +1,14 @@
 {
   "functions": {
-    "api/**/*.js": {
-      "maxDuration": 60
-    }
+    "api/admin.js": { "maxDuration": 60 },
+    "api/bank.js": { "maxDuration": 60 },
+    "api/cron-sync.js": { "maxDuration": 60 },
+    "api/download.js": { "maxDuration": 60 },
+    "api/device-token.js": { "maxDuration": 30 },
+    "api/gemini.js": { "maxDuration": 60 },
+    "api/groq.js": { "maxDuration": 60 },
+    "api/football/*.js": { "maxDuration": 60 },
+    "api/script-job.js": { "maxDuration": 300 }
   },
   "crons": [
     {

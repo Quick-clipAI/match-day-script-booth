@@ -69,3 +69,14 @@ await okA('import preview does not save; save stores players and coaches', async
   assert.equal((await A({ action: 'players' })).body.total, 1);
 });
 console.log(n + ' squad tests passed');
+ok('loan and extended national statuses', () => {
+  assert.deepEqual(parseStatus('On Loan (from AS Roma)', 'club'), { status: 'active', loan: true, loan_from: 'AS Roma' });
+  assert.deepEqual(parseStatus('Permanent (Captain)', 'club'), { status: 'active' });
+  assert.deepEqual(parseStatus('Youth International', 'national'), { status: 'youth' });
+  assert.deepEqual(parseStatus('Former youth international', 'national'), { status: 'former_youth' });
+  assert.deepEqual(parseStatus('Former international', 'national'), { status: 'former' });
+  assert.deepEqual(parseStatus('Uncapped', 'national'), { status: 'not_capped' });
+  const r = normalizeSquad(pack([{ name: 'L O', club_status: 'On Loan (from X FC)' }]), 0, T);
+  assert.equal(r.rows[0].on_loan, true); assert.equal(r.rows[0].loan_from, 'X FC');
+});
+console.log('extra tests ok');
