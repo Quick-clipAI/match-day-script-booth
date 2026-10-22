@@ -479,6 +479,13 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.4.5 — fixture card under chat answers
+
+- When an answer is about one or two clubs, a card appears under it: competition and round, both clubs, the score (or kick-off date and time) and "Full time" / "Upcoming". Two clubs: their next meeting this season, else the latest. One club: its next fixture (latest result when results were asked for).
+- Only matches stored in the data bank are shown. The card is saved with the message, so it is still there when the chat is reopened.
+- **No club crests**: clubs get a text badge (PSG, BAR, MCI…) with a colour from the name. Crests can be added later in one place (`clubBadgeHtml`) without touching anything else.
+- `/api/bank` now also returns `cards`. No SQL, no new env vars.
+
 ## v1.4.4 — phone notification when a script is ready
 
 - When a background script finishes, the server sends a push notification through Firebase Cloud Messaging (free). It works with the app closed; tapping it opens the chat with the script.

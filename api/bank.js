@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
-  const empty = { text: '', labels: [], clubs: [], used: [] };
+  const empty = { text: '', labels: [], clubs: [], used: [], cards: [] };
   try {
     const { store, error } = storeFromEnv();
     if (error) return res.status(200).json({ ...empty, note: 'bank not configured' });

@@ -38,4 +38,16 @@ await t('a pure table question is not buried in squads', async () => {
   const r = await planContext('Premier League table', TODAY, store, {});
   assert.doesNotMatch(r.text, /registered squad/);
 });
+await t('two clubs: one fixture card (their next meeting, else the latest)', async () => {
+  const r = await planContext('Arsenal v Chelsea', TODAY, store, {});
+  assert.equal(r.cards.length, 1);
+  const c = r.cards[0]; assert.ok([c.home, c.away].includes('Arsenal') && [c.home, c.away].includes('Chelsea'));
+  assert.ok(['finished', 'scheduled'].includes(c.status)); assert.match(c.date, /^\d{4}-\d{2}-\d{2}$/); assert.equal(c.competition, 'Premier League');
+  if (c.status === 'scheduled') { assert.equal(c.hg, null); assert.ok(c.date >= TODAY); }
+});
+await t('one club: a card for its own match', async () => {
+  const r = await planContext('Tell me about Arsenal', TODAY, store, {});
+  assert.equal(r.cards.length, 1); assert.ok([r.cards[0].home, r.cards[0].away].includes('Arsenal'));
+});
+await t('no club named: no card', async () => { const r = await planContext('who won the premier league', TODAY, store, {}); assert.deepEqual(r.cards || [], []); });
 console.log(n + ' context tests passed');
