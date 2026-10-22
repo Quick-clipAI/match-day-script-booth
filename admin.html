@@ -584,13 +584,13 @@ VIEWS.players = async m => {
       info(`${names.length} file(s) loaded: ${c.count(items)}, ${(bytes / 1024).toFixed(0)} KB. Tap Preview import. The pasted text is ignored while files are loaded.`);
     };
     async function sendAll(items, save, btn) {
-      const batches = parts(items); let offset = 0; const t = { notes: [], coaches: 0, noBirthInfo: 0, received: 0, created: 0, updated: 0, problems: [], warnings: [], changes: [], changesTotal: 0, duplicates: 0 };
+      const batches = parts(items); let offset = 0; const t = { notes: [], coaches: 0, noBirthInfo: 0, replaced: 0, received: 0, created: 0, updated: 0, problems: [], warnings: [], changes: [], changesTotal: 0, duplicates: 0 };
       for (let i = 0; i < batches.length; i++) {
         busy(btn, true, (save ? 'Saving ' : 'Checking ') + (i + 1) + '/' + batches.length + '…');
         let r;
         try { r = await api(c.action, { data: batches[i], dryRun: !save }); }
         catch (e) { if (e.auth) throw e; if (e.data && Array.isArray(e.data.problems)) r = e.data; else throw new Error(`Part ${i + 1} of ${batches.length}: ${e.message}` + (save && i ? ` Parts 1–${i} were already saved; saving again is safe.` : '')); }
-        for (const k of ['received', 'created', 'updated', 'duplicates', 'changesTotal', 'coaches', 'noBirthInfo']) t[k] += Number(r[k]) || 0;
+        for (const k of ['received', 'created', 'updated', 'duplicates', 'changesTotal', 'coaches', 'noBirthInfo', 'replaced']) t[k] += Number(r[k]) || 0;
         (r.problems || []).forEach(x => t.problems.push(x.replace(/(Group|Profile) (\d+)/, (m, w, n) => w + ' ' + (Number(n) + offset))));
         (r.warnings || []).forEach(x => { if (!t.warnings.includes(x)) t.warnings.push(x); });
         (r.changes || []).forEach(x => t.changes.push(x));
@@ -619,7 +619,7 @@ VIEWS.players = async m => {
   const playersIn = packs => packs.reduce((n, k) => n + (k && Array.isArray(k.players) ? k.players.length : 0), 0);
   uploader({ p: 'p', action: 'importPlayers', what: 'Player data',
     count: it => `${it.length} club group(s), ${playersIn(it)} players`,
-    summary: (r, f) => `${r.received} players and ${r.coaches} coaches found${f ? ' in ' + f.names.length + ' file(s)' : ''}${r.noBirthInfo ? '; ' + r.noBirthInfo + ' with no birth date and no age' : ''}.`,
+    summary: (r, f) => `${r.received} players and ${r.coaches} coaches found${f ? ' in ' + f.names.length + ' file(s)' : ''}${r.noBirthInfo ? '; ' + r.noBirthInfo + ' with no birth date and no age' : ''}${r.replaced ? '; ' + r.replaced + ' older copies of the same players (spelled differently) will be replaced, not duplicated' : ''}.`,
     dupes: packs => { const seen = new Map(), msg = []; for (const k of packs) { if (!k || !Array.isArray(k.players)) continue; for (const x of k.players) { const id = [k.league, k.season, String(k.club || '').toLowerCase(), String(x && x.name || '').toLowerCase()].join('|'); if (seen.has(id)) msg.push(`${k.club} / ${x.name}: listed more than once in this import (${k.season}).`); else seen.set(id, 1); } } return msg; } });
   uploader({ p: 'c', action: 'importCareer', what: 'Career data',
     count: it => `${it.length} profile(s)`,
@@ -642,7 +642,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.4.2';
+const ADMIN_VERSION = '1.4.6';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

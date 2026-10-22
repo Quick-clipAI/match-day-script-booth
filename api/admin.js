@@ -5,7 +5,7 @@ import { LEAGUES, LEAGUE_KEYS, norm, makeRow, matchId, isIsoDate, currentSeason,
 import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } from '../lib/bank-sync.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { fetchText } from '../lib/apisports.js';
-import { normalizeSquad } from '../lib/bank-squad.js';
+import { normalizeSquad, staleVariants } from '../lib/bank-squad.js';
 import { normalizeProfile, mergeProfile, findStored, careerId, describe as describeCareer } from '../lib/bank-career.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -77,7 +77,8 @@ export default async function handler(req, res) {
           problems.push(...r.problems); warnings.push(...r.warnings); notes.push(...r.notes);
           incoming.push(...r.rows); if (r.coach) coachRows.push(r.coach); noBirthInfo += r.noBirthInfo || 0;
         }
-        const existing = await store.listPlayers(); const merged = new Map(existing.map(p => [p.id, p])); incoming.forEach(p => merged.set(p.id, p));
+        const existing = await store.listPlayers(); const stale = staleVariants(existing, incoming); const staleIds = new Set(stale.map(x => x.id));
+        const merged = new Map(existing.filter(p => !staleIds.has(p.id)).map(p => [p.id, p])); incoming.forEach(p => merged.set(p.id, p));
         const seenShirts = new Map(), seenPlayer = new Map(), shirtDupes = [], multiClub = [];
         for (const p of merged.values()) {
           if (p.club_status === 'retired') continue;
@@ -87,10 +88,12 @@ export default async function handler(req, res) {
         const mine = new Set(incoming.map(p => p.id));
         const mineWarn = x => incoming.some(p => x.includes(p.name) || x.includes(p.club));   // only report clashes that involve this import
         const report = { ok: problems.length === 0, preview: body.dryRun !== false, received: incoming.length, coaches: coachRows.length, noBirthInfo, problems, warnings: [...new Set([...warnings, ...shirtDupes.filter(mineWarn), ...multiClub.filter(mineWarn)])], notes: [...new Set(notes)], duplicates: incoming.length - mine.size, created: incoming.filter(p => !existing.some(e => e.id === p.id)).length };
+        report.replaced = stale.length;
         report.updated = incoming.length - report.created - report.duplicates;
         if (problems.length) return res.status(400).json(report);
         if (body.dryRun === false) {
           const uniq = [...new Map(incoming.map(p => [p.id, p])).values()];
+          if (stale.length) await store.deletePlayers(stale.map(x => x.id));   // older copies spelled differently (accents)
           await store.upsertPlayers(uniq);
           if (coachRows.length) await store.upsertCoaches([...new Map(coachRows.map(c => [c.id, c])).values()]);
           await store.addLog({ kind: 'players-import', ok: true, summary: `Imported ${uniq.length} players and ${coachRows.length} coaches across ${new Set(uniq.map(p => p.club)).size} club(s).` });

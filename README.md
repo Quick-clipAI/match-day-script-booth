@@ -479,6 +479,12 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.4.6 — player import no longer duplicates accented names
+
+- Importing a squad now replaces older copies of the same player that were stored with a different spelling (for example "Victor Lindelof" and "Victor Lindelöf", same club and season) instead of adding a second row. The preview says how many will be replaced.
+- The player JSON has the Saudi and Racing club names matched to the bank's spellings.
+- Admin page version label now follows the app version.
+
 ## v1.4.5 — fixture card under chat answers
 
 - When an answer is about one or two clubs, a card appears under it: competition and round, both clubs, the score (or kick-off date and time) and "Full time" / "Upcoming". Two clubs: their next meeting this season, else the latest. One club: its next fixture (latest result when results were asked for).

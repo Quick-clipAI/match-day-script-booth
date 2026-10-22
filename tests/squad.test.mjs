@@ -80,3 +80,15 @@ ok('loan and extended national statuses', () => {
   assert.equal(r.rows[0].on_loan, true); assert.equal(r.rows[0].loan_from, 'X FC');
 });
 console.log('extra tests ok');
+
+// ---- accent variants are replaced, not duplicated ----
+{
+  const { staleVariants, nameKey } = await import('../lib/bank-squad.js');
+  const mk = (name, club = 'Aston Villa', season = 2026) => ({ id: `EPL|${season}|${club.toLowerCase()}|${name.toLowerCase()}`, league: 'EPL', season, club, name });
+  assert.equal(nameKey('Victor Lindelöf'), nameKey('Victor  Lindelof'));
+  const old = [mk('Victor Lindelof'), mk('Ollie Watkins'), mk('Victor Lindelof', 'Aston Villa', 2025)];
+  const inc = [mk('Victor Lindelöf'), mk('Ollie Watkins')];
+  const st = staleVariants(old, inc);
+  assert.deepEqual(st.map(x => x.name + '|' + x.season), ['Victor Lindelof|2026'], 'same player, other spelling, same season/club only');
+  console.log('accent-variant tests ok');
+}
