@@ -1,0 +1,18 @@
+name: Check finished matches
+
+# Vercel's free cron can only run once a day, so this free GitHub schedule asks the site every 20 minutes:
+# "is any stored match over by now without a result?". If nothing is due, the site answers without calling API-Football.
+on:
+  schedule:
+    - cron: '*/20 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  due:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the site to check due matches
+        run: |
+          curl -sS --max-time 60 --retry 2 "https://creator-boot.vercel.app/api/cron-sync?mode=due" | tee /tmp/out.json
+          echo
+          grep -q '"ok":true' /tmp/out.json || echo "::warning::The due-match check did not answer ok"

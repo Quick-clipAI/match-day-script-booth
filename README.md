@@ -479,6 +479,14 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.4.7 — results are checked after each match, not once a day
+
+- **Due-match check.** A stored match is "due" about 110 minutes after its kick-off (if the kick-off time is stored) or after 22:30 UTC on its date (if not). For due matches the site asks API-Football for that date (one request covers the whole day; at most 2 per run, a date is not asked again for 25 minutes) and fills the score. A match still being played keeps its real kick-off so the next check is exact; postponed or cancelled matches are marked as such.
+- **Any competition in the bank**, including national-team games, cups and friendlies: it matches on team names, so no competition list has to be kept up to date.
+- **Two triggers:** a free GitHub schedule (`.github/workflows/due-sync.yml`, every 20 minutes, calls `/api/cron-sync?mode=due`) and every chat question (`/api/bank`, 4-second limit). Nothing due means no API request. The daily Vercel sync stays as it was.
+- The `?mode=due` address needs no key: it only reads stored matches and cannot spend more than the limits above. No SQL, no new env vars or secrets.
+- Log entries of kind `sync-due` appear on the admin Log tab.
+
 ## v1.4.6 — player import no longer duplicates accented names
 
 - Importing a squad now replaces older copies of the same player that were stored with a different spelling (for example "Victor Lindelof" and "Victor Lindelöf", same club and season) instead of adding a second row. The preview says how many will be replaced.
