@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.5.0**
+**v1.5.1**
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
@@ -478,6 +478,11 @@ version — safe to delete if you're not planning to bring voiceover back, kept
 for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
+
+## v1.5.1 — app download fixes
+
+- The Supabase storage bucket `app-updates` was private, so every Supabase address answered HTTP 400. The app's quick update and the `/download` link therefore always fell back to GitHub. The bucket is now public (it only holds the public update files: `version.json`, `bundle.zip`, `creator-booth.apk`). If the update screen ever shows "Supabase 400" again, check Supabase → Storage → app-updates → Public bucket.
+- The "Get the Android app" box now also recognises a phone whose Chrome is in "Desktop site" mode (that mode hides the word Android), and always offers a "Download anyway" link.
 
 ## v1.5.0 — match screen (tap a fixture card)
 
