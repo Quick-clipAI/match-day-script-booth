@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.5.1**
+**v1.5.2**
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
@@ -27,7 +27,7 @@ Our own database of results so answers come from checked data, not the model's m
 5. Gaps tab: type any missing results.
 
 **How it stays current**
-- Every day at 05:00 UTC (`vercel.json` cron → `/api/cron-sync`): API-Football for yesterday/today/tomorrow (fills results, kick-off times, postponements), then the openfootball file for the current season. Overview shows a red banner if the last run failed and an amber one if it is over 36 hours old. "Run the daily update now" is on the Log tab.
+- Every day at 01:00 UTC = 02:00 Nigerian time (`vercel.json` cron → `/api/cron-sync`): API-Football for yesterday/today/tomorrow (fills results, kick-off times, postponements), then the openfootball file for the current season. Overview shows a red banner if the last run failed and an amber one if it is over 36 hours old. "Run the daily update now" is on the Log tab.
 - Free API-Football only serves today ±1 day, so a result missing for longer than that has to come from openfootball or you.
 - Rules: a stored final score is never silently overwritten. If another source disagrees it is flagged as a **conflict** for you to decide; anything you saved by hand is marked **verified** and kept. A club name nobody recognises goes to the **Inbox** instead of creating a duplicate club.
 
@@ -479,6 +479,10 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.5.2 — daily sync moved to 02:00 Nigerian time
+
+`vercel.json` cron changed from `0 5 * * *` to `0 1 * * *` (Vercel cron times are UTC; Nigeria is UTC+1 all year). Vercel's free plan may start a daily job at any point within that hour, so expect it between 02:00 and 03:00 Nigerian time. The 20-minute result check (GitHub Actions) is unchanged.
+
 ## v1.5.1 — app download fixes
 
 - The Supabase storage bucket `app-updates` was private, so every Supabase address answered HTTP 400. The app's quick update and the `/download` link therefore always fell back to GitHub. The bucket is now public (it only holds the public update files: `version.json`, `bundle.zip`, `creator-booth.apk`). If the update screen ever shows "Supabase 400" again, check Supabase → Storage → app-updates → Public bucket.
@@ -495,7 +499,7 @@ Tapping the fixture card under a chat answer opens a full-screen match screen wi
 - **Play-offs**: knockout rounds with two-leg ties and aggregate. Empty until the knockout matches are stored.
 - Any tab with nothing to show says "No data available" and why. The table is always shown for league and league-phase competitions.
 
-**Where line-ups and stats come from.** When the due-match check fills a result it also records API-Football's fixture id. The same 20-minute run (`/api/cron-sync?mode=due`) then fetches `fixtures?id=` once per finished match: 1 API credit, saved in `bank_match_details`, free for every later view. At most 3 per run, only for matches finished in the last 3 days, and an API error pauses detail fetching for an hour so it cannot use up the 100 daily requests. Matches before this release, and matches the 05:00 daily sync filled first, have no details and show "No data available".
+**Where line-ups and stats come from.** When the due-match check fills a result it also records API-Football's fixture id. The same 20-minute run (`/api/cron-sync?mode=due`) then fetches `fixtures?id=` once per finished match: 1 API credit, saved in `bank_match_details`, free for every later view. At most 3 per run, only for matches finished in the last 3 days, and an API error pauses detail fetching for an hour so it cannot use up the 100 daily requests. Matches before this release, and matches the 02:00 (Nigerian time) daily sync filled first, have no details and show "No data available".
 
 **Setup (once):** run `7-match-details.sql` in Supabase (already applied to the project). No new environment variables. No new APK needed.
 
