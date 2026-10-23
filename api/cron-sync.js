@@ -3,7 +3,8 @@
 import { storeFromEnv } from '../lib/bank-store.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { syncDue } from '../lib/sync-due.js';
-import { fixturesGetter } from '../lib/apisports.js';
+import { fixturesGetter, detailGetter } from '../lib/apisports.js';
+import { syncDetails } from '../lib/match-detail.js';
 
 
 export default async function handler(req, res) {
@@ -14,8 +15,11 @@ export default async function handler(req, res) {
     const { store, error } = storeFromEnv();
     if (error) return res.status(500).json({ error });
     try {
-      const r = await syncDue(store, { getFixtures: fixturesGetter((process.env.API_SPORTS_KEY || '').trim()) });
-      return res.status(200).json({ ok: true, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary });
+      const key = (process.env.API_SPORTS_KEY || '').trim();
+      const r = await syncDue(store, { getFixtures: fixturesGetter(key) });
+      let d = { summary: 'skipped' };
+      try { d = await syncDetails(store, { getDetail: detailGetter(key) }); } catch (e) { d = { summary: 'details failed: ' + String(e && e.message || e).slice(0, 120) }; }
+      return res.status(200).json({ ok: true, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, details: d.summary });
     } catch (e) { return res.status(500).json({ error: String(e && e.message || e).slice(0, 200) }); }
   }
   const secret = (process.env.CRON_SECRET || '').trim(), admin = (process.env.ADMIN_KEY || '').trim();

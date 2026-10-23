@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.4.1**
+**v1.5.0**
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
@@ -478,6 +478,23 @@ version — safe to delete if you're not planning to bring voiceover back, kept
 for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
+
+## v1.5.0 — match screen (tap a fixture card)
+
+Tapping the fixture card under a chat answer opens a full-screen match screen with Facts, Lineup, Table, Stats and (for the European cups) Play-offs. It reads our own data bank through `/api/match`; it never calls the football API itself.
+
+- **Facts**: competition, round, date, kick-off (shown in the phone's time zone), venue, referee, goals and cards on a timeline, substitutions, highest-rated player.
+- **Lineup**: both starting XIs on a pitch from the API's formation grid, ratings, goals, cards, minutes, substitutes, coach.
+- **Table**: league table computed from the stored results, both teams highlighted, with qualification and relegation colours and a legend. Champions League, Europa League and Conference League use the league-phase table: 1-8 Qualified, 9-24 Play-offs, 25+ Eliminated. The usual domestic places are in `ZONES` in `lib/match-view.js` (one place to edit). Extra European places depend on UEFA rankings and cup winners, so check them each season.
+- **Stats**: team statistics as bars (possession first).
+- **Play-offs**: knockout rounds with two-leg ties and aggregate. Empty until the knockout matches are stored.
+- Any tab with nothing to show says "No data available" and why. The table is always shown for league and league-phase competitions.
+
+**Where line-ups and stats come from.** When the due-match check fills a result it also records API-Football's fixture id. The same 20-minute run (`/api/cron-sync?mode=due`) then fetches `fixtures?id=` once per finished match: 1 API credit, saved in `bank_match_details`, free for every later view. At most 3 per run, only for matches finished in the last 3 days, and an API error pauses detail fetching for an hour so it cannot use up the 100 daily requests. Matches before this release, and matches the 05:00 daily sync filled first, have no details and show "No data available".
+
+**Setup (once):** run `7-match-details.sql` in Supabase (already applied to the project). No new environment variables. No new APK needed.
+
+Tests: `tests/matchview.test.mjs` (13).
 
 ## v1.4.7 — results are checked after each match, not once a day
 
