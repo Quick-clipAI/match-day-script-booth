@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.5.2**
+**v1.5.3**
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
@@ -478,6 +478,20 @@ version — safe to delete if you're not planning to bring voiceover back, kept
 for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
+
+## v1.5.3 — player profiles from Transfermarkt, and "may have left" flags
+
+Admin → **Profiles** (new tab). Nothing changes in the chat yet: this release only stores the data and checks our squads against it.
+
+- **Profiles**: about 6,600 players (everyone at our matched clubs plus about 670 who left them since June 2025) from the Transfermarkt dataset, snapshot 6 July 2026. Each has nationality, date of birth, position and sub-position, foot, height, contract end, market value and peak value, caps and goals, full transfer history, yearly value points, and goals/assists/cards/minutes per season and competition. No portraits and no numeric ratings. Stored in `bank_player_profiles` (`8-player-profiles.sql`, already applied).
+- **Our data is the truth.** The check never edits a squad. It looks for players in our latest squads whom Transfermarkt places at another club and writes a **flag**:
+  - *left?*: Transfermarkt lists a move away from our club (date, destination), and he is now at another club. Could be a loan.
+  - *mismatch*: Transfermarkt has him elsewhere and never mentions our club. One source is wrong, or he came back after the snapshot.
+  - Skipped: players on loan from the club Transfermarkt shows, retired players, older seasons, and players that cannot be matched safely (same name needs the same date of birth, or a unique name when our data has none).
+- You answer each flag: **He left** (the player is marked as gone from that club and drops out of the squad) or **Our data is right** (dismissed for good; it does not come back).
+- The check can only judge players that are in our squads. Only the Premier League squads are loaded today; load the other leagues' squads and run the check again.
+- Club matching: 143 of our 186 clubs matched to Transfermarkt. Unmatched are mostly promoted or second-tier clubs and small European clubs that Transfermarkt's data does not cover; their players are simply not in the profiles.
+- Admin `importProfiles`, `profileStats`, `checkFlags`, `flags`, `resolveFlag`. Tests: `tests/profiles.test.mjs`.
 
 ## v1.5.2 — daily sync moved to 02:00 Nigerian time
 

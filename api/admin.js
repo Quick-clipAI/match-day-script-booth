@@ -6,6 +6,7 @@ import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } fro
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { fetchText } from '../lib/apisports.js';
 import { normalizeSquad, staleVariants } from '../lib/bank-squad.js';
+import { normalizeProfiles, computeFlags, yearOf } from '../lib/bank-profiles.js';
 import { normalizeProfile, mergeProfile, findStored, careerId, describe as describeCareer } from '../lib/bank-career.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -100,6 +101,34 @@ export default async function handler(req, res) {
           report.saved = uniq.length;
         }
         return res.status(200).json(report);
+      }
+      case 'importProfiles': {               // Transfermarkt profiles: save, then compare with our squads
+        const list = Array.isArray(body.data) ? body.data : [];
+        const r = normalizeProfiles(list, body.source || 'Transfermarkt dataset');
+        const out = { ok: r.problems.length === 0, preview: body.dryRun !== false, received: r.rows.length, problems: r.problems, warnings: r.warnings };
+        if (r.problems.length) return res.status(400).json(out);
+        if (body.dryRun === false) { await store.upsertProfiles(r.rows); out.saved = r.rows.length; }
+        return res.status(200).json(out);
+      }
+      case 'profileStats': return res.status(200).json({ profiles: await store.countProfiles(), open: (await store.flagsList('open')).length });
+      case 'checkFlags': {                   // compares our squads with the stored profiles; adds new flags only
+        const [bank, profs, aliasRows] = [await store.listPlayers(), await store.listProfiles(), await store.listAliases()];
+        const flags = computeFlags(bank, profs, new Map(aliasRows.map(a => [a.alias, a.canonical])));
+        const added = await store.flagsAdd(flags);
+        await store.addLog({ kind: 'player-flags', ok: true, summary: `Squad check: ${bank.length} players in our data, ${profs.length} profiles, ${flags.length} difference(s), ${added} new flag(s).` });
+        return res.status(200).json({ players: bank.length, profiles: profs.length, found: flags.length, added });
+      }
+      case 'flags': return res.status(200).json({ flags: await store.flagsList(body.status === 'all' ? '' : (body.status || 'open')) });
+      case 'resolveFlag': {                  // decision: 'left' (take him out of the squad) or 'stay' (our data is right)
+        const key = String(body.key || ''); const flag = (await store.flagsList('open')).find(f => f.key === key);
+        if (!flag) return fail(res, 404, 'That flag is already handled or does not exist.');
+        if (body.decision === 'left') {
+          const p = (await store.listPlayers({ league: flag.league })).find(x => x.id === flag.player_id);
+          if (p) await store.upsertPlayers([{ ...p, club_status: 'retired', club_retired_year: yearOf(flag.detail && flag.detail.move_date) || Number(today().slice(0, 4)), on_loan: null, loan_from: null }]);
+          await store.flagsResolve(key, 'confirmed');
+        } else if (body.decision === 'stay') await store.flagsResolve(key, 'dismissed');
+        else return fail(res, 400, 'decision must be left or stay.');
+        return res.status(200).json({ ok: true });
       }
       case 'deleteClubSquad': {              // remove one club's squad (e.g. imported under the wrong club name)
         const rows = await store.listPlayers({ league: body.league, season: Number(body.season), club: body.club });

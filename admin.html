@@ -173,7 +173,7 @@ $('#loginBtn').onclick = tryLogin; $('#key').onkeydown = e => { if (e.key === 'E
 $('#logout').onclick = lock;
 
 // ---------------------------------------------------------------- tabs
-const TABS = [['overview', 'Overview'], ['gaps', 'Gaps'], ['import', 'Import'], ['matches', 'Matches'], ['clubs', 'Clubs'], ['players', 'Players'], ['inbox', 'Inbox'], ['facts', 'Facts'], ['log', 'Log']];
+const TABS = [['overview', 'Overview'], ['gaps', 'Gaps'], ['import', 'Import'], ['matches', 'Matches'], ['clubs', 'Clubs'], ['players', 'Players'], ['profiles', 'Profiles'], ['inbox', 'Inbox'], ['facts', 'Facts'], ['log', 'Log']];
 function drawTabs() {
   $('#tabs').innerHTML = TABS.map(([k, l]) => {
     let dot = '';
@@ -492,6 +492,35 @@ VIEWS.inbox = async m => {
   m.querySelectorAll('[data-ib]').forEach(b => b.onclick = () => { const x = list[+b.dataset.ib]; const v = $('#ib' + b.dataset.ib).value.trim(); if (!v) return toast('Type the club name.', 'bad'); run(b, async () => { await api('resolveInbox', { team: x.team, mapTo: v }); toast('Added', 'ok'); await refreshOv(); render(); }); });
 };
 
+// ---------------------------------------------------------------- profiles (Transfermarkt) and squad flags
+VIEWS.profiles = async m => {
+  let st, fl; try { st = await api('profileStats'); fl = await api('flags', {}); } catch (e) { if (e.auth) throw e; m.innerHTML = head('Profiles', '') + `<div class="banner bad"><div><b>Profiles are not ready.</b><br>${esc(e.message)}</div></div>`; return; }
+  const kindTxt = f => f.kind === 'left' ? `Transfermarkt shows a move <b>away</b> from ${esc(f.bank_club)}${f.detail && f.detail.move_date ? ' on ' + esc(f.detail.move_date) : ''}${f.detail && f.detail.move_to ? ' to ' + esc(f.detail.move_to) : ''}. It now lists him at <b>${esc(f.tm_club)}</b>.`
+    : `Transfermarkt lists him at <b>${esc(f.tm_club)}</b> and never mentions ${esc(f.bank_club)}. One of the two is wrong, or he came back after Transfermarkt’s snapshot.`;
+  m.innerHTML = head('Profiles', 'Player facts from the Transfermarkt data (nationality, position, foot, height, value, transfers, goals and assists by season). Our own squads stay the truth: this only raises flags for you to confirm.')
+    + `<div class="card"><b>Load profile files</b><p class="mut" style="margin:6px 0 10px">Choose the <code>profiles-*.json</code> files (several at once is fine). Large files are sent in small parts. Loading the same player again replaces his profile. ${st.profiles != null ? '<b>' + st.profiles + '</b> profiles stored.' : ''}</p>
+    <div class="row"><button class="btn" id="prBtn">Choose JSON file(s)…</button><input type="file" id="prFile" accept=".json,application/json" multiple class="hide"></div><div class="mut" id="prInfo" style="font-size:13px;margin:6px 0 4px">No file chosen.</div>
+    <div class="row" style="margin-top:8px"><button class="btn pri" id="prGo" disabled>Save profiles</button></div><div id="prOut" class="mut" style="margin-top:8px;font-size:13px"></div></div>
+    <div class="card" style="margin-top:12px"><b>Check our squads against Transfermarkt</b><p class="mut" style="margin:6px 0 10px">Finds players in our squads whom Transfermarkt places at another club. Nothing in our data is changed until you confirm each one. Safe to run again: flags you already answered do not come back.</p><div class="row"><button class="btn pri" id="prCheck">Run the check</button></div><div id="prCheckOut" class="mut" style="margin-top:8px;font-size:13px"></div></div>
+    <h3 style="margin-top:24px">May have left (${fl.flags.length})</h3>
+    <div class="card flat">${fl.flags.map((f, i) => `<div class="m"><div class="row"><div class="grow"><div class="teams">${esc(f.name)} <span class="chip ${f.kind === 'left' ? 'warn' : ''}">${f.kind === 'left' ? 'left?' : 'mismatch'}</span></div><div class="meta">${esc(f.league)} · our data: ${esc(f.bank_club)}${f.detail && f.detail.on_loan ? ' (on loan)' : ''}</div></div></div><div style="margin:6px 0;font-size:14px">${kindTxt(f)}${f.kind === 'left' ? ' <span class="mut">(could be a loan.)</span>' : ''}</div>
+      <div class="row"><button class="btn sm bad" data-fl="${i}" data-d="left">He left: remove from ${esc(f.bank_club)}</button><button class="btn sm" data-fl="${i}" data-d="stay">Our data is right</button></div></div>`).join('') || '<div class="empty">No open flags. Load profiles, then run the check.</div>'}</div>`;
+  let files = [];
+  $('#prBtn').onclick = () => $('#prFile').click();
+  $('#prFile').onchange = async ev => {
+    const picked = [...ev.target.files]; ev.target.value = ''; if (!picked.length) return; files = [];
+    for (const f of picked) { let j; try { j = JSON.parse(await f.text()); } catch (e) { files = []; $('#prGo').disabled = true; return toast(`${f.name}: not valid JSON, or cut off. Nothing was loaded.`, 'bad'); } (Array.isArray(j) ? j : (j.profiles || [])).forEach(x => files.push(x)); }
+    $('#prInfo').textContent = `${picked.length} file(s), ${files.length} profiles ready.`; $('#prGo').disabled = !files.length;
+  };
+  $('#prGo').onclick = ev => run(ev.target, async () => {
+    const chunk = 250; let saved = 0;
+    for (let i = 0; i < files.length; i += chunk) { $('#prOut').textContent = `Saving ${Math.min(i + chunk, files.length)} of ${files.length}…`; const r = await api('importProfiles', { data: files.slice(i, i + chunk), dryRun: false, source: 'Transfermarkt dataset (dcaribou), snapshot 2026-07-06' }); saved += r.saved || 0; }
+    $('#prOut').textContent = `${saved} profiles saved. Now run the check below.`; files = []; $('#prGo').disabled = true; toast('Profiles saved', 'ok');
+  }, 'Saving…');
+  $('#prCheck').onclick = ev => run(ev.target, async () => { const r = await api('checkFlags'); $('#prCheckOut').textContent = `${r.players} players in our squads, ${r.profiles} profiles: ${r.found} difference(s), ${r.added} new flag(s).`; if (r.added) render(); }, 'Checking…');
+  m.querySelectorAll('[data-fl]').forEach(b => b.onclick = () => { const f = fl.flags[+b.dataset.fl]; if (b.dataset.d === 'left' && !confirm(`Remove ${f.name} from ${f.bank_club}'s squad?`)) return; run(b, async () => { await api('resolveFlag', { key: f.key, decision: b.dataset.d }); toast('Done', 'ok'); render(); }); });
+};
+
 // ---------------------------------------------------------------- facts
 VIEWS.facts = async m => {
   const r = await api('facts');
@@ -642,7 +671,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.5.2';
+const ADMIN_VERSION = '1.5.3';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
