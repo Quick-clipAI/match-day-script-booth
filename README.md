@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.5.4**
+**v1.5.5**
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
@@ -478,6 +478,15 @@ version — safe to delete if you're not planning to bring voiceover back, kept
 for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
+
+## v1.5.5 — squads can carry "joined" dates; they fill the gap after Transfermarkt's snapshot
+
+Each squad player may now have `joined` (`2026-08` or `2026-08-30`) and `joined_from` (club). Both are optional; leave out what is not known. Stored in `bank_players.joined / joined_from` (already applied).
+
+- Our own join date is used when it is **newer than Transfermarkt's latest move** for that player: it is added to his transfer history as a move marked *squad* (`mergeHistory`), and the "may have left" check no longer flags him (our data is newer, so there is nothing to confirm).
+- Re-importing a squad **without** join dates does not erase dates already stored.
+- A join date after the squad's `as_of`, before the birth date, or not in `YYYY-MM[-DD]` form is rejected.
+- Dates from an AI are unverified. The prompt tells it to leave a date out when unsure. Transfermarkt dates remain the source for everything up to 6 July 2026.
 
 ## v1.5.4 — Profiles: answer the flags in one go
 

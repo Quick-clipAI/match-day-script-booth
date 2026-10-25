@@ -569,7 +569,7 @@ const CAREER_PROMPT = `Return ONLY valid JSON (no explanation, no markdown) in e
 // ---------------------------------------------------------------- players
 const SQUAD_EXAMPLE = JSON.stringify([{ league: 'EPL', season: 2026, club: 'Arsenal', as_of: '2026-10-17', coach: { name: 'Coach Name', nationality: 'Spain' },
   players: [
-    { name: 'Player One', shirt: 7, dob: '2001-09-05', position: 'Forward', nationality: 'England', club_status: 'Active', national_status: 'Active' },
+    { name: 'Player One', shirt: 7, dob: '2001-09-05', position: 'Forward', nationality: 'England', club_status: 'Active', national_status: 'Active', joined: '2026-08-30', joined_from: 'Aston Villa' },
     { name: 'Player Two', shirt: 24, dob: null, age: 19, position: 'Defender', nationality: 'Brazil', club_status: 'Active', national_status: 'Not capped' },
     { name: 'Veteran', shirt: null, dob: '1989-03-02', position: 'Midfielder', nationality: 'Spain', club_status: 'Retired (2026)', national_status: 'Retired (2022)' }
   ] }], null, 2);
@@ -682,7 +682,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.5.4';
+const ADMIN_VERSION = '1.5.5';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

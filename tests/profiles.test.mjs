@@ -60,3 +60,18 @@ run().then(() => { n++; console.log(n + ' profile tests passed'); }).catch(e => 
     const rows = (await call2({ action: 'players', q: 'batch' })).rows; assert.equal(rows.find(x => x.name === 'Batch A').club_status, 'retired'); assert.ok(!rows.find(x => x.name === 'Batch B').club_status);
     console.log('batch test passed');
   }, 300); }
+import { mergeHistory } from '../lib/bank-profiles.js';
+import { normalizeSquad } from '../lib/bank-squad.js';
+{
+  const pr = { data: { tr: [['2025-07-24', 'Brighton', 'Coventry', 0], ['2026-05-31', 'Coventry', 'Brighton', 0]] } };
+  let h = mergeHistory(pr, { club: 'Coventry City', joined: '2026-08', joined_from: 'Brighton' }); assert.equal(h.length, 3); assert.equal(h[2][4], 'squad'); assert.equal(h[2][2], 'Coventry City');
+  assert.equal(mergeHistory(pr, { club: 'Brighton', joined: '2026-05' }).length, 2, 'join date not newer than TM: nothing added');
+  const P2 = normalizeProfiles([{ tm: 9, name: 'Carl Rushworth', dob: '2001-05-02', tmClub: 'Brighton & Hove Albion', tr: pr.data.tr }]).rows;
+  assert.equal(computeFlags([{ id: 'x', league: 'EPL', season: 2026, club: 'Coventry City', name: 'Carl Rushworth', dob: '2001-05-02', joined: '2026-08' }], P2).length, 0, 'newer join date explains the mismatch');
+  assert.equal(computeFlags([{ id: 'x', league: 'EPL', season: 2026, club: 'Coventry City', name: 'Carl Rushworth', dob: '2001-05-02' }], P2).length, 1, 'without it the flag stays');
+  const ctx = { today: '2026-10-25', known: new Map(), aliasMap: new Map(), league: 'EPL', season: 2026 };
+  const sq = x => normalizeSquad({ league: 'EPL', season: 2026, club: 'Arsenal', as_of: '2026-10-17', players: [{ name: 'A B', dob: '2000-01-01', ...x }] }, 0, ctx);
+  assert.equal(sq({ joined: '2026-08', joined_from: 'Villa' }).rows[0].joined, '2026-08');
+  assert.ok(sq({ joined: '2026-12' }).problems.length, 'future join rejected'); assert.ok(sq({ joined: 'August 2026' }).problems.length); assert.equal(sq({ joined: 'NOT FOUND' }).rows[0].joined, null);
+  console.log('joined tests passed');
+}

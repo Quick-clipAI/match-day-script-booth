@@ -95,6 +95,7 @@ export default async function handler(req, res) {
         if (body.dryRun === false) {
           const uniq = [...new Map(incoming.map(p => [p.id, p])).values()];
           if (stale.length) await store.deletePlayers(stale.map(x => x.id));   // older copies spelled differently (accents)
+          for (const u of uniq) if (!u.joined) { const old = merged.get(u.id) && existing.find(e => e.id === u.id); if (old && old.joined) { u.joined = old.joined; u.joined_from = u.joined_from || old.joined_from || null; } }   // a re-import without join dates must not erase them
           await store.upsertPlayers(uniq);
           if (coachRows.length) await store.upsertCoaches([...new Map(coachRows.map(c => [c.id, c])).values()]);
           await store.addLog({ kind: 'players-import', ok: true, summary: `Imported ${uniq.length} players and ${coachRows.length} coaches across ${new Set(uniq.map(p => p.club)).size} club(s).` });
