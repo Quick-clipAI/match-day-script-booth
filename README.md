@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.5.5**
+**v1.5.6**
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
@@ -478,6 +478,13 @@ version — safe to delete if you're not planning to bring voiceover back, kept
 for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
+
+## v1.5.6 — wrong fixture dates and wasted requests fixed
+
+Found while checking the gaps list against independent match pages:
+- **Provisional dates.** The season schedule (openfootball) gives a weekend date, but TV picks move many matches (Sevilla v Osasuna and PSG v Lyon to Monday 26 Oct, Alavés v Málaga to Friday 23 Oct, Toulouse v Troyes to Sunday 25 Oct, three La Liga games to Saturday 24 Oct). When a result was filled, the date was kept as it was. Now the API's date wins when a result is filled, and the due-match check asks for the real kick-off day when it is known.
+- **Wasted requests.** The free plan only answers yesterday to tomorrow (UTC). The due-match check kept asking for older dates (refused, but each still cost 1 of 100). It now skips them and says "enter them by hand". `API_DATE_WINDOW_DAYS` (default 1) widens this on a paid plan.
+- Tests: two new sync-due tests.
 
 ## v1.5.5 — squads can carry "joined" dates; they fill the gap after Transfermarkt's snapshot
 

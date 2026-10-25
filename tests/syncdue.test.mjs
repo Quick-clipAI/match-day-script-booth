@@ -47,4 +47,13 @@ await t('at most 2 requests per run', async () => {
   const w = await world([m({ date: '2026-10-20', home: 'A1', away: 'B1' }), m({ date: '2026-10-21', home: 'A2', away: 'B2' }), m({ date: '2026-10-22', home: 'A3', away: 'B3' })], () => []);
   await w.run(); assert.equal(w.calls.length, 2);
 });
+await t('dates older than the plan window are never requested (they would be refused and still cost a request)', async () => {
+  const w = await world([m({ date: '2026-10-19', home: 'A', away: 'B' })], () => []); const r = await w.run(); assert.equal(w.calls.length, 0); assert.equal(r.ran, false); assert.equal(r.outside, 1);
+  process.env.API_DATE_WINDOW_DAYS = '30'; const w2 = await world([m({ date: '2026-10-19', home: 'A', away: 'B' })], () => []); await w2.run(); assert.equal(w2.calls.length, 1); delete process.env.API_DATE_WINDOW_DAYS;
+});
+await t('a stored date that disagrees with the real kick-off day: ask for the kick-off day, and correct the date when the result is filled', async () => {
+  const w = await world([m({ date: '2026-10-22', home: 'Valencia', away: 'Villarreal', kickoff: '2026-10-21T16:30:00Z' })], d => d === '2026-10-21' ? [fx('Valencia', 'Villarreal', 'FT', 1, 2, '2026-10-21T16:30:00+00:00')] : []);
+  const r = await w.run(); assert.deepEqual(w.calls, ['2026-10-21']); assert.equal(r.filled, 1);
+  const x = (await w.s.listMatches({}))[0]; assert.equal(x.date, '2026-10-21'); assert.equal(x.hg, 1);
+});
 console.log(n + ' sync-due tests passed');
