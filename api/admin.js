@@ -119,6 +119,21 @@ export default async function handler(req, res) {
         return res.status(200).json({ players: bank.length, profiles: profs.length, found: flags.length, added });
       }
       case 'flags': return res.status(200).json({ flags: await store.flagsList(body.status === 'all' ? '' : (body.status || 'open')) });
+      case 'resolveFlags': {                 // many answers at once: [{ key, decision: 'left' | 'stay' }]
+        const ds = (Array.isArray(body.decisions) ? body.decisions : []).filter(d => d && (d.decision === 'left' || d.decision === 'stay'));
+        const open = new Map((await store.flagsList('open')).map(f => [f.key, f]));
+        const todo = ds.filter(d => open.has(d.key)); const byLeague = new Map(); let left = 0, stay = 0;
+        for (const d of todo) if (d.decision === 'left') { const f = open.get(d.key); if (!byLeague.has(f.league)) byLeague.set(f.league, await store.listPlayers({ league: f.league })); }
+        const edits = [];
+        for (const d of todo) {
+          const f = open.get(d.key);
+          if (d.decision === 'left') { const p = (byLeague.get(f.league) || []).find(x => x.id === f.player_id); if (p) edits.push({ ...p, club_status: 'retired', club_retired_year: yearOf(f.detail && f.detail.move_date) || Number(today().slice(0, 4)), on_loan: null, loan_from: null }); left++; } else stay++;
+        }
+        if (edits.length) await store.upsertPlayers(edits);
+        for (const d of todo) await store.flagsResolve(d.key, d.decision === 'left' ? 'confirmed' : 'dismissed');
+        await store.addLog({ kind: 'player-flags', ok: true, summary: `Flags answered: ${left} left, ${stay} our data is right.` });
+        return res.status(200).json({ ok: true, left, stay, skipped: ds.length - todo.length });
+      }
       case 'resolveFlag': {                  // decision: 'left' (take him out of the squad) or 'stay' (our data is right)
         const key = String(body.key || ''); const flag = (await store.flagsList('open')).find(f => f.key === key);
         if (!flag) return fail(res, 404, 'That flag is already handled or does not exist.');

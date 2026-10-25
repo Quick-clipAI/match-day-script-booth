@@ -518,7 +518,18 @@ VIEWS.profiles = async m => {
     $('#prOut').textContent = `${saved} profiles saved. Now run the check below.`; files = []; $('#prGo').disabled = true; toast('Profiles saved', 'ok');
   }, 'Saving…');
   $('#prCheck').onclick = ev => run(ev.target, async () => { const r = await api('checkFlags'); $('#prCheckOut').textContent = `${r.players} players in our squads, ${r.profiles} profiles: ${r.found} difference(s), ${r.added} new flag(s).`; if (r.added) render(); }, 'Checking…');
-  m.querySelectorAll('[data-fl]').forEach(b => b.onclick = () => { const f = fl.flags[+b.dataset.fl]; if (b.dataset.d === 'left' && !confirm(`Remove ${f.name} from ${f.bank_club}'s squad?`)) return; run(b, async () => { await api('resolveFlag', { key: f.key, decision: b.dataset.d }); toast('Done', 'ok'); render(); }); });
+  // answers are remembered here and sent together when you press Confirm (the page does not reload per tap)
+  const sel = {}; const bar = document.createElement('div'); bar.style.cssText = 'position:sticky;bottom:0;background:var(--bg,#111);border-top:1px solid var(--line,#333);padding:10px 0;margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center';
+  bar.innerHTML = '<button class="btn pri" id="flOk" disabled>Confirm 0 answers</button><button class="btn sm" id="flAllStay">Everything unanswered: our data is right</button><span class="mut" id="flCnt" style="font-size:13px"></span>';
+  if (fl.flags.length) m.appendChild(bar);
+  const paint = () => {
+    m.querySelectorAll('[data-fl]').forEach(b => { const f = fl.flags[+b.dataset.fl]; const on = sel[f.key] === b.dataset.d; b.style.outline = on ? '2px solid var(--ok,#3ecf6e)' : ''; b.style.opacity = sel[f.key] && !on ? '.45' : ''; });
+    const n = Object.keys(sel).length, l = Object.values(sel).filter(x => x === 'left').length;
+    $('#flOk').textContent = 'Confirm ' + n + ' answer' + (n === 1 ? '' : 's'); $('#flOk').disabled = !n; $('#flCnt').textContent = n ? `${l} left, ${n - l} our data is right, ${fl.flags.length - n} unanswered` : `${fl.flags.length} unanswered`;
+  };
+  m.querySelectorAll('[data-fl]').forEach(b => b.onclick = () => { const f = fl.flags[+b.dataset.fl]; if (sel[f.key] === b.dataset.d) delete sel[f.key]; else sel[f.key] = b.dataset.d; paint(); });
+  const allStay = $('#flAllStay'); if (allStay) allStay.onclick = () => { fl.flags.forEach(f => { if (!sel[f.key]) sel[f.key] = 'stay'; }); paint(); };
+  const ok = $('#flOk'); if (ok) { paint(); ok.onclick = () => { const ds = Object.entries(sel).map(([key, decision]) => ({ key, decision })); const l = ds.filter(d => d.decision === 'left').length; if (l && !confirm(`${l} player(s) will be removed from their squads. Continue?`)) return; run(ok, async () => { const r = await api('resolveFlags', { decisions: ds }); toast(`Saved: ${r.left} left, ${r.stay} kept`, 'ok'); render(); }, 'Saving…'); }; }
 };
 
 // ---------------------------------------------------------------- facts
@@ -671,7 +682,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.5.3';
+const ADMIN_VERSION = '1.5.4';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

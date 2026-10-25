@@ -1,6 +1,6 @@
 # Creator Booth
 
-**v1.5.3**
+**v1.5.4**
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
@@ -478,6 +478,10 @@ version — safe to delete if you're not planning to bring voiceover back, kept
 for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
+
+## v1.5.4 — Profiles: answer the flags in one go
+
+In Admin → Profiles, tapping **He left** or **Our data is right** now only marks your choice (highlighted, tap again to undo); the page no longer reloads each time. A bar at the bottom shows the count and **Confirm N answers** saves them all at once (`resolveFlags`). **Everything unanswered: our data is right** fills the rest in one tap. Players marked *He left* are removed from their squads only when you confirm.
 
 ## v1.5.3 — player profiles from Transfermarkt, and "may have left" flags
 

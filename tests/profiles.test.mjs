@@ -49,3 +49,14 @@ const run = async () => {
   assert.equal((await call({ action: 'resolveFlag', key: k, decision: 'left' })).code, 404);
 };
 run().then(() => { n++; console.log(n + ' profile tests passed'); }).catch(e => { console.error(e); process.exit(1); });
+// batch answers
+{ const call2 = async body => { let out; const res = { setHeader() {}, status(c) { this.c = c; return this; }, json(o) { out = { code: this.c || 200, ...o }; return this; }, end() {} }; await handler({ method: 'POST', headers: { 'x-admin-key': 'k' }, body, query: {} }, res); return out; };
+  setTimeout(async () => {
+    await call2({ action: 'importProfiles', dryRun: false, data: [{ tm: 21, name: 'Batch A', dob: '1999-01-01', tmClub: 'Roma', tr: [['2026-06-01', 'Arsenal', 'Roma', 1]] }, { tm: 22, name: 'Batch B', dob: '1999-02-02', tmClub: 'Roma', tr: [] }] });
+    await call2({ action: 'importPlayers', dryRun: false, data: [{ league: 'EPL', season: 2026, club: 'Arsenal', as_of: '2026-10-17', players: [{ name: 'Batch A', dob: '1999-01-01', position: 'Forward' }, { name: 'Batch B', dob: '1999-02-02', position: 'Forward' }] }] });
+    await call2({ action: 'checkFlags' }); const fl = (await call2({ action: 'flags' })).flags.filter(f => /Batch/.test(f.name)); assert.equal(fl.length, 2);
+    const r = await call2({ action: 'resolveFlags', decisions: [{ key: fl.find(f => f.name === 'Batch A').key, decision: 'left' }, { key: fl.find(f => f.name === 'Batch B').key, decision: 'stay' }, { key: 'nope', decision: 'stay' }] });
+    assert.equal(r.left, 1); assert.equal(r.stay, 1); assert.equal(r.skipped, 1);
+    const rows = (await call2({ action: 'players', q: 'batch' })).rows; assert.equal(rows.find(x => x.name === 'Batch A').club_status, 'retired'); assert.ok(!rows.find(x => x.name === 'Batch B').club_status);
+    console.log('batch test passed');
+  }, 300); }
