@@ -244,7 +244,10 @@ function scoreRow(r, opts = {}) {
       <input class="score" inputmode="numeric" maxlength="2" aria-label="Away goals" data-a placeholder="–">
       <button class="btn pri sm" data-save>Save</button>
       <button class="btn sm" data-pp>Postponed</button>
-    </div></div>`;
+      <button class="btn sm" data-dt>Change date</button>
+    </div>
+    <div class="row hide" data-dtrow style="margin-top:8px"><input type="date" data-d value="${esc(r.date)}" aria-label="New date" style="flex:1;min-width:140px"><input type="time" data-t value="${esc(r.time || '')}" aria-label="Kick-off time, UTC (optional)" style="width:110px"><button class="btn pri sm" data-dsave>Move</button></div>
+    <div class="mut hide" data-dtrow style="font-size:12px;margin-top:4px">Time is optional and in UTC. The match stays scheduled and any score is cleared.</div></div>`;
 }
 function wireScoreRows(root, after) {
   root.querySelectorAll('.m[data-id]').forEach(el => {
@@ -255,6 +258,13 @@ function wireScoreRows(root, after) {
       await api('saveMatch', { match: { ...find(), status: 'finished', hg: +h, ag: +a } });
       toast('Saved and marked verified', 'ok'); el.remove(); await refreshOv(); after && after();
     });
+    el.querySelector('[data-dt]').onclick = () => el.querySelectorAll('[data-dtrow]').forEach(x => x.classList.toggle('hide'));
+    el.querySelector('[data-dsave]').onclick = ev => run(ev.target, async () => {
+      const r = find(), d = el.querySelector('[data-d]').value, t = el.querySelector('[data-t]').value;
+      if (!d) return toast('Pick a date.', 'bad');
+      await api('setDate', { id: r.id, league: r.league, season: r.season, date: d, time: t || null });
+      toast('Date changed to ' + d, 'ok'); el.remove(); await refreshOv(); after && after();
+    }, 'Moving…');
     el.querySelector('[data-pp]').onclick = ev => run(ev.target, async () => {
       const r = find(); await api('setStatus', { id: r.id, league: r.league, season: r.season, status: 'postponed' });
       toast('Marked postponed', 'ok'); el.remove(); await refreshOv(); after && after();
@@ -686,7 +696,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.5.7';
+const ADMIN_VERSION = '1.5.8';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

@@ -71,3 +71,15 @@ await t('busy day and daytime spend nothing; errors pause the job for an hour', 
   const r2 = await syncTransfers(s, { getTeams: bad, getTransfers: bad, now: Q + 20 * 60000 }); assert.equal(c, 1); assert.match(r2.summary, /paused/);
 });
 console.log(n + ' transfer tests passed');
+// setDate admin action
+{
+  process.env.BANK_STORE = 'memory'; process.env.ADMIN_KEY = 'k';
+  const { default: handler } = await import('../api/admin.js');
+  const call = body => new Promise(r => { const res = { _h: {}, setHeader() {}, status(c) { this.c = c; return this; }, json(o) { r({ c: this.c, o }); } }; handler({ method: 'POST', headers: { 'x-admin-key': 'k' }, query: {}, body }, res); });
+  await call({ action: 'saveMatch', match: { league: 'LALIGA', season: 2026, date: '2026-10-25', home: 'Sevilla', away: 'Osasuna' } });
+  const id = 'LALIGA|2026|sevilla|osasuna';
+  const bad = await call({ action: 'setDate', id, league: 'LALIGA', season: 2026, date: '26-10-2026' }); await t('setDate rejects a bad date', () => assert.equal(bad.c, 400));
+  const ok = await call({ action: 'setDate', id, league: 'LALIGA', season: 2026, date: '2026-10-26', time: '20:00' });
+  await t('setDate moves the match, stays scheduled', () => { assert.equal(ok.c, 200); assert.equal(ok.o.row.date, '2026-10-26'); assert.equal(ok.o.row.time, '20:00'); assert.equal(ok.o.row.status, 'scheduled'); });
+}
+console.log('setDate tests done');

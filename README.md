@@ -479,6 +479,10 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.5.8 — change a match's date from Gaps
+
+Every row in Admin → Gaps has a **Change date** button: pick the new date (and optionally a UTC kick-off time) and press Move. The match stays scheduled with its score cleared, is marked verified, and the daily result check then looks for it on the new day. New admin action `setDate`; cup match ids that include the date are re-keyed. Tests added.
+
 ## v1.5.7 — daily transfers job (API-Football, spare requests only)
 
 Every club in the leagues that API-Football covers (EPL, La Liga, Serie A, Bundesliga, Ligue 1, Saudi Pro League, Inter Miami) gets its recent transfers (since 1 July 2025) with **date and type** (Loan / Free / fee text), 1 request per club.

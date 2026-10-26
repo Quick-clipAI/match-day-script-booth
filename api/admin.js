@@ -234,6 +234,20 @@ export default async function handler(req, res) {
         await store.upsertMatches([r]);
         return res.status(200).json({ ok: true, row: r });
       }
+      case 'setDate': {                      // moved fixture: new date (and optional time), stays scheduled, no score
+        const rows = (await store.listMatches({ league: body.league, season: Number(body.season) })).filter(x => x.id === body.id);
+        if (!rows.length) return fail(res, 404, 'Match not found.');
+        if (!isIsoDate(body.date)) return fail(res, 400, 'Date must be YYYY-MM-DD.');
+        const time = body.time ? String(body.time).trim() : null;
+        if (time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return fail(res, 400, 'Time must be HH:MM (24-hour, UTC).');
+        const old = rows[0], cfg = LEAGUES[old.league];
+        const r = { ...old, date: body.date, time, kickoff: null, status: 'scheduled', hg: null, ag: null, ht_h: null, ht_a: null, verified: true, conflict: null, source: 'manual' };
+        r.id = matchId(cfg, r.season, r.date, r.home, r.away);
+        if (r.id !== old.id) await store.deleteMatches([old.id]);
+        await store.upsertMatches([r]);
+        await store.addLog({ kind: 'manual', ok: true, summary: `Moved ${cfg.short}: ${r.home} v ${r.away} from ${old.date} to ${r.date}${time ? ' ' + time : ''}` });
+        return res.status(200).json({ ok: true, row: r });
+      }
       case 'resolveConflict': {              // keep the stored score (clear the flag) or take the other source's
         const rows = (await store.listMatches({ league: body.league, season: Number(body.season) })).filter(x => x.id === body.id);
         if (!rows.length || !rows[0].conflict) return fail(res, 404, 'No conflict on that match.');
