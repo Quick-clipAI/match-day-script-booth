@@ -4,7 +4,8 @@ import { storeFromEnv } from '../lib/bank-store.js';
 import { LEAGUES, LEAGUE_KEYS, norm, makeRow, matchId, isIsoDate, currentSeason, coverageOf, computeTable } from '../lib/bank-core.js';
 import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } from '../lib/bank-sync.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
-import { fetchText } from '../lib/apisports.js';
+import { fetchText, teamsGetter, transfersGetter } from '../lib/apisports.js';
+import { syncTransfers, transferStatus } from '../lib/sync-transfers.js';
 import { normalizeSquad, staleVariants } from '../lib/bank-squad.js';
 import { normalizeProfiles, computeFlags, yearOf } from '../lib/bank-profiles.js';
 import { normalizeProfile, mergeProfile, findStored, careerId, describe as describeCareer } from '../lib/bank-career.js';
@@ -114,10 +115,18 @@ export default async function handler(req, res) {
       case 'profileStats': return res.status(200).json({ profiles: await store.countProfiles(), open: (await store.flagsList('open')).length });
       case 'checkFlags': {                   // compares our squads with the stored profiles; adds new flags only
         const [bank, profs, aliasRows] = [await store.listPlayers(), await store.listProfiles(), await store.listAliases()];
-        const flags = computeFlags(bank, profs, new Map(aliasRows.map(a => [a.alias, a.canonical])));
+        const apiMoves = (await store.listClubTransfers(true).catch(() => [])).flatMap(c => c.moves || []);
+        const flags = computeFlags(bank, profs, new Map(aliasRows.map(a => [a.alias, a.canonical])), apiMoves.length ? apiMoves : null);
         const added = await store.flagsAdd(flags);
         await store.addLog({ kind: 'player-flags', ok: true, summary: `Squad check: ${bank.length} players in our data, ${profs.length} profiles, ${flags.length} difference(s), ${added} new flag(s).` });
         return res.status(200).json({ players: bank.length, profiles: profs.length, found: flags.length, added });
+      }
+      case 'transferStatus': return res.status(200).json(await transferStatus(store));
+      case 'runTransfers': {                 // "Fetch now": ignores quiet hours and busy-day limits, still 3 requests at most
+        const key = (process.env.API_SPORTS_KEY || '').trim();
+        if (!key) return res.status(400).json({ error: 'API_SPORTS_KEY is not set' });
+        const r = await syncTransfers(store, { getTeams: teamsGetter(key), getTransfers: transfersGetter(key), force: true, maxRun: 3 });
+        return res.status(200).json({ ok: true, summary: r.summary, calls: r.calls, fetched: r.fetched || 0, remaining: r.remaining || 0, status: await transferStatus(store) });
       }
       case 'flags': return res.status(200).json({ flags: await store.flagsList(body.status === 'all' ? '' : (body.status || 'open')) });
       case 'resolveFlags': {                 // many answers at once: [{ key, decision: 'left' | 'stay' }]

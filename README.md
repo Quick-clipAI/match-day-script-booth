@@ -479,6 +479,17 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.5.7 — daily transfers job (API-Football, spare requests only)
+
+Every club in the leagues that API-Football covers (EPL, La Liga, Serie A, Bundesliga, Ligue 1, Saudi Pro League, Inter Miami) gets its recent transfers (since 1 July 2025) with **date and type** (Loan / Free / fee text), 1 request per club.
+- **Runs inside the existing 20-minute check**, after results and match details, at most **3 requests per run**, so the 10-per-minute limit is never hit.
+- **Only spare quota.** Quiet hours only (02:00–07:00 UTC, just after the daily reset). Daily allowance by how busy today and tomorrow are in our schedule: under 15 matches = 36 requests, 15–29 = 12, 30 or more = none. Results always come first.
+- **Refresh every 14 days**, never-fetched clubs first. An API error pauses the job for an hour.
+- **Club ids** are learned free from the fixtures the result check already sees, plus one `teams` request per league that has none (season 2024, the newest the free plan allows). Clubs that could not be matched are listed in Admin → Profiles.
+- **Merge with Transfermarkt**: API moves newer than Transfermarkt's last move for that player are added (source *api-football*, with their type). API names like "K. Darlow" are matched by first initial + surname AND a club the player is known to have been at. A newer API move to our club also silences a "may have left" flag. A squad join date is not listed twice if the API has the same move within 45 days.
+- Admin → Profiles has a new card: clubs matched / fetched, requests used today, last run, and **Fetch now** (ignores quiet hours, still 3 requests).
+- New tables `bank_team_ids`, `bank_club_transfers` (already applied). Tests: `tests/transfers.test.mjs` (8).
+
 ## v1.5.6 — wrong fixture dates and wasted requests fixed
 
 Found while checking the gaps list against independent match pages:
