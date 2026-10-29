@@ -316,6 +316,15 @@ VIEWS.import = async m => {
     </div>
   </div>
   <div id="iOut"></div>
+  <h2 style="margin-top:34px">Match details by hand</h2>
+  <p class="sub">For matches API-Football does not cover: scorers with minutes, cards, substitutions, statistics and line-ups (and the score, if you give it). Anything you leave out simply shows as “data unavailable” in the app.</p>
+  <div class="card">
+    <label class="f" for="dTx">JSON (one match, or {"matches": [...]})</label>
+    <textarea id="dTx" spellcheck="false" placeholder='Paste the match JSON…'></textarea>
+    <div class="row" style="margin-top:10px"><label class="chip" style="cursor:pointer"><input type="checkbox" id="dOver" style="width:auto;min-height:0"> replace API details if the match has them</label></div>
+    <div class="row" style="margin-top:10px"><button class="btn pri" id="dPrev">Check</button><button class="btn" id="dSave" disabled>Save</button><button class="btn" id="dFmt">Copy format for ChatGPT / Gemini</button></div>
+    <div id="dOut" style="margin-top:10px;font-size:13px"></div>
+  </div>
   <h2 style="margin-top:34px">Load from openfootball</h2>
   <p class="sub">Free public fixtures and results files. The server downloads them for you. They are maintained by volunteers, so recent results can lag a few days; fill the gap on the Gaps tab.</p>
   <div class="card">
@@ -336,6 +345,19 @@ VIEWS.import = async m => {
     try { $('#iTx').value = await f.text(); } catch (e) { return toast('Could not read that file.', 'bad'); }
     $('#iFileInfo').textContent = f.name + ' · ' + (f.size / 1024).toFixed(0) + ' KB loaded. Tap Preview changes.';
   };
+  const dRun = (btn, dry) => run(btn, async () => {
+    const text = $('#dTx').value.trim(); if (!text) return toast('Paste the JSON first.', 'bad');
+    const r = await api('importDetails', { text, dryRun: dry, overwrite: $('#dOver').checked });
+    $('#dOut').innerHTML = r.results.map(x => `<div style="border-top:1px solid var(--line);padding:8px 0"><b>${x.saved ? '✓ Saved' : x.ok && !x.skip ? 'Ready' : x.skip ? 'Kept as is' : '✗ Problem'}</b> ${esc(x.label)}${x.counts ? ` <span class="mut">· ${x.counts.events} events, ${x.counts.stats} stats, ${x.counts.lineups} line-up(s)${x.counts.score ? ', score' : ''}</span>` : ''}`
+      + x.problems.map(p => `<div style="color:var(--bad,#ff6b6b)">✗ ${esc(p)}</div>`).join('') + x.warnings.map(w => `<div style="color:var(--warn)">⚠ ${esc(w)}</div>`).join('') + '</div>').join('');
+    const good = r.results.some(x => x.ok && !x.skip), bad = r.results.some(x => x.problems.length);
+    $('#dSave').disabled = dry ? !(good && !bad) : true;
+    if (!dry) { toast('Saved', 'ok'); await refreshOv(); }
+  }, dry ? 'Checking…' : 'Saving…');
+  $('#dPrev').onclick = ev => dRun(ev.target, true);
+  $('#dSave').onclick = ev => dRun(ev.target, false);
+  $('#dTx').oninput = () => { $('#dSave').disabled = true; };
+  $('#dFmt').onclick = ev => run(ev.target, async () => { const r = await api('detailPrompt'); try { await navigator.clipboard.writeText(r.prompt); toast('Copied. Paste it to your AI with the match report.', 'ok'); } catch (e) { dlg(`<h3>Format</h3><textarea readonly style="min-height:300px">${esc(r.prompt)}</textarea>`); } });
   $('#iPrev').onclick = ev => runImport(ev.target, 'i', true);
   $('#oPrev').onclick = ev => runOf(ev.target, true);
   if (nav.openfootball) $('#oPrev').scrollIntoView();
@@ -696,7 +718,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.5.9';
+const ADMIN_VERSION = '1.6.0';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

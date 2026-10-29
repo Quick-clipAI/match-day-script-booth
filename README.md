@@ -479,6 +479,15 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.6.0 — match details by hand (scorers, cards, stats, line-ups)
+
+For matches API-Football does not cover. Admin → Import → **Match details by hand**: paste one match or `{"matches": [...]}` (up to 40), press **Check**, then **Save**. "Copy format for ChatGPT / Gemini" gives the exact shape and rules to give an AI with the match report.
+- Accepted: `score` (sets the result, marks it verified), `venue`, `referee`, `events` (goal, own goal, penalty, yellow, red, sub, each with minute and optional stoppage `extra`), `stats` as `[home, away]` pairs (possession, xg, shots, shots_on_target, shots_off_target, blocked, corners, offsides, fouls, yellow_cards, red_cards, saves, passes, passes_accurate), `lineups` (formation, coach, 11 starters with optional `grid` like "2:3" for the pitch picture, subs, optional ratings).
+- Everything left out shows as "data unavailable" in the match screen. The match facts show "Details: Entered by hand" so you can tell hand entries from API ones.
+- Checks before saving: club names/league/season must find a stored match; minutes 0-130; the goals listed are compared with the score (warning only); starters other than 11 and partial grids are warned about.
+- A match that already has API-Football details is left alone unless "replace API details" is ticked. Highest-rated player is only shown when ratings were given.
+- The database column `bank_match_details.api_fixture_id` is now optional (already applied). Tests: `tests/manualdetail.test.mjs`.
+
 ## v1.5.9 — transfers job: La Liga and Ligue 1 were skipped
 
 The few team ids learned free from fixtures made the job think a league was already mapped, so the one-off `teams` request never ran for La Liga and Ligue 1 (only 2 clubs each). It now runs that request once per league regardless. Test added.

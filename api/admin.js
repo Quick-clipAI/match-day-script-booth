@@ -5,6 +5,7 @@ import { LEAGUES, LEAGUE_KEYS, norm, makeRow, matchId, isIsoDate, currentSeason,
 import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } from '../lib/bank-sync.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { fetchText, teamsGetter, transfersGetter } from '../lib/apisports.js';
+import { normalizeDetail, DETAIL_PROMPT } from '../lib/manual-detail.js';
 import { syncTransfers, transferStatus } from '../lib/sync-transfers.js';
 import { normalizeSquad, staleVariants } from '../lib/bank-squad.js';
 import { normalizeProfiles, computeFlags, yearOf } from '../lib/bank-profiles.js';
@@ -120,6 +121,41 @@ export default async function handler(req, res) {
         const added = await store.flagsAdd(flags);
         await store.addLog({ kind: 'player-flags', ok: true, summary: `Squad check: ${bank.length} players in our data, ${profs.length} profiles, ${flags.length} difference(s), ${added} new flag(s).` });
         return res.status(200).json({ players: bank.length, profiles: profs.length, found: flags.length, added });
+      }
+      case 'detailPrompt': return res.status(200).json({ prompt: DETAIL_PROMPT });
+      case 'importDetails': {                // scorers, cards, stats, line-ups for matches the API does not cover
+        let obj; try { obj = typeof body.text === 'string' ? JSON.parse(body.text.replace(/^\uFEFF/, '').trim()) : body.data; } catch (e) { return fail(res, 400, 'That is not valid JSON: ' + String(e.message).slice(0, 120)); }
+        const list = obj && Array.isArray(obj.matches) ? obj.matches : (obj ? [obj] : []);
+        if (!list.length || list.length > 40) return fail(res, 400, 'Give one match, or {"matches": [...]} with up to 40.');
+        const dry = body.dryRun !== false, overwrite = body.overwrite === true;
+        const aliasMap = new Map((await store.listAliases()).map(a => [a.alias, a.canonical]));
+        const same = (a, b) => { const x = norm(a), y = norm(b); return x === y || (aliasMap.get(x) && norm(aliasMap.get(x)) === y) || (aliasMap.get(y) && norm(aliasMap.get(y)) === x); };
+        const cache = new Map(), results = [];
+        for (const it of list) {
+          const r = { label: `${it && it.home || '?'} v ${it && it.away || '?'}${it && it.date ? ' (' + it.date + ')' : ''}`, ok: false, problems: [], warnings: [] };
+          results.push(r);
+          const lg = String(it && it.league || body.league || ''), season = Number(it && it.season || body.season);
+          if (!LEAGUES[lg]) { r.problems.push('"league" is missing or unknown'); continue; }
+          if (!Number.isInteger(season)) { r.problems.push('"season" is missing'); continue; }
+          if (!it.home || !it.away) { r.problems.push('"home" and "away" are needed'); continue; }
+          const k = lg + '|' + season; if (!cache.has(k)) cache.set(k, await store.listMatches({ league: lg, season }));
+          const cands = cache.get(k).filter(m => same(m.home, it.home) && same(m.away, it.away) && (!it.date || Math.abs(Date.parse(m.date) - Date.parse(it.date)) <= 3 * 864e5 || LEAGUES[lg].type === 'league'));
+          if (!cands.length) { r.problems.push('that match is not in the data bank (check the league, season and club names)'); continue; }
+          const match = it.date ? cands.sort((a, b) => Math.abs(Date.parse(a.date) - Date.parse(it.date)) - Math.abs(Date.parse(b.date) - Date.parse(it.date)))[0] : cands[0];
+          const n = normalizeDetail(it, match); r.problems.push(...n.problems); r.warnings.push(...n.warnings);
+          r.matchId = match.id; r.counts = { events: n.data.events.length, stats: n.data.stats.length, lineups: Object.keys(n.data.lineups).length, score: !!n.score };
+          const have = await store.getDetail(match.id).catch(() => null);
+          if (have && have.data && !have.data.unavailable && have.data.source !== 'manual' && !overwrite) { r.warnings.push('this match already has API-Football details; they are kept. Tick "replace API details" to overwrite.'); r.skip = true; }
+          if (r.problems.length) continue;
+          r.ok = true;
+          if (!dry && !r.skip) {
+            await store.saveManualDetail(match.id, n.data);
+            if (n.score) await store.upsertMatches([{ ...match, status: 'finished', hg: n.score.hg, ag: n.score.ag, ht_h: n.score.ht_h ?? match.ht_h, ht_a: n.score.ht_a ?? match.ht_a, verified: true, conflict: null, source: 'manual' }]);
+            r.saved = true;
+          }
+        }
+        if (!dry) await store.addLog({ kind: 'manual', ok: true, summary: `Match details saved by hand: ${results.filter(r => r.saved).length} of ${results.length}` });
+        return res.status(200).json({ preview: dry, results });
       }
       case 'transferStatus': return res.status(200).json(await transferStatus(store));
       case 'runTransfers': {                 // "Fetch now": ignores quiet hours and busy-day limits, still 3 requests at most
