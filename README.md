@@ -479,6 +479,12 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.6.2 — admin: no more reloads after a change, tabs remember what they loaded, easier sign-in
+
+- **Changes apply in place.** Merging clubs, "Different clubs", answering profile flags and adding an inbox club now update or remove just that item on the page (scroll position kept). Counts are confirmed from the server in the background.
+- **Tab memory.** Each tab's data is kept while you stay on the site (overview 2 min, log 30 s, the rest 5-10 min), so going back to a tab is instant. Any change you make empties the memory so nothing stale is shown. Tap the tab you are already on to force a fresh load.
+- **Sign-in.** The login is now a proper form (account + password) so Chrome offers to save the key and can fill it with one tap; a **Use my saved password** button asks Chrome for it. **Keep me signed in on this device** (off by default, remembered once ticked) keeps the key in this browser or app until you press **Lock**, which forgets it everywhere. Use this in the Android admin app, whose built-in browser cannot offer saved passwords. Trade-off: anyone who can open the unlocked phone can open the bank.
+
 ## v1.6.1 — Clubs: "Needs checking" list for duplicate club spellings
 
 Admin → Clubs now lists names in the chosen league that are probably one club spelled two ways: one name's words are inside the other's ("Celta" / "Celta Vigo", "Bologna" / "Bologna FC 1909") or the names differ by 1-2 letters ("Al Taawoun" / "Al Taawon"). Two names that have played **each other** in that league are different clubs and never appear. Each pair has **Merge A into B**, **Merge the other way** and **Different clubs** (remembered in the new table `bank_not_dupes`, already applied). Merging uses the same move as before (matches moved, double matches dropped, spelling learned). Spellings that look nothing alike ("Olympiakos Piraeus" / "Olympiacos") are still found by hand in the full list. Tests: `tests/suspects.test.mjs`.

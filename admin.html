@@ -103,11 +103,17 @@ table.t td:nth-child(2),table.t th:nth-child(2){text-align:left;font-family:var(
 <div id="loginView" class="login hide">
   <h1>Creator <b>Booth</b></h1>
   <p class="mut" style="margin:0 0 22px">Data bank · admin</p>
-  <label class="f" for="key">Admin key</label>
-  <input id="key" type="password" autocomplete="current-password" placeholder="the ADMIN_KEY you set in Vercel">
-  <p id="loginErr" class="mut" style="color:var(--bad);min-height:22px;margin:8px 0"></p>
-  <button class="btn pri" id="loginBtn" style="width:100%">Open the bank</button>
-  <p class="mut" style="font-size:13px;margin-top:18px">The key stays in this tab only and is forgotten when you close it.</p>
+  <form id="loginForm" autocomplete="on" method="post" action="#">
+    <label class="f" for="user">Account</label>
+    <input id="user" name="username" type="text" autocomplete="username" value="admin" autocapitalize="off" spellcheck="false" style="opacity:.7">
+    <label class="f" for="key" style="margin-top:12px">Admin key</label>
+    <input id="key" name="password" type="password" autocomplete="current-password" placeholder="the ADMIN_KEY you set in Vercel">
+    <label class="chip" style="cursor:pointer;margin-top:12px;display:inline-flex;gap:8px;align-items:center"><input type="checkbox" id="keep" style="width:auto;min-height:0"> Keep me signed in on this device</label>
+    <p id="loginErr" class="mut" style="color:var(--bad);min-height:22px;margin:8px 0"></p>
+    <button class="btn pri" id="loginBtn" type="submit" style="width:100%">Open the bank</button>
+    <button class="btn hide" id="savedBtn" type="button" style="width:100%;margin-top:10px">Use my saved password</button>
+  </form>
+  <p class="mut" style="font-size:13px;margin-top:18px" id="keepNote">Not ticked: the key is forgotten when you close this tab. Ticked: this browser or app keeps it until you press Lock, so anyone who opens this phone can open the bank.</p>
 </div>
 
 <div id="appView" class="hide">
@@ -130,11 +136,25 @@ table.t td:nth-child(2),table.t th:nth-child(2){text-align:left;font-family:var(
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 let KEY = '';
-try { KEY = sessionStorage.getItem('cb_admin') || ''; } catch (e) { /* storage blocked: key lives in memory only */ }
+try { KEY = sessionStorage.getItem('cb_admin') || localStorage.getItem('cb_admin_keep') || ''; } catch (e) { /* storage blocked: key lives in memory only */ }
 const state = { tab: 'overview', ov: null, nav: {}, filters: { league: '', season: '', club: '', mode: 'all' } };
 const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 
+// Read answers are kept for a while so going back to a tab is instant; any change (a write) empties the cache.
+// Tapping the tab you are already on reloads it from the server.
+const CACHE = new Map();
+const READ_TTL = { overview: 120, log: 30, matches: 300, players: 600, flags: 600, profileStats: 600, teams: 600, table: 600, facts: 600, inbox: 120, transferStatus: 300, career: 600, detailPrompt: 3600 };
+const cacheKey = (a, b) => a + '|' + JSON.stringify(b);
+function cacheSet(action, body, value) { if (READ_TTL[action]) CACHE.set(cacheKey(action, body), { at: Date.now(), v: value }); }
 async function api(action, body = {}) {
+  const ttl = READ_TTL[action];
+  if (ttl) { const hit = CACHE.get(cacheKey(action, body)); if (hit && Date.now() - hit.at < ttl * 1000) return hit.v; }
+  else if (action !== 'ping') CACHE.clear();
+  const out = await apiCall(action, body);
+  if (ttl) CACHE.set(cacheKey(action, body), { at: Date.now(), v: out });
+  return out;
+}
+async function apiCall(action, body = {}) {
   let res;
   try {
     res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': KEY }, body: JSON.stringify({ action, today: todayISO(), ...body }) });
@@ -157,19 +177,31 @@ const leagueName = k => (state.ov && state.ov.leagues.find(l => l.key === k) || 
 const leagueOpts = (sel, all = true) => (all ? '<option value="">All leagues</option>' : '') + (state.ov ? state.ov.leagues : []).map(l => `<option value="${l.key}" ${l.key === sel ? 'selected' : ''}>${esc(l.name)}</option>`).join('');
 
 // ---------------------------------------------------------------- login / lock
-function lock() { KEY = ''; try { sessionStorage.removeItem('cb_admin'); } catch (e) { } $('#appView').classList.add('hide'); $('#loginView').classList.remove('hide'); $('#key').value = ''; }
+function lock() {
+  KEY = ''; CACHE.clear();
+  try { sessionStorage.removeItem('cb_admin'); localStorage.removeItem('cb_admin_keep'); } catch (e) { }
+  try { if (navigator.credentials && navigator.credentials.preventSilentAccess) navigator.credentials.preventSilentAccess(); } catch (e) { }
+  $('#appView').classList.add('hide'); $('#loginView').classList.remove('hide'); $('#key').value = '';
+}
 async function tryLogin() {
   const k = $('#key').value.trim() || KEY; if (!k) return;
   KEY = k; $('#loginErr').textContent = '';
   const b = $('#loginBtn'); busy(b, true, 'Checking…');
   try {
     await api('ping');
-    try { sessionStorage.setItem('cb_admin', KEY); } catch (e) { }
+    try { sessionStorage.setItem('cb_admin', KEY); if ($('#keep').checked) { localStorage.setItem('cb_admin_keep', KEY); localStorage.setItem('cb_keep_pref', '1'); } else { localStorage.removeItem('cb_admin_keep'); localStorage.removeItem('cb_keep_pref'); } } catch (e) { }
+    try { if (window.PasswordCredential && navigator.credentials) await navigator.credentials.store(new PasswordCredential({ id: $('#user').value || 'admin', password: KEY, name: 'Creator Booth admin' })); } catch (e) { /* the browser may not support saving */ }
     $('#loginView').classList.add('hide'); $('#appView').classList.remove('hide'); await boot();
-  } catch (e) { KEY = ''; $('#loginErr').textContent = e.message; $('#loginView').classList.remove('hide'); }
+  } catch (e) { KEY = ''; if (e.auth) { try { localStorage.removeItem('cb_admin_keep'); } catch (x) { } } $('#loginErr').textContent = e.message; $('#loginView').classList.remove('hide'); }
   finally { busy(b, false); }
 }
-$('#loginBtn').onclick = tryLogin; $('#key').onkeydown = e => { if (e.key === 'Enter') tryLogin(); };
+$('#loginForm').onsubmit = e => { e.preventDefault(); tryLogin(); };
+try { $('#keep').checked = localStorage.getItem('cb_keep_pref') === '1'; } catch (e) { }
+// one tap sign-in from the browser's saved password (Chrome). Not available inside the Android admin app: use "Keep me signed in" there.
+if (window.PasswordCredential && navigator.credentials && navigator.credentials.get) {
+  $('#savedBtn').classList.remove('hide');
+  $('#savedBtn').onclick = async () => { try { const c = await navigator.credentials.get({ password: true, mediation: 'optional' }); if (c && c.password) { $('#key').value = c.password; tryLogin(); } else toast('No saved password found. Type it once and the browser will offer to save it.'); } catch (e) { toast('Could not read the saved password.', 'bad'); } };
+}
 $('#logout').onclick = lock;
 
 // ---------------------------------------------------------------- tabs
@@ -184,7 +216,7 @@ function drawTabs() {
     }
     return `<button role="tab" data-t="${k}" aria-selected="${state.tab === k}">${l}${dot ? `<span class="dot">${dot}</span>` : ''}</button>`;
   }).join('');
-  $('#tabs').querySelectorAll('button').forEach(b => b.onclick = () => go(b.dataset.t));
+  $('#tabs').querySelectorAll('button').forEach(b => b.onclick = () => { if (b.dataset.t === state.tab) CACHE.clear(); go(b.dataset.t); });
 }
 async function go(tab, nav) { state.tab = tab; state.nav = nav || {}; drawTabs(); window.scrollTo(0, 0); await render(); }
 async function refreshOv() { state.ov = await api('overview'); $('#todayLbl').textContent = fmt(state.ov.today); drawTabs(); }
@@ -496,25 +528,44 @@ VIEWS.clubs = async m => {
   const lg = state.nav.league || state.filters.league || 'EPL';
   const r = await api('teams', { league: lg });
   const cfg = state.ov.leagues.find(l => l.key === lg);
-  const recent = r.clubs.filter(c => c.last_season >= state.ov.leagues[0].currentSeason - 1);
-  m.innerHTML = head('Clubs', 'Every club name stored per league. If one club appears twice under different spellings, merge them.') + `
-  <div class="card"><label class="f">League</label><select id="cLg">${leagueOpts(lg, false)}</select></div>
-  ${cfg && cfg.teams && recent.length > cfg.teams ? `<div class="banner warn"><div><b>${recent.length} clubs seen in the last two seasons.</b> A normal league has ${cfg.teams}, plus promoted/relegated clubs. If you see the same club twice below, merge it.</div></div>` : ''}
-  ${r.suspects.length ? `<div class="card" style="border-color:var(--warn,#e0a030)"><b>Needs checking (${r.suspects.length})</b><p class="mut" style="margin:6px 0 10px;font-size:13px">Names that may be the same club. Two clubs that have played each other are never listed.</p>${r.suspects.map((x, i) => `<div class="m"><div><b>${esc(x.a)}</b> <span class="mut">${x.aMatches} matches · ${seasonLbl(x.aLast)}</span><br><b>${esc(x.b)}</b> <span class="mut">${x.bMatches} matches · ${seasonLbl(x.bLast)}</span><div class="meta">${esc(x.why)}</div></div><div class="row" style="margin-top:8px"><button class="btn sm pri" data-sm="${i}" data-dir="ab">Merge “${esc(x.a)}” into “${esc(x.b)}”</button><button class="btn sm" data-sm="${i}" data-dir="ba">Merge the other way</button><button class="btn sm" data-sd="${i}">Different clubs</button></div></div>`).join('')}</div>` : ''}
-  <div class="card flat">${r.clubs.map(c => `<div class="m"><div class="row"><div class="grow"><b>${esc(c.club)}</b><div class="meta">${c.matches} matches · last season ${seasonLbl(c.last_season)}</div></div><button class="btn sm" data-merge="${esc(c.club)}">Merge into…</button></div></div>`).join('') || '<div class="empty">No clubs yet.</div>'}</div>
-  <p class="mut" style="font-size:13px">${r.aliases.length} spelling${r.aliases.length === 1 ? '' : 's'} learned so far.</p>`;
-  $('#cLg').onchange = e => go('clubs', { league: e.target.value });
-  m.querySelectorAll('[data-sm]').forEach(b => b.onclick = () => { const x = r.suspects[+b.dataset.sm]; const [from, to] = b.dataset.dir === 'ab' ? [x.a, x.b] : [x.b, x.a];
-    if (!confirm(`Merge “${from}” into “${to}”? Every match of “${from}” moves to “${to}”.`)) return;
-    run(b, async () => { const o = await api('mergeTeams', { league: lg, from, to }); toast(`Moved ${o.moved} matches${o.dropped ? ', ' + o.dropped + ' duplicates dropped' : ''}`, 'ok'); await refreshOv(); render(); }); });
-  m.querySelectorAll('[data-sd]').forEach(b => b.onclick = () => { const x = r.suspects[+b.dataset.sd]; run(b, async () => { await api('notDuplicate', { league: lg, a: x.a, b: x.b }); toast('Marked as different clubs', 'ok'); render(); }); });
-  m.querySelectorAll('[data-merge]').forEach(b => b.onclick = () => {
-    const from = b.dataset.merge;
-    dlg(`<h3 style="margin:0 0 6px">Merge “${esc(from)}”</h3><p class="mut" style="margin:0 0 12px;font-size:14px">Every match of “${esc(from)}” in ${esc(cfg.short)} is moved to the club you choose, and the spelling is remembered for future imports.</p>
-    <label class="f">Into which club</label><select id="mTo">${r.clubs.filter(c => c.club !== from).map(c => `<option>${esc(c.club)}</option>`).join('')}</select>
-    <div class="row" style="margin-top:14px"><button class="btn pri" id="mGo">Merge</button><button class="btn" onclick="closeDlg()">Cancel</button></div>`);
-    $('#mGo').onclick = ev => run(ev.target, async () => { const o = await api('mergeTeams', { league: lg, from, to: $('#mTo').value }); closeDlg(); toast(`Moved ${o.moved} matches${o.dropped ? ', ' + o.dropped + ' duplicates dropped' : ''}`, 'ok'); await refreshOv(); render(); });
-  });
+  const recentN = () => r.clubs.filter(c => c.last_season >= state.ov.leagues[0].currentSeason - 1).length;
+  // Changes are applied to this list straight away (no reload, scroll position kept) and checked against the server in the background.
+  const keep = () => cacheSet('teams', { league: lg }, r);
+  const mergeLocal = (from, to) => {
+    const f = r.clubs.find(c => c.club === from), t = r.clubs.find(c => c.club === to);
+    if (f && t) { t.matches += f.matches; t.last_season = Math.max(t.last_season || 0, f.last_season || 0); }
+    r.clubs = r.clubs.filter(c => c.club !== from);
+    r.suspects = r.suspects.filter(x => x.a !== from && x.b !== from);
+    keep();
+  };
+  const doMerge = async (from, to, btn) => {
+    const o = await api('mergeTeams', { league: lg, from, to });
+    mergeLocal(from, to); const y = window.scrollY; paint(); window.scrollTo(0, y);
+    toast(`Moved ${o.moved} matches${o.dropped ? ', ' + o.dropped + ' duplicates dropped' : ''}`, 'ok');
+    refreshOv().catch(() => { });
+    api('teams', { league: lg }).then(fresh => { r.clubs = fresh.clubs; r.suspects = fresh.suspects; r.aliases = fresh.aliases; const y2 = window.scrollY; paint(); window.scrollTo(0, y2); }).catch(() => { });
+  };
+  const paint = () => {
+    const warn = cfg && cfg.teams && recentN() > cfg.teams ? `<div class="banner warn"><div><b>${recentN()} clubs seen in the last two seasons.</b> A normal league has ${cfg.teams}, plus promoted/relegated clubs. If you see the same club twice below, merge it.</div></div>` : '';
+    const sus = r.suspects.length ? `<div class="card" style="border-color:var(--warn,#e0a030)"><b>Needs checking (${r.suspects.length})</b><p class="mut" style="margin:6px 0 10px;font-size:13px">Names that may be the same club. Two clubs that have played each other are never listed.</p>${r.suspects.map((x, i) => `<div class="m"><div><b>${esc(x.a)}</b> <span class="mut">${x.aMatches} matches · ${seasonLbl(x.aLast)}</span><br><b>${esc(x.b)}</b> <span class="mut">${x.bMatches} matches · ${seasonLbl(x.bLast)}</span><div class="meta">${esc(x.why)}</div></div><div class="row" style="margin-top:8px"><button class="btn sm pri" data-sm="${i}" data-dir="ab">Merge “${esc(x.a)}” into “${esc(x.b)}”</button><button class="btn sm" data-sm="${i}" data-dir="ba">Merge the other way</button><button class="btn sm" data-sd="${i}">Different clubs</button></div></div>`).join('')}</div>` : '';
+    m.innerHTML = head('Clubs', 'Every club name stored per league. If one club appears twice under different spellings, merge them.') + `
+    <div class="card"><label class="f">League</label><select id="cLg">${leagueOpts(lg, false)}</select></div>${warn}${sus}
+    <div class="card flat">${r.clubs.map(c => `<div class="m"><div class="row"><div class="grow"><b>${esc(c.club)}</b><div class="meta">${c.matches} matches · last season ${seasonLbl(c.last_season)}</div></div><button class="btn sm" data-merge="${esc(c.club)}">Merge into…</button></div></div>`).join('')}</div>
+    <p class="mut" style="font-size:13px">${r.aliases.length} spelling${r.aliases.length === 1 ? '' : 's'} learned so far.</p>`;
+    $('#cLg').onchange = e => go('clubs', { league: e.target.value });
+    m.querySelectorAll('[data-sm]').forEach(b => b.onclick = () => { const x = r.suspects[+b.dataset.sm]; const [from, to] = b.dataset.dir === 'ab' ? [x.a, x.b] : [x.b, x.a];
+      if (!confirm(`Merge “${from}” into “${to}”? Every match of “${from}” moves to “${to}”.`)) return;
+      run(b, () => doMerge(from, to)); });
+    m.querySelectorAll('[data-sd]').forEach(b => b.onclick = () => { const i = +b.dataset.sd, x = r.suspects[i]; run(b, async () => { await api('notDuplicate', { league: lg, a: x.a, b: x.b }); r.suspects.splice(i, 1); keep(); const y = window.scrollY; paint(); window.scrollTo(0, y); toast('Marked as different clubs', 'ok'); }); });
+    m.querySelectorAll('[data-merge]').forEach(b => b.onclick = () => {
+      const from = b.dataset.merge;
+      dlg(`<h3 style="margin:0 0 6px">Merge “${esc(from)}”</h3><p class="mut" style="margin:0 0 12px;font-size:14px">Every match of “${esc(from)}” in ${esc(cfg.short)} is moved to the club you choose, and the spelling is remembered for future imports.</p>
+      <label class="f">Into which club</label><select id="mTo">${r.clubs.filter(c => c.club !== from).map(c => `<option>${esc(c.club)}</option>`).join('')}</select>
+      <div class="row" style="margin-top:14px"><button class="btn pri" id="mGo">Merge</button><button class="btn" onclick="closeDlg()">Cancel</button></div>`);
+      $('#mGo').onclick = ev => run(ev.target, async () => { const to = $('#mTo').value; closeDlg(); await doMerge(from, to); });
+    });
+  };
+  paint();
 };
 
 // ---------------------------------------------------------------- inbox
@@ -526,7 +577,7 @@ VIEWS.inbox = async m => {
     + (list.length ? `<div class="card flat">${list.map((x, i) => `<div class="m"><div class="teams">“${esc(x.team)}”</div><div class="meta">${leagueName(x.league)} · ${x.n} match${x.n > 1 ? 'es' : ''} · e.g. ${esc(x.sample.home)} v ${esc(x.sample.away)} ${fmt(x.sample.date)}</div>
       <div class="row" style="margin-top:8px"><input id="ib${i}" placeholder="Club name to use" class="grow"><button class="btn pri sm" data-ib="${i}">Add</button></div></div>`).join('')}</div>`
       : `<div class="banner ok"><div><b>Inbox is empty.</b></div></div>`);
-  m.querySelectorAll('[data-ib]').forEach(b => b.onclick = () => { const x = list[+b.dataset.ib]; const v = $('#ib' + b.dataset.ib).value.trim(); if (!v) return toast('Type the club name.', 'bad'); run(b, async () => { await api('resolveInbox', { team: x.team, mapTo: v }); toast('Added', 'ok'); await refreshOv(); render(); }); });
+  m.querySelectorAll('[data-ib]').forEach(b => b.onclick = () => { const x = list[+b.dataset.ib]; const v = $('#ib' + b.dataset.ib).value.trim(); if (!v) return toast('Type the club name.', 'bad'); run(b, async () => { await api('resolveInbox', { team: x.team, mapTo: v }); toast('Added', 'ok'); const card = b.closest('.m'); if (card) card.remove(); refreshOv().catch(() => { }); }); });
 };
 
 // ---------------------------------------------------------------- profiles (Transfermarkt) and squad flags
@@ -542,9 +593,9 @@ VIEWS.profiles = async m => {
     ${ts ? `<div class="card" style="margin-top:12px"><b>Club transfers from API-Football</b><p class="mut" style="margin:6px 0 10px">Runs by itself every day on spare requests only: it skips quiet hours (02:00–07:00 UTC), spends less on busy match days, and uses 1 request per club (14-day refresh). Moves come with dates and a Loan / Free / fee label, and are merged with Transfermarkt.</p>
       <div id="trSt" class="mut" style="font-size:13px">${ts.mapped} of ${ts.clubs} clubs matched to API-Football, ${ts.fetched} fetched, ${ts.usedToday} request(s) used today.${ts.lastLog ? '<br>Last run: ' + esc(ts.lastLog) : ''}${ts.unmapped.length ? '<br>Not matched yet: ' + esc(ts.unmapped.slice(0, 12).join(', ')) + (ts.unmapped.length > 12 ? ' …' : '') : ''}</div>
       <div class="row" style="margin-top:8px"><button class="btn" id="trGo">Fetch now (up to 3 requests)</button></div></div>` : ''}
-    <h3 style="margin-top:24px">May have left (${fl.flags.length})</h3>
+    <h3 style="margin-top:24px" id="flH">May have left (${fl.flags.length})</h3>
     <div class="card flat">${fl.flags.map((f, i) => `<div class="m"><div class="row"><div class="grow"><div class="teams">${esc(f.name)} <span class="chip ${f.kind === 'left' ? 'warn' : ''}">${f.kind === 'left' ? 'left?' : 'mismatch'}</span></div><div class="meta">${esc(f.league)} · our data: ${esc(f.bank_club)}${f.detail && f.detail.on_loan ? ' (on loan)' : ''}</div></div></div><div style="margin:6px 0;font-size:14px">${kindTxt(f)}${f.kind === 'left' ? ' <span class="mut">(could be a loan.)</span>' : ''}</div>
-      <div class="row"><button class="btn sm bad" data-fl="${i}" data-d="left">He left: remove from ${esc(f.bank_club)}</button><button class="btn sm" data-fl="${i}" data-d="stay">Our data is right</button></div></div>`).join('') || '<div class="empty">No open flags. Load profiles, then run the check.</div>'}</div>`;
+      <div class="row"><button class="btn sm bad" data-fl="${esc(f.key)}" data-d="left">He left: remove from ${esc(f.bank_club)}</button><button class="btn sm" data-fl="${esc(f.key)}" data-d="stay">Our data is right</button></div></div>`).join('') || '<div class="empty">No open flags. Load profiles, then run the check.</div>'}</div>`;
   let files = [];
   $('#prBtn').onclick = () => $('#prFile').click();
   $('#prFile').onchange = async ev => {
@@ -563,14 +614,27 @@ VIEWS.profiles = async m => {
   const sel = {}; const bar = document.createElement('div'); bar.style.cssText = 'position:sticky;bottom:0;background:var(--bg,#111);border-top:1px solid var(--line,#333);padding:10px 0;margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center';
   bar.innerHTML = '<button class="btn pri" id="flOk" disabled>Confirm 0 answers</button><button class="btn sm" id="flAllStay">Everything unanswered: our data is right</button><span class="mut" id="flCnt" style="font-size:13px"></span>';
   if (fl.flags.length) m.appendChild(bar);
+  const open = () => fl.flags.filter(f => !f._done);
+  const byKey = k => fl.flags.find(f => f.key === k) || {};
   const paint = () => {
-    m.querySelectorAll('[data-fl]').forEach(b => { const f = fl.flags[+b.dataset.fl]; const on = sel[f.key] === b.dataset.d; b.style.outline = on ? '2px solid var(--ok,#3ecf6e)' : ''; b.style.opacity = sel[f.key] && !on ? '.45' : ''; });
-    const n = Object.keys(sel).length, l = Object.values(sel).filter(x => x === 'left').length;
-    $('#flOk').textContent = 'Confirm ' + n + ' answer' + (n === 1 ? '' : 's'); $('#flOk').disabled = !n; $('#flCnt').textContent = n ? `${l} left, ${n - l} our data is right, ${fl.flags.length - n} unanswered` : `${fl.flags.length} unanswered`;
+    m.querySelectorAll('[data-fl]').forEach(b => { const f = byKey(b.dataset.fl); const on = sel[f.key] === b.dataset.d; b.style.outline = on ? '2px solid var(--ok,#3ecf6e)' : ''; b.style.opacity = sel[f.key] && !on ? '.45' : ''; });
+    const n = Object.keys(sel).length, l = Object.values(sel).filter(x => x === 'left').length, left = open().length;
+    $('#flOk').textContent = 'Confirm ' + n + ' answer' + (n === 1 ? '' : 's'); $('#flOk').disabled = !n; $('#flCnt').textContent = n ? `${l} left, ${n - l} our data is right, ${left - n} unanswered` : `${left} unanswered`;
   };
-  m.querySelectorAll('[data-fl]').forEach(b => b.onclick = () => { const f = fl.flags[+b.dataset.fl]; if (sel[f.key] === b.dataset.d) delete sel[f.key]; else sel[f.key] = b.dataset.d; paint(); });
-  const allStay = $('#flAllStay'); if (allStay) allStay.onclick = () => { fl.flags.forEach(f => { if (!sel[f.key]) sel[f.key] = 'stay'; }); paint(); };
-  const ok = $('#flOk'); if (ok) { paint(); ok.onclick = () => { const ds = Object.entries(sel).map(([key, decision]) => ({ key, decision })); const l = ds.filter(d => d.decision === 'left').length; if (l && !confirm(`${l} player(s) will be removed from their squads. Continue?`)) return; run(ok, async () => { const r = await api('resolveFlags', { decisions: ds }); toast(`Saved: ${r.left} left, ${r.stay} kept`, 'ok'); render(); }, 'Saving…'); }; }
+  m.querySelectorAll('[data-fl]').forEach(b => b.onclick = () => { const f = byKey(b.dataset.fl); if (sel[f.key] === b.dataset.d) delete sel[f.key]; else sel[f.key] = b.dataset.d; paint(); });
+  const allStay = $('#flAllStay'); if (allStay) allStay.onclick = () => { open().forEach(f => { if (!sel[f.key]) sel[f.key] = 'stay'; }); paint(); };
+  const ok = $('#flOk'); if (ok) { paint(); ok.onclick = () => { const ds = Object.entries(sel).map(([key, decision]) => ({ key, decision })); const l = ds.filter(d => d.decision === 'left').length; if (l && !confirm(`${l} player(s) will be removed from their squads. Continue?`)) return;
+    run(ok, async () => {
+      const r = await api('resolveFlags', { decisions: ds }); toast(`Saved: ${r.left} left, ${r.stay} kept`, 'ok');
+      // answered flags disappear from the list right away; nothing reloads
+      const done = new Set(ds.map(d => d.key));
+      m.querySelectorAll('[data-fl]').forEach(b => { const f = byKey(b.dataset.fl); if (done.has(f.key)) { f._done = true; const card = b.closest('.m'); if (card) card.remove(); } });
+      Object.keys(sel).forEach(k => delete sel[k]);
+      fl.flags = fl.flags.filter(f => !f._done);
+      cacheSet('flags', {}, fl); const h = $('#flH'); if (h) h.textContent = `May have left (${fl.flags.length})`;
+      if (!fl.flags.length) { bar.remove(); const c = h && h.nextElementSibling; if (c) c.innerHTML = '<div class="empty">No open flags. Load profiles, then run the check.</div>'; } else paint();
+      refreshOv().catch(() => { });
+    }, 'Saving…'); }; }
 };
 
 // ---------------------------------------------------------------- facts
@@ -723,7 +787,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.6.1';
+const ADMIN_VERSION = '1.6.2';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
