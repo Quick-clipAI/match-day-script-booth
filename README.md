@@ -479,6 +479,10 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.5.9 — transfers job: La Liga and Ligue 1 were skipped
+
+The few team ids learned free from fixtures made the job think a league was already mapped, so the one-off `teams` request never ran for La Liga and Ligue 1 (only 2 clubs each). It now runs that request once per league regardless. Test added.
+
 ## v1.5.8 — change a match's date from Gaps
 
 Every row in Admin → Gaps has a **Change date** button: pick the new date (and optionally a UTC kick-off time) and press Move. The match stays scheduled with its score cleared, is marked verified, and the daily result check then looks for it on the new day. New admin action `setDate`; cup match ids that include the date are re-keyed. Tests added.

@@ -83,3 +83,7 @@ console.log(n + ' transfer tests passed');
   await t('setDate moves the match, stays scheduled', () => { assert.equal(ok.c, 200); assert.equal(ok.o.row.date, '2026-10-26'); assert.equal(ok.o.row.time, '20:00'); assert.equal(ok.o.row.status, 'scheduled'); });
 }
 console.log('setDate tests done');
+await t('ids learned from fixtures do not block the one-off teams request for that league', async () => {
+  const w = await world(); await w.s.upsertTeamIds([{ api_team_id: 42, league: 'EPL', club: 'Arsenal', api_name: 'Arsenal', source: 'fixture' }]);
+  await w.run(); assert.ok(w.calls.includes('teams 39 2024'));
+});
