@@ -500,9 +500,14 @@ VIEWS.clubs = async m => {
   m.innerHTML = head('Clubs', 'Every club name stored per league. If one club appears twice under different spellings, merge them.') + `
   <div class="card"><label class="f">League</label><select id="cLg">${leagueOpts(lg, false)}</select></div>
   ${cfg && cfg.teams && recent.length > cfg.teams ? `<div class="banner warn"><div><b>${recent.length} clubs seen in the last two seasons.</b> A normal league has ${cfg.teams}, plus promoted/relegated clubs. If you see the same club twice below, merge it.</div></div>` : ''}
+  ${r.suspects.length ? `<div class="card" style="border-color:var(--warn,#e0a030)"><b>Needs checking (${r.suspects.length})</b><p class="mut" style="margin:6px 0 10px;font-size:13px">Names that may be the same club. Two clubs that have played each other are never listed.</p>${r.suspects.map((x, i) => `<div class="m"><div><b>${esc(x.a)}</b> <span class="mut">${x.aMatches} matches · ${seasonLbl(x.aLast)}</span><br><b>${esc(x.b)}</b> <span class="mut">${x.bMatches} matches · ${seasonLbl(x.bLast)}</span><div class="meta">${esc(x.why)}</div></div><div class="row" style="margin-top:8px"><button class="btn sm pri" data-sm="${i}" data-dir="ab">Merge “${esc(x.a)}” into “${esc(x.b)}”</button><button class="btn sm" data-sm="${i}" data-dir="ba">Merge the other way</button><button class="btn sm" data-sd="${i}">Different clubs</button></div></div>`).join('')}</div>` : ''}
   <div class="card flat">${r.clubs.map(c => `<div class="m"><div class="row"><div class="grow"><b>${esc(c.club)}</b><div class="meta">${c.matches} matches · last season ${seasonLbl(c.last_season)}</div></div><button class="btn sm" data-merge="${esc(c.club)}">Merge into…</button></div></div>`).join('') || '<div class="empty">No clubs yet.</div>'}</div>
   <p class="mut" style="font-size:13px">${r.aliases.length} spelling${r.aliases.length === 1 ? '' : 's'} learned so far.</p>`;
   $('#cLg').onchange = e => go('clubs', { league: e.target.value });
+  m.querySelectorAll('[data-sm]').forEach(b => b.onclick = () => { const x = r.suspects[+b.dataset.sm]; const [from, to] = b.dataset.dir === 'ab' ? [x.a, x.b] : [x.b, x.a];
+    if (!confirm(`Merge “${from}” into “${to}”? Every match of “${from}” moves to “${to}”.`)) return;
+    run(b, async () => { const o = await api('mergeTeams', { league: lg, from, to }); toast(`Moved ${o.moved} matches${o.dropped ? ', ' + o.dropped + ' duplicates dropped' : ''}`, 'ok'); await refreshOv(); render(); }); });
+  m.querySelectorAll('[data-sd]').forEach(b => b.onclick = () => { const x = r.suspects[+b.dataset.sd]; run(b, async () => { await api('notDuplicate', { league: lg, a: x.a, b: x.b }); toast('Marked as different clubs', 'ok'); render(); }); });
   m.querySelectorAll('[data-merge]').forEach(b => b.onclick = () => {
     const from = b.dataset.merge;
     dlg(`<h3 style="margin:0 0 6px">Merge “${esc(from)}”</h3><p class="mut" style="margin:0 0 12px;font-size:14px">Every match of “${esc(from)}” in ${esc(cfg.short)} is moved to the club you choose, and the spelling is remembered for future imports.</p>
@@ -718,7 +723,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.6.0';
+const ADMIN_VERSION = '1.6.1';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

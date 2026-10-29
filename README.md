@@ -479,6 +479,10 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.6.1 — Clubs: "Needs checking" list for duplicate club spellings
+
+Admin → Clubs now lists names in the chosen league that are probably one club spelled two ways: one name's words are inside the other's ("Celta" / "Celta Vigo", "Bologna" / "Bologna FC 1909") or the names differ by 1-2 letters ("Al Taawoun" / "Al Taawon"). Two names that have played **each other** in that league are different clubs and never appear. Each pair has **Merge A into B**, **Merge the other way** and **Different clubs** (remembered in the new table `bank_not_dupes`, already applied). Merging uses the same move as before (matches moved, double matches dropped, spelling learned). Spellings that look nothing alike ("Olympiakos Piraeus" / "Olympiacos") are still found by hand in the full list. Tests: `tests/suspects.test.mjs`.
+
 ## v1.6.0 — match details by hand (scorers, cards, stats, line-ups)
 
 For matches API-Football does not cover. Admin → Import → **Match details by hand**: paste one match or `{"matches": [...]}` (up to 40), press **Check**, then **Save**. "Copy format for ChatGPT / Gemini" gives the exact shape and rules to give an AI with the match report.

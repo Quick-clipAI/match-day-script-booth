@@ -5,6 +5,7 @@ import { LEAGUES, LEAGUE_KEYS, norm, makeRow, matchId, isIsoDate, currentSeason,
 import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } from '../lib/bank-sync.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { fetchText, teamsGetter, transfersGetter } from '../lib/apisports.js';
+import { clubSuspects, pairKey } from '../lib/club-suspects.js';
 import { normalizeDetail, DETAIL_PROMPT } from '../lib/manual-detail.js';
 import { syncTransfers, transferStatus } from '../lib/sync-transfers.js';
 import { normalizeSquad, staleVariants } from '../lib/bank-squad.js';
@@ -314,7 +315,18 @@ export default async function handler(req, res) {
       case 'teams': {
         const rows = await store.clubIndex();
         const aliases = await store.listAliases();
-        return res.status(200).json({ clubs: rows.filter(r => !body.league || r.league === body.league).sort((a, b) => a.club.localeCompare(b.club)), aliases });
+        const clubs = rows.filter(r => !body.league || r.league === body.league).sort((a, b) => a.club.localeCompare(b.club));
+        let suspects = [];
+        if (body.league && LEAGUES[body.league]) {
+          const dismissed = new Set((await store.listNotDupes(body.league).catch(() => [])).map(d => pairKey(d.a, d.b)));
+          suspects = clubSuspects(clubs, await store.listMatches({ league: body.league }), dismissed);
+        }
+        return res.status(200).json({ clubs, aliases, suspects });
+      }
+      case 'notDuplicate': {
+        if (!LEAGUES[body.league] || !body.a || !body.b) return fail(res, 400, 'Give league, a and b.');
+        await store.addNotDupe(body.league, String(body.a), String(body.b)); await store.addNotDupe(body.league, String(body.b), String(body.a));
+        return res.status(200).json({ ok: true });
       }
       case 'mergeTeams': {
         const out = await mergeTeams(store, { league: body.league, from: body.from, to: body.to });
