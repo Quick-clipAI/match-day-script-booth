@@ -14,6 +14,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
 <style>
+  input.tk{width:18px;height:18px;min-width:0;padding:0;margin:0;flex:none;accent-color:var(--acc,#ff6a1a)}
+  details>summary::-webkit-details-marker{display:none}
 :root{
   --bg:#000; --s1:#0e0e0f; --s2:#161617; --s3:#1f1f21; --line:#2a2a2d;
   --tx:#f2efe9; --mut:#9a968d; --accent:#c96442; --brand:#FF6A1A;
@@ -627,21 +629,35 @@ VIEWS.profiles = async m => {
     const pk = await api('squadPicker'); const panel = $('#sqPanel');
     const by = {}; pk.clubs.forEach(c => (by[c.league] = by[c.league] || []).push(c));
     panel.innerHTML = `<div class="card" style="margin-top:10px"><div class="mut" style="font-size:13px;margin-bottom:8px">Tick a whole league or single clubs. Clubs already holding a squad are never overwritten; the API list is only stored for comparison.</div>
-      <div class="row"><button class="btn sm" id="pkEmpty">Tick all clubs with no squad</button><button class="btn sm" id="pkNone">Clear</button></div>
-      ${Object.keys(by).map(l => `<details style="margin-top:8px" data-lg="${esc(l)}"><summary style="cursor:pointer;padding:6px 0"><label><input type="checkbox" class="pkL" data-l="${esc(l)}"> <b>${esc(leagueName(l))}</b></label> <span class="mut" style="font-size:12px">${by[l].filter(c => !c.players).length} of ${by[l].length} have no squad</span></summary>
-        ${by[l].map(c => `<label style="display:block;padding:4px 0 4px 22px"><input type="checkbox" class="pkC" data-l="${esc(l)}" value="${c.api_team_id}" data-club="${esc(c.club)}" data-empty="${c.players ? 0 : 1}"> ${esc(c.club)} <span class="mut" style="font-size:12px">${c.players ? c.players + ' players' : 'no squad'}${c.coach ? ' · coach' : ''}</span></label>`).join('')}</details>`).join('')}
-      <div class="row" style="margin-top:12px;align-items:flex-end"><label style="font-size:14px"><input type="checkbox" id="pkCoach" checked> Also fetch the coach (+1 request per club)</label></div>
+      <div class="row"><button class="btn sm" id="pkEmpty">Tick all clubs with no squad</button><button class="btn sm" id="pkNone">Clear</button></div>${pk.clubs.some(c => !c.api_team_id) ? `<div class="card flat" style="margin-top:10px;padding:10px"><b>${pk.clubs.filter(c => !c.api_team_id).length} club(s) are not linked to API-Football</b><div class="mut" style="font-size:13px;margin:4px 0 8px">Linking first reads each league's club list (1 request per league that has none), re-matches names for free, then optionally searches the rest by name (1 request per club; accepted only when exactly one club fits). Unclear ones stay unlinked.</div><label style="font-size:14px"><input type="checkbox" id="lkSearch" class="tk" checked> Also search by name</label><div class="row" style="margin-top:8px"><button class="btn" id="lkGo">Link clubs</button><span class="mut" id="lkMsg" style="font-size:13px"></span></div></div>` : ''}
+      ${Object.keys(by).map(l => `<details style="margin-top:6px;border-top:1px solid var(--line,#8884)" data-lg="${esc(l)}"><summary style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:8px 0;list-style:none"><span class="mut">▸</span><b style="flex:1">${esc(leagueName(l))}</b><span class="mut" style="font-size:12px">${by[l].filter(c => c.api_team_id && !c.players).length} no squad${by[l].some(c => !c.api_team_id) ? ' · ' + by[l].filter(c => !c.api_team_id).length + ' not linked' : ''} · ${by[l].length} clubs</span><input type="checkbox" class="pkL tk" data-l="${esc(l)}" title="Tick the whole league"></summary>
+        ${by[l].map(c => `<label style="display:flex;align-items:center;gap:10px;padding:5px 0 5px 22px;${c.api_team_id ? '' : 'opacity:.55'}"><span style="flex:1">${esc(c.club)} <span class="mut" style="font-size:12px">${!c.api_team_id ? 'not linked to API-Football yet' : c.players ? c.players + ' players' : 'no squad'}${c.coach ? ' · coach' : ''}</span></span><input type="checkbox" class="pkC tk" data-l="${esc(l)}" value="${c.api_team_id || ''}" data-club="${esc(c.club)}" data-empty="${c.players ? 0 : 1}" ${c.api_team_id ? '' : 'disabled'}></label>`).join('')}</details>`).join('')}
+      <div class="row" style="margin-top:12px;align-items:flex-end"><label style="font-size:14px"><input type="checkbox" id="pkCoach" class="tk" checked> Also fetch the coach (+1 request per club)</label></div>
       <div class="row" style="margin-top:8px;align-items:flex-end"><div><label class="f">Keep for live scores</label><input id="pkRes" inputmode="numeric" value="30" style="width:90px"></div><button class="btn pri" id="pkGo">Fetch ticked</button><button class="btn hide" id="pkStop">Stop</button><span class="mut" id="pkCnt" style="font-size:13px"></span></div>
       <div class="mut" id="pkNow" style="font-size:13px;margin-top:8px">Requests go 5 at a time, then a 40-second pause (the API allows 10 a minute). Keep this page open.</div><div id="pkOut"></div></div>`;
-    const cnt = () => { const n = panel.querySelectorAll('.pkC:checked').length; const req = n * (panel.querySelector('#pkCoach').checked ? 2 : 1); $('#pkCnt').textContent = n ? `${n} club(s), about ${req} request(s)` : ''; };
-    panel.querySelectorAll('.pkL').forEach(x => { x.onclick = e => e.stopPropagation(); x.onchange = () => { panel.querySelectorAll(`.pkC[data-l="${x.dataset.l}"]`).forEach(c => { c.checked = x.checked; }); cnt(); }; });
+    const cnt = () => { const n = panel.querySelectorAll('.pkC:checked:not(:disabled)').length; const req = n * (panel.querySelector('#pkCoach').checked ? 2 : 1); $('#pkCnt').textContent = n ? `${n} club(s), about ${req} request(s)` : ''; };
+    panel.querySelectorAll('.pkL').forEach(x => { x.onclick = e => e.stopPropagation(); x.onchange = () => { panel.querySelectorAll(`.pkC[data-l="${x.dataset.l}"]:not(:disabled)`).forEach(c => { c.checked = x.checked; }); cnt(); }; });
     panel.querySelectorAll('.pkC').forEach(x => x.onchange = cnt); $('#pkCoach').onchange = cnt;
-    $('#pkEmpty').onclick = () => { panel.querySelectorAll('.pkC').forEach(c => { c.checked = c.dataset.empty === '1'; }); cnt(); };
+    $('#pkEmpty').onclick = () => { panel.querySelectorAll('.pkC:not(:disabled)').forEach(c => { c.checked = c.dataset.empty === '1'; }); cnt(); };
     $('#pkNone').onclick = () => { panel.querySelectorAll('input[type=checkbox].pkC, input.pkL').forEach(c => { c.checked = false; }); cnt(); };
+    if ($('#lkGo')) $('#lkGo').onclick = async () => {
+      $('#lkGo').disabled = true; const tried = []; let total = 0, reqs = 0;
+      try {
+        for (let round = 0; round < 12; round++) {
+          const r = await api('linkClubs', { search: $('#lkSearch').checked, tried, reserve: Math.max(0, Number($('#pkRes').value) || 30) });
+          total += r.linked.length; reqs += r.calls; r.skipped.forEach(x => tried.push(x.league + '|' + x.club)); r.linked.forEach(x => { if (x.how === 'search') tried.push(x.league + '|' + x.club); });
+          $('#lkMsg').textContent = `${total} linked, ${reqs} request(s)${r.left != null ? ', ' + r.left + ' left' : ''}; ${r.unlinked.length} not linked yet…`;
+          if (r.error) { $('#lkMsg').textContent += ' Stopped: ' + r.error; break; }
+          if (!r.calls) { $('#lkMsg').textContent = `Done: ${total} linked, ${reqs} request(s); ${r.unlinked.length} still not linked.`; break; }
+          for (let i = 40; i > 0; i--) { $('#lkMsg').textContent = `${total} linked, ${reqs} request(s)${r.left != null ? ', ' + r.left + ' left' : ''}. Next batch in ${i}s…`; await new Promise(z => setTimeout(z, 1000)); }
+        }
+      } catch (e) { toast(e.message || String(e), 'bad'); }
+      $('#lkGo').disabled = false; toast('Linking finished. Reopen "Choose leagues / clubs" to see the new links.', 'ok');
+    };
     let stop = false; $('#pkStop').onclick = () => { stop = true; };
     $('#pkGo').onclick = async () => {
       const coach = $('#pkCoach').checked, keep = Math.max(0, Number($('#pkRes').value) || 30);
-      const queue = [...panel.querySelectorAll('.pkC:checked')].map(c => ({ id: Number(c.value), league: c.dataset.l, club: c.dataset.club }));
+      const queue = [...panel.querySelectorAll('.pkC:checked')].filter(c => c.value).map(c => ({ id: Number(c.value), league: c.dataset.l, club: c.dataset.club }));
       if (!queue.length) return toast('Tick at least one club.', 'bad');
       const per = coach ? 2 : 1, step = Math.floor(5 / per); let nDone = 0; const out = $('#pkOut'); out.innerHTML = ''; stop = false;
       $('#pkGo').disabled = true; $('#pkStop').classList.remove('hide'); let cur = null;
@@ -845,7 +861,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.6.6';
+const ADMIN_VERSION = '1.6.7';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

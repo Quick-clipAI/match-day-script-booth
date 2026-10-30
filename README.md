@@ -713,3 +713,9 @@ Tests: `tests/matchview.test.mjs` (13).
 - 5 requests per batch then a 40-second pause; it stops by itself when the day's requests drop to the "keep for live scores" number or on an API error.
 - A club that already has a squad is never overwritten (the card says so and shows the stored players).
 - Replaces the v1.6.5 "Fetch in batches" count box.
+
+## Admin v1.6.7 — squad picker: all clubs, tidy rows, link clubs to API-Football
+- The picker now lists **every** club of the current season. Clubs without an API-Football id are greyed, with "not linked to API-Football yet" and a disabled tick (before, they were silently missing: La Liga 2 of 20, Ligue 1 2 of 18, Premier League 16 of 20 …).
+- Each league row: drop-down arrow on the left, small tick on the right (ticks the whole league); each club row has its small tick on the right.
+- **Link clubs** button (`lib/link-clubs.js`): 1) a league with no club list yet costs 1 request (La Liga and Ligue 1 had never been read); 2) free re-match of API teams we already know but could not name-match, with a looser rule ("Leverkusen" = "Bayer 04 Leverkusen"); 3) optional search by name, 1 request per club, accepted only when exactly one plausible club of the right country comes back. Unclear ones stay unlinked, never guessed. 5 requests per batch, 40-second pause.
+- Not covered: Inter Miami's Mexican guests (no single country), and the cups.

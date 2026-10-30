@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { createMemoryStore } from '../lib/bank-store.js';
 import { normalizeProfiles } from '../lib/bank-profiles.js';
+import { looseSame, rematch, linkClubs } from '../lib/link-clubs.js';
 import { compactSquad, matchSquad, squadRows, syncSquads, syncSquadClubs, squadPicker, compactCoach } from '../lib/sync-squads.js';
 let n = 0; const t = async (name, fn) => { try { await fn(); n++; } catch (e) { console.log('FAIL', name, e.stack); process.exitCode = 1; } };
 const Q = Date.parse('2026-10-30T03:00:00Z');
@@ -60,5 +61,18 @@ await t('ticked clubs: per-club result with players and coach; existing squad ke
   const w2 = await world(); const lowLeft = async id => { const j = id === 63 ? api : { response: [] }; Object.defineProperty(j, '__left', { value: 20, configurable: true }); return j; };
   const r2 = await syncSquadClubs(w2.s, { getSquad: lowLeft, teamIds: [63, 42], reserve: 30, now: Q });
   assert.equal(r2.results.length, 1); assert.equal(r2.stopped, true);
+});
+await t('club linking: loose names, rematch of unnamed API teams, search only when exactly one club fits', async () => {
+  assert.ok(looseSame('Bayer 04 Leverkusen', 'Leverkusen')); assert.ok(looseSame('Leeds United', 'Leeds')); assert.ok(looseSame('SS Lazio', 'Lazio'));
+  assert.ok(!looseSame('Manchester United', 'Manchester City'));
+  const ids = [{ api_team_id: 1, league: 'EPL', club: null, api_name: 'Leeds United', source: 'teams' }, { api_team_id: 2, league: 'EPL', club: 'Arsenal', api_name: 'Arsenal', source: 'teams' }];
+  assert.deepEqual(rematch(ids, ['Leeds', 'Arsenal'], 'EPL').map(r => [r.club, r.api_team_id]), [['Leeds', 1]]);
+  const s = createMemoryStore();
+  await s.upsertMatches([mm({ home: 'Hull City', away: 'Sunderland' })]);
+  await s.upsertTeamIds([{ api_team_id: 7, league: 'EPL', club: null, api_name: 'Other', source: 'teams' }]);
+  const search = async name => ({ response: name === 'Hull City' ? [{ team: { id: 64, name: 'Hull City', country: 'England', national: false } }, { team: { id: 65, name: 'Hull City W', country: 'England', national: false } }] : [{ team: { id: 70, name: 'Sunderland', country: 'England' } }, { team: { id: 71, name: 'Sunderland AFC', country: 'England' } }] });
+  const r = await linkClubs(s, { getTeams: async () => ({ response: [] }), searchTeams: search, search: true, maxCalls: 5 });
+  assert.deepEqual(r.linked.map(x => x.club), ['Hull City']); assert.equal(r.skipped[0].club, 'Sunderland'); assert.equal(r.unlinked.length, 1);
+  const r2 = await linkClubs(s, { getTeams: async () => ({ response: [] }), searchTeams: search, search: true, maxCalls: 5, tried: ['EPL|Sunderland'] }); assert.equal(r2.calls, 0);
 });
 console.log(n + ' squad tests passed');
