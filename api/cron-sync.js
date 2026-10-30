@@ -3,7 +3,8 @@
 import { storeFromEnv } from '../lib/bank-store.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { syncDue } from '../lib/sync-due.js';
-import { fixturesGetter, detailGetter, teamsGetter, transfersGetter } from '../lib/apisports.js';
+import { fixturesGetter, detailGetter, teamsGetter, transfersGetter, squadGetter } from '../lib/apisports.js';
+import { syncSquads } from '../lib/sync-squads.js';
 import { syncTransfers } from '../lib/sync-transfers.js';
 import { syncDetails } from '../lib/match-detail.js';
 
@@ -20,9 +21,12 @@ export default async function handler(req, res) {
       const r = await syncDue(store, { getFixtures: fixturesGetter(key) });
       let d = { summary: 'skipped' };
       try { d = await syncDetails(store, { getDetail: detailGetter(key) }); } catch (e) { d = { summary: 'details failed: ' + String(e && e.message || e).slice(0, 120) }; }
+      // squads first (they feed the player cards), then transfers with whatever is left of this run's 3 requests
+      let q = { summary: 'skipped', calls: 0 };
+      try { q = await syncSquads(store, { getSquad: squadGetter(key), maxRun: 3 }); } catch (e) { q = { summary: 'squads failed: ' + String(e && e.message || e).slice(0, 120), calls: 0 }; }
       let t = { summary: 'skipped' };
-      try { t = await syncTransfers(store, { getTeams: teamsGetter(key), getTransfers: transfersGetter(key) }); } catch (e) { t = { summary: 'transfers failed: ' + String(e && e.message || e).slice(0, 120) }; }
-      return res.status(200).json({ ok: true, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, details: d.summary, transfers: t.summary });
+      try { t = await syncTransfers(store, { getTeams: teamsGetter(key), getTransfers: transfersGetter(key), maxRun: Math.max(0, 3 - (q.calls || 0)) }); } catch (e) { t = { summary: 'transfers failed: ' + String(e && e.message || e).slice(0, 120) }; }
+      return res.status(200).json({ ok: true, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, details: d.summary, squads: q.summary, transfers: t.summary });
     } catch (e) { return res.status(500).json({ error: String(e && e.message || e).slice(0, 200) }); }
   }
   const secret = (process.env.CRON_SECRET || '').trim(), admin = (process.env.ADMIN_KEY || '').trim();

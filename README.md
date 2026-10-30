@@ -479,6 +479,13 @@ for now since removing voiceover was a UI decision, not evidence the backend
 routes are broken.
 
 
+## v1.6.3 — squads from API-Football, matched to Transfermarkt profiles
+
+Each club's current squad (`players/squads?team=`, 1 request per club) is fetched on spare requests only: quiet hours 02:00-07:00 UTC, the same busy-day limits as the transfers job, and squads and transfers share one daily allowance and the 3-requests-per-run cap (squads go first). Refreshed weekly.
+- **Matching.** API names are short ("K. Darlow", with age and shirt number). Each is matched to ONE Transfermarkt profile by name pattern + age (+ club); a profile at another club is accepted only if it is the unique name+age match (he may have moved since the 6 July snapshot). The saved player gets the full name, birth date and nationality from the profile; position, shirt and age come from the API. Players with no unique match are saved with the API's short name and no birth date, so they are easy to spot.
+- **Never overwrites.** A club that already has a squad for the season (all the EPL squads, anything you imported) is kept as it is; only the API snapshot is stored. Clubs with no squad (the Saudi league, for example) are filled in.
+- Admin → Profiles has a **Squads from API-Football** card (clubs fetched, squads filled in, last run, Fetch now). New table `bank_api_squads` (applied). Tests: `tests/squads.test.mjs`. Not filled by the API: coaches, joined dates, club status beyond "active".
+
 ## v1.6.2 — admin: no more reloads after a change, tabs remember what they loaded, easier sign-in
 
 - **Changes apply in place.** Merging clubs, "Different clubs", answering profile flags and adding an inbox club now update or remove just that item on the page (scroll position kept). Counts are confirmed from the server in the background.

@@ -582,7 +582,7 @@ VIEWS.inbox = async m => {
 
 // ---------------------------------------------------------------- profiles (Transfermarkt) and squad flags
 VIEWS.profiles = async m => {
-  let st, fl, ts = null; try { st = await api('profileStats'); fl = await api('flags', {}); try { ts = await api('transferStatus'); } catch (e) { if (e.auth) throw e; } } catch (e) { if (e.auth) throw e; m.innerHTML = head('Profiles', '') + `<div class="banner bad"><div><b>Profiles are not ready.</b><br>${esc(e.message)}</div></div>`; return; }
+  let st, fl, ts = null, qs = null; try { st = await api('profileStats'); fl = await api('flags', {}); try { ts = await api('transferStatus'); qs = await api('squadStatus'); } catch (e) { if (e.auth) throw e; } } catch (e) { if (e.auth) throw e; m.innerHTML = head('Profiles', '') + `<div class="banner bad"><div><b>Profiles are not ready.</b><br>${esc(e.message)}</div></div>`; return; }
   const kindTxt = f => f.kind === 'left' ? `Transfermarkt shows a move <b>away</b> from ${esc(f.bank_club)}${f.detail && f.detail.move_date ? ' on ' + esc(f.detail.move_date) : ''}${f.detail && f.detail.move_to ? ' to ' + esc(f.detail.move_to) : ''}. It now lists him at <b>${esc(f.tm_club)}</b>.`
     : `Transfermarkt lists him at <b>${esc(f.tm_club)}</b> and never mentions ${esc(f.bank_club)}. One of the two is wrong, or he came back after Transfermarkt’s snapshot.`;
   m.innerHTML = head('Profiles', 'Player facts from the Transfermarkt data (nationality, position, foot, height, value, transfers, goals and assists by season). Our own squads stay the truth: this only raises flags for you to confirm.')
@@ -593,6 +593,9 @@ VIEWS.profiles = async m => {
     ${ts ? `<div class="card" style="margin-top:12px"><b>Club transfers from API-Football</b><p class="mut" style="margin:6px 0 10px">Runs by itself every day on spare requests only: it skips quiet hours (02:00–07:00 UTC), spends less on busy match days, and uses 1 request per club (14-day refresh). Moves come with dates and a Loan / Free / fee label, and are merged with Transfermarkt.</p>
       <div id="trSt" class="mut" style="font-size:13px">${ts.mapped} of ${ts.clubs} clubs matched to API-Football, ${ts.fetched} fetched, ${ts.usedToday} request(s) used today.${ts.lastLog ? '<br>Last run: ' + esc(ts.lastLog) : ''}${ts.unmapped.length ? '<br>Not matched yet: ' + esc(ts.unmapped.slice(0, 12).join(', ')) + (ts.unmapped.length > 12 ? ' …' : '') : ''}</div>
       <div class="row" style="margin-top:8px"><button class="btn" id="trGo">Fetch now (up to 3 requests)</button></div></div>` : ''}
+    ${qs ? `<div class="card" style="margin-top:12px"><b>Squads from API-Football</b><p class="mut" style="margin:6px 0 10px">Fetches each club's current squad on spare requests (same quiet-hours rules as transfers, refreshed weekly). Players are matched to Transfermarkt profiles for the full name, birth date and nationality. A club that already has a squad here is never overwritten.</p>
+      <div class="mut" style="font-size:13px">${qs.fetched} of ${qs.clubs} clubs fetched, ${qs.applied} squads filled in.${qs.lastLog ? '<br>Last run: ' + esc(qs.lastLog) : ''}</div>
+      <div class="row" style="margin-top:8px"><button class="btn" id="sqGo">Fetch now (up to 3 requests)</button></div></div>` : ''}
     <h3 style="margin-top:24px" id="flH">May have left (${fl.flags.length})</h3>
     <div class="card flat">${fl.flags.map((f, i) => `<div class="m"><div class="row"><div class="grow"><div class="teams">${esc(f.name)} <span class="chip ${f.kind === 'left' ? 'warn' : ''}">${f.kind === 'left' ? 'left?' : 'mismatch'}</span></div><div class="meta">${esc(f.league)} · our data: ${esc(f.bank_club)}${f.detail && f.detail.on_loan ? ' (on loan)' : ''}</div></div></div><div style="margin:6px 0;font-size:14px">${kindTxt(f)}${f.kind === 'left' ? ' <span class="mut">(could be a loan.)</span>' : ''}</div>
       <div class="row"><button class="btn sm bad" data-fl="${esc(f.key)}" data-d="left">He left: remove from ${esc(f.bank_club)}</button><button class="btn sm" data-fl="${esc(f.key)}" data-d="stay">Our data is right</button></div></div>`).join('') || '<div class="empty">No open flags. Load profiles, then run the check.</div>'}</div>`;
@@ -609,6 +612,7 @@ VIEWS.profiles = async m => {
     $('#prOut').textContent = `${saved} profiles saved. Now run the check below.`; files = []; $('#prGo').disabled = true; toast('Profiles saved', 'ok');
   }, 'Saving…');
   $('#prCheck').onclick = ev => run(ev.target, async () => { const r = await api('checkFlags'); $('#prCheckOut').textContent = `${r.players} players in our squads, ${r.profiles} profiles: ${r.found} difference(s), ${r.added} new flag(s).`; if (r.added) render(); }, 'Checking…');
+  if ($('#sqGo')) $('#sqGo').onclick = ev => run(ev.target, async () => { const r = await api('runSquads'); toast(r.summary, r.calls ? 'ok' : undefined); VIEWS.profiles(m); }, 'Fetching…');
   if ($('#trGo')) $('#trGo').onclick = ev => run(ev.target, async () => { const r = await api('runTransfers'); toast(r.summary, r.calls ? 'ok' : undefined); VIEWS.profiles(m); }, 'Fetching…');
   // answers are remembered here and sent together when you press Confirm (the page does not reload per tap)
   const sel = {}; const bar = document.createElement('div'); bar.style.cssText = 'position:sticky;bottom:0;background:var(--bg,#111);border-top:1px solid var(--line,#333);padding:10px 0;margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center';
@@ -787,7 +791,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.6.2';
+const ADMIN_VERSION = '1.6.3';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

@@ -4,9 +4,10 @@ import { storeFromEnv } from '../lib/bank-store.js';
 import { LEAGUES, LEAGUE_KEYS, norm, makeRow, matchId, isIsoDate, currentSeason, coverageOf, computeTable } from '../lib/bank-core.js';
 import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } from '../lib/bank-sync.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
-import { fetchText, teamsGetter, transfersGetter } from '../lib/apisports.js';
+import { fetchText, teamsGetter, transfersGetter, squadGetter } from '../lib/apisports.js';
 import { clubSuspects, pairKey } from '../lib/club-suspects.js';
 import { normalizeDetail, DETAIL_PROMPT } from '../lib/manual-detail.js';
+import { syncSquads, squadStatus } from '../lib/sync-squads.js';
 import { syncTransfers, transferStatus } from '../lib/sync-transfers.js';
 import { normalizeSquad, staleVariants } from '../lib/bank-squad.js';
 import { normalizeProfiles, computeFlags, yearOf } from '../lib/bank-profiles.js';
@@ -157,6 +158,13 @@ export default async function handler(req, res) {
         }
         if (!dry) await store.addLog({ kind: 'manual', ok: true, summary: `Match details saved by hand: ${results.filter(r => r.saved).length} of ${results.length}` });
         return res.status(200).json({ preview: dry, results });
+      }
+      case 'squadStatus': return res.status(200).json(await squadStatus(store));
+      case 'runSquads': {                    // "Fetch now": ignores quiet hours and busy-day limits, still 3 requests at most
+        const key = (process.env.API_SPORTS_KEY || '').trim();
+        if (!key) return res.status(400).json({ error: 'API_SPORTS_KEY is not set' });
+        const r = await syncSquads(store, { getSquad: squadGetter(key), force: true, maxRun: 3 });
+        return res.status(200).json({ ok: true, summary: r.summary, calls: r.calls, status: await squadStatus(store) });
       }
       case 'transferStatus': return res.status(200).json(await transferStatus(store));
       case 'runTransfers': {                 // "Fetch now": ignores quiet hours and busy-day limits, still 3 requests at most
