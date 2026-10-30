@@ -4,7 +4,7 @@ import { storeFromEnv } from '../lib/bank-store.js';
 import { LEAGUES, LEAGUE_KEYS, norm, makeRow, matchId, isIsoDate, currentSeason, coverageOf, computeTable } from '../lib/bank-core.js';
 import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } from '../lib/bank-sync.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
-import { fetchText, teamsGetter, transfersGetter, squadGetter, coachGetter, searchTeamsGetter } from '../lib/apisports.js';
+import { fetchText, teamsGetter, transfersGetter, squadGetter, coachGetter, searchTeamsGetter, statusGetter, quotaOf } from '../lib/apisports.js';
 import { clubSuspects, pairKey } from '../lib/club-suspects.js';
 import { normalizeDetail, DETAIL_PROMPT } from '../lib/manual-detail.js';
 import { linkClubs } from '../lib/link-clubs.js';
@@ -167,6 +167,12 @@ export default async function handler(req, res) {
         const bulk = !!body.bulk;      // bulk: only clubs with no squad, at most 5 per call, stops when the day's quota gets low
         const r = await syncSquads(store, { getSquad: squadGetter(key), force: true, maxRun: bulk ? Math.min(5, Number(body.count) || 5) : 3, emptyOnly: bulk, reserve: Math.max(0, Number(body.reserve) || 30) });
         return res.status(200).json({ ok: true, summary: r.summary, calls: r.calls, remaining: r.remaining, left: r.left, stopped: !!r.stopped, status: await squadStatus(store) });
+      }
+      case 'apiQuota': {                     // free: the status call does not use a request
+        const key = (process.env.API_SPORTS_KEY || '').trim();
+        if (!key) return res.status(200).json({ ok: false, error: 'no key' });
+        try { const q = quotaOf(await statusGetter(key)()); return res.status(200).json(q ? { ok: true, ...q, resetUtc: '00:00' } : { ok: false, error: 'unexpected answer' }); }
+        catch (e) { return res.status(200).json({ ok: false, error: String(e && e.message || e).slice(0, 100) }); }
       }
       case 'linkClubs': {                    // up to 5 requests per call; the page repeats it
         const key = (process.env.API_SPORTS_KEY || '').trim();

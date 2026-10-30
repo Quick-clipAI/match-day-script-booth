@@ -719,3 +719,7 @@ Tests: `tests/matchview.test.mjs` (13).
 - Each league row: drop-down arrow on the left, small tick on the right (ticks the whole league); each club row has its small tick on the right.
 - **Link clubs** button (`lib/link-clubs.js`): 1) a league with no club list yet costs 1 request (La Liga and Ligue 1 had never been read); 2) free re-match of API teams we already know but could not name-match, with a looser rule ("Leverkusen" = "Bayer 04 Leverkusen"); 3) optional search by name, 1 request per club, accepted only when exactly one plausible club of the right country comes back. Unclear ones stay unlinked, never guessed. 5 requests per batch, 40-second pause.
 - Not covered: Inter Miami's Mexican guests (no single country), and the cups.
+
+## Admin v1.6.8 — daily API requests shown under the version
+- The header shows **API requests today: N left of 100** (resets 00:00 UTC = 01:00 Lagos). It refreshes every 2 minutes, after every fetch or link batch, and when tapped. It turns orange at 30 or fewer.
+- It reads API-Football's own `status` call, which per its documentation does not use a request. If the answer has an unexpected shape the line says "unavailable" instead of guessing.

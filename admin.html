@@ -121,7 +121,7 @@ table.t td:nth-child(2),table.t th:nth-child(2){text-align:left;font-family:var(
 <div id="appView" class="hide">
 <header class="top"><div class="in">
   <div class="brand">
-    <div><h1>Creator <b>Booth</b></h1><small>Data bank · <span id="todayLbl"></span> · <span id="admVer"></span></small></div>
+    <div><h1>Creator <b>Booth</b></h1><small>Data bank · <span id="todayLbl"></span> · <span id="admVer"></span></small><small id="quota" style="display:block;cursor:pointer" title="Tap to refresh">API requests today: …</small></div>
     <div class="row" style="gap:6px"><button class="btn sm hide" id="installBtn">Install app</button><button class="btn sm" id="logout">Lock</button></div>
   </div>
   <nav class="tabs" role="tablist" id="tabs"></nav>
@@ -221,7 +221,17 @@ function drawTabs() {
   $('#tabs').querySelectorAll('button').forEach(b => b.onclick = () => { if (b.dataset.t === state.tab) CACHE.clear(); go(b.dataset.t); });
 }
 async function go(tab, nav) { state.tab = tab; state.nav = nav || {}; drawTabs(); window.scrollTo(0, 0); await render(); }
-async function refreshOv() { state.ov = await api('overview'); $('#todayLbl').textContent = fmt(state.ov.today); drawTabs(); }
+async function refreshQuota() {
+  const el = document.getElementById('quota'); if (!el) return;
+  try {
+    const q = await api('apiQuota');
+    el.textContent = q.ok ? `API requests today: ${q.left} left of ${q.limit} (resets 01:00 Lagos)` : 'API requests today: unavailable';
+    el.style.color = q.ok && q.left <= 30 ? 'var(--warn)' : '';
+    state.quotaLeft = q.ok ? q.left : null;
+  } catch (e) { el.textContent = 'API requests today: unavailable'; }
+}
+{ const q = document.getElementById('quota'); if (q) q.onclick = refreshQuota; setInterval(() => { if (!document.hidden) refreshQuota(); }, 120000); }
+async function refreshOv() { refreshQuota(); state.ov = await api('overview'); $('#todayLbl').textContent = fmt(state.ov.today); drawTabs(); }
 async function boot() { try { await refreshOv(); } catch (e) { if (e.auth) return lock(); toast(e.message, 'bad'); } await render(); }
 async function render() {
   const m = $('#main'); m.innerHTML = '<p class="empty">Loading…</p>';
@@ -644,7 +654,7 @@ VIEWS.profiles = async m => {
       $('#lkGo').disabled = true; const tried = []; let total = 0, reqs = 0;
       try {
         for (let round = 0; round < 12; round++) {
-          const r = await api('linkClubs', { search: $('#lkSearch').checked, tried, reserve: Math.max(0, Number($('#pkRes').value) || 30) });
+          const r = await api('linkClubs', { search: $('#lkSearch').checked, tried, reserve: Math.max(0, Number($('#pkRes').value) || 30) }); refreshQuota();
           total += r.linked.length; reqs += r.calls; r.skipped.forEach(x => tried.push(x.league + '|' + x.club)); r.linked.forEach(x => { if (x.how === 'search') tried.push(x.league + '|' + x.club); });
           $('#lkMsg').textContent = `${total} linked, ${reqs} request(s)${r.left != null ? ', ' + r.left + ' left' : ''}; ${r.unlinked.length} not linked yet…`;
           if (r.error) { $('#lkMsg').textContent += ' Stopped: ' + r.error; break; }
@@ -666,7 +676,7 @@ VIEWS.profiles = async m => {
         while (queue.length && !stop) {
           const batch = queue.splice(0, step);
           $('#pkNow').textContent = `Now: ${leagueName(batch[0].league)} — ${batch.map(b => b.club).join(', ')} (${nDone + 1} of ${nDone + queue.length + batch.length})…`;
-          const r = await api('runSquadClubs', { ids: batch.map(b => b.id), coach, reserve: keep });
+          const r = await api('runSquadClubs', { ids: batch.map(b => b.id), coach, reserve: keep }); refreshQuota();
           for (const x of r.results) {
             nDone++;
             const sum = x.error ? `<span style="color:var(--bad)">${esc(x.error)}</span>` : `${x.players.length} players${x.applied ? ` (${x.unmatched} without a Transfermarkt match)` : x.kept ? ` · squad already here, kept (API lists ${x.api_players})` : ' · API has no players for this club'} · coach: ${x.coach ? esc(x.coach) : (x.coach_error ? 'failed' : coach ? 'not found' : 'not fetched')}`;
@@ -861,7 +871,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.6.7';
+const ADMIN_VERSION = '1.6.8';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

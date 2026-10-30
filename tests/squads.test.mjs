@@ -75,4 +75,9 @@ await t('club linking: loose names, rematch of unnamed API teams, search only wh
   assert.deepEqual(r.linked.map(x => x.club), ['Hull City']); assert.equal(r.skipped[0].club, 'Sunderland'); assert.equal(r.unlinked.length, 1);
   const r2 = await linkClubs(s, { getTeams: async () => ({ response: [] }), searchTeams: search, search: true, maxCalls: 5, tried: ['EPL|Sunderland'] }); assert.equal(r2.calls, 0);
 });
+await t('quota parsing', async () => {
+  const { quotaOf } = await import('../lib/apisports.js');
+  assert.deepEqual(quotaOf({ response: { requests: { current: 53, limit_day: 100 } } }), { used: 53, limit: 100, left: 47 });
+  assert.equal(quotaOf({ response: [] }), null);
+});
 console.log(n + ' squad tests passed');
