@@ -137,7 +137,7 @@ const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 let KEY = '';
 try { KEY = sessionStorage.getItem('cb_admin') || localStorage.getItem('cb_admin_keep') || ''; } catch (e) { /* storage blocked: key lives in memory only */ }
-const state = { tab: 'overview', ov: null, nav: {}, filters: { league: '', season: '', club: '', mode: 'all' } };
+const state = { tab: 'overview', ov: null, nav: {}, filters: { league: '', season: '', club: '', mode: 'all', from: '', to: '', order: 'asc' } };
 const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 
 // Read answers are kept for a while so going back to a tab is instant; any change (a write) empties the cache.
@@ -261,7 +261,7 @@ VIEWS.overview = async m => {
     return `<div class="lg"><div class="row"><h3 class="grow">${esc(l.name)}</h3>${l.hasOf && !seasons.length ? `<button class="btn sm" data-of="${l.key}">Load</button>` : ''}</div>${body}</div>`;
   }).join('');
   m.innerHTML = head('Bank at a glance', 'Tap a season to see its matches.') + banner + env + `<div class="card flat">${cards}</div>`;
-  m.querySelectorAll('.seas').forEach(e => e.onclick = () => { state.filters = { league: e.dataset.l, season: e.dataset.s, club: '', mode: 'all' }; go('matches'); });
+  m.querySelectorAll('.seas').forEach(e => e.onclick = () => { state.filters = { league: e.dataset.l, season: e.dataset.s, club: '', mode: 'all', from: '', to: '', order: 'asc' }; go('matches'); });
   m.querySelectorAll('[data-of]').forEach(b => b.onclick = () => go('import', { openfootball: b.dataset.of }));
 };
 
@@ -476,16 +476,26 @@ VIEWS.matches = async m => {
     <div><label class="f">Season</label><select id="fSe"><option value="">All</option>${seasons.map(s => `<option value="${s}" ${String(s) === String(f.season) ? 'selected' : ''}>${seasonLbl(s)}</option>`).join('')}</select></div>
     <div><label class="f">Club</label><input id="fCl" value="${esc(f.club)}" placeholder="exact name"></div>
     <div><label class="f">Show</label><select id="fMo">${[['all', 'Everything'], ['gaps', 'Gaps'], ['conflicts', 'Conflicts'], ['unverified', 'Results not verified by me']].map(([v, l]) => `<option value="${v}" ${f.mode === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    <div><label class="f">From date</label><input id="fFr" type="date" value="${esc(f.from || '')}"></div>
+    <div><label class="f">To date</label><input id="fTo" type="date" value="${esc(f.to || '')}"></div>
+    <div><label class="f">Order</label><select id="fOr"><option value="asc" ${f.order !== 'desc' ? 'selected' : ''}>Oldest first</option><option value="desc" ${f.order === 'desc' ? 'selected' : ''}>Newest first</option></select></div>
   </div>
+  <div class="row" style="margin-top:10px"><button class="btn sm" data-d="-1">Yesterday</button><button class="btn sm" data-d="0">Today</button><button class="btn sm" data-d="1">Tomorrow</button><button class="btn sm" data-d="x">Any date</button></div>
   <div class="row" style="margin-top:10px"><button class="btn pri" id="fGo">Show</button><button class="btn" id="fNew">Add a match</button><button class="btn" id="fTab" ${f.league && f.season ? '' : 'disabled'}>Table</button></div></div><div id="mOut"></div>`;
-  const read = () => { state.filters = { league: $('#fLg').value, season: $('#fSe').value, club: $('#fCl').value.trim(), mode: $('#fMo').value }; return state.filters; };
+  const read = () => { state.filters = { league: $('#fLg').value, season: $('#fSe').value, club: $('#fCl').value.trim(), mode: $('#fMo').value, from: $('#fFr').value, to: $('#fTo').value, order: $('#fOr').value }; return state.filters; };
   const load = async () => {
     const r = await api('matches', { ...read(), limit: 300 }); state.cache.rows = r.rows;
     $('#fTab').disabled = !(state.filters.league && state.filters.season);
-    $('#mOut').innerHTML = `<p class="mut" style="font-size:13px">${r.total} match${r.total === 1 ? '' : 'es'}${r.total > 300 ? ' (showing the first 300, narrow the filter)' : ''}</p>` + (r.rows.length ? `<div class="card flat">${r.rows.map(x => `<div class="m" data-id="${esc(x.id)}" style="cursor:pointer"><div class="row"><div class="grow"><div class="teams">${esc(x.home)} <span class="mono" style="color:${x.status === 'finished' ? 'var(--tx)' : 'var(--mut)'}">${x.status === 'finished' ? x.hg + '–' + x.ag : 'v'}</span> ${esc(x.away)}</div><div class="meta">${leagueName(x.league)} ${seasonLbl(x.season)} · ${esc(x.round || '')} · ${fmt(x.date)}</div></div>${x.verified ? '<span class="chip ok">verified</span>' : ''}${x.conflict ? `<span class="chip bad">conflict ${x.conflict.hg}-${x.conflict.ag}</span>` : ''}${x.status !== 'finished' && x.status !== 'scheduled' ? `<span class="chip info">${x.status}</span>` : ''}</div></div>`).join('')}</div>` : '<div class="empty">No matches here.</div>');
+    $('#mOut').innerHTML = `<p class="mut" style="font-size:13px">${r.total} match${r.total === 1 ? '' : 'es'}${Object.keys(r.byLeague || {}).length > 1 ? ' (' + Object.entries(r.byLeague).map(([k, n]) => leagueName(k) + ' ' + n).join(', ') + ')' : ''}${r.total > 300 ? ' (showing the first 300, narrow the filter)' : ''}</p>` + (r.rows.length ? `<div class="card flat">${r.rows.map(x => `<div class="m" data-id="${esc(x.id)}" style="cursor:pointer"><div class="row"><div class="grow"><div class="teams">${esc(x.home)} <span class="mono" style="color:${x.status === 'finished' ? 'var(--tx)' : 'var(--mut)'}">${x.status === 'finished' ? x.hg + '–' + x.ag : 'v'}</span> ${esc(x.away)}</div><div class="meta">${leagueName(x.league)} ${seasonLbl(x.season)} · ${esc(x.round || '')} · ${fmt(x.date)}</div></div>${x.verified ? '<span class="chip ok">verified</span>' : ''}${x.conflict ? `<span class="chip bad">conflict ${x.conflict.hg}-${x.conflict.ag}</span>` : ''}${x.status !== 'finished' && x.status !== 'scheduled' ? `<span class="chip info">${x.status}</span>` : ''}</div></div>`).join('')}</div>` : '<div class="empty">No matches here.</div>');
     $('#mOut').querySelectorAll('.m').forEach(el => el.onclick = () => editMatch(state.cache.rows.find(x => x.id === el.dataset.id), load));
   };
   $('#fGo').onclick = ev => run(ev.target, load);
+  m.querySelectorAll('button[data-d]').forEach(b => b.onclick = ev => run(ev.target, async () => {
+    const d = b.dataset.d;
+    if (d === 'x') { $('#fFr').value = ''; $('#fTo').value = ''; }
+    else { const t = new Date(); t.setDate(t.getDate() + Number(d)); const iso = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); $('#fFr').value = iso; $('#fTo').value = iso; }
+    await load();
+  }));
   $('#fNew').onclick = () => editMatch(null, load);
   $('#fTab').onclick = ev => run(ev.target, async () => { read(); const r = await api('table', { league: state.filters.league, season: Number(state.filters.season) }); showTable(r); });
   await load();
@@ -791,7 +801,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.6.3';
+const ADMIN_VERSION = '1.6.4';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

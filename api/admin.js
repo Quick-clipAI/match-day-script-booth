@@ -248,14 +248,16 @@ export default async function handler(req, res) {
         return res.status(200).json(report);
       }
       case 'matches': {
-        const f = { league: body.league || undefined, season: body.season != null && body.season !== '' ? Number(body.season) : undefined, club: body.club || undefined };
+        const f = { league: body.league || undefined, season: body.season != null && body.season !== '' ? Number(body.season) : undefined, club: body.club || undefined, fromDate: /^\d{4}-\d{2}-\d{2}$/.test(body.from || '') ? body.from : undefined, toDate: /^\d{4}-\d{2}-\d{2}$/.test(body.to || '') ? body.to : undefined };
         let rows = await store.listMatches(f);
         const mode = body.mode || 'all';
         if (mode === 'gaps') rows = rows.filter(m => m.status === 'scheduled' && m.date < now);
         else if (mode === 'conflicts') rows = rows.filter(m => m.conflict);
         else if (mode === 'unverified') rows = rows.filter(m => m.status === 'finished' && !m.verified);
+        if (body.order === 'desc') rows = [...rows].reverse();
         const total = rows.length;
-        return res.status(200).json({ total, rows: rows.slice(0, Number(body.limit) || 300) });
+        const byLeague = {}; for (const m of rows) byLeague[m.league] = (byLeague[m.league] || 0) + 1;
+        return res.status(200).json({ total, byLeague, rows: rows.slice(0, Number(body.limit) || 300) });
       }
       case 'saveMatch': {
         const m = body.match || {};

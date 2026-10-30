@@ -693,3 +693,8 @@ Tests: `tests/matchview.test.mjs` (13).
 - Fix: club-spelling aliases that name several spellings (Union SG etc.) crashed the chat's bank lookup; they no longer do.
 - Ligue 1 matcher fix (Paris FC vs Paris Saint-Germain) is included: `node tests/matcher.test.mjs`.
 - Not changed: `index.html` (still v1.3.6), so the Android app needs no update.
+
+## Admin v1.6.4 — Matches tab: date filter
+- New **From date / To date** fields, **Order** (oldest or newest first), and quick buttons **Yesterday / Today / Tomorrow / Any date**.
+- The count line splits the total by league, so "Today" shows how many matches there are per league.
+- Admin-only change; the app version is unchanged.
