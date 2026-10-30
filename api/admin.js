@@ -4,10 +4,10 @@ import { storeFromEnv } from '../lib/bank-store.js';
 import { LEAGUES, LEAGUE_KEYS, norm, makeRow, matchId, isIsoDate, currentSeason, coverageOf, computeTable } from '../lib/bank-core.js';
 import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } from '../lib/bank-sync.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
-import { fetchText, teamsGetter, transfersGetter, squadGetter } from '../lib/apisports.js';
+import { fetchText, teamsGetter, transfersGetter, squadGetter, coachGetter } from '../lib/apisports.js';
 import { clubSuspects, pairKey } from '../lib/club-suspects.js';
 import { normalizeDetail, DETAIL_PROMPT } from '../lib/manual-detail.js';
-import { syncSquads, squadStatus } from '../lib/sync-squads.js';
+import { syncSquads, squadStatus, squadPicker, syncSquadClubs } from '../lib/sync-squads.js';
 import { syncTransfers, transferStatus } from '../lib/sync-transfers.js';
 import { normalizeSquad, staleVariants } from '../lib/bank-squad.js';
 import { normalizeProfiles, computeFlags, yearOf } from '../lib/bank-profiles.js';
@@ -166,6 +166,15 @@ export default async function handler(req, res) {
         const bulk = !!body.bulk;      // bulk: only clubs with no squad, at most 5 per call, stops when the day's quota gets low
         const r = await syncSquads(store, { getSquad: squadGetter(key), force: true, maxRun: bulk ? Math.min(5, Number(body.count) || 5) : 3, emptyOnly: bulk, reserve: Math.max(0, Number(body.reserve) || 30) });
         return res.status(200).json({ ok: true, summary: r.summary, calls: r.calls, remaining: r.remaining, left: r.left, stopped: !!r.stopped, status: await squadStatus(store) });
+      }
+      case 'squadPicker': return res.status(200).json(await squadPicker(store));
+      case 'runSquadClubs': {                // the clubs the person ticked (the page sends a few at a time)
+        const key = (process.env.API_SPORTS_KEY || '').trim();
+        if (!key) return res.status(400).json({ error: 'API_SPORTS_KEY is not set' });
+        const withCoach = !!body.coach, per = withCoach ? 2 : 1;
+        const teamIds = (Array.isArray(body.ids) ? body.ids : []).map(Number).filter(Boolean).slice(0, Math.floor(5 / per));
+        const r = await syncSquadClubs(store, { getSquad: squadGetter(key), getCoach: coachGetter(key), teamIds, withCoach, reserve: Math.max(0, Number(body.reserve) || 30) });
+        return res.status(200).json({ ok: true, ...r, taken: teamIds.length });
       }
       case 'transferStatus': return res.status(200).json(await transferStatus(store));
       case 'runTransfers': {                 // "Fetch now": ignores quiet hours and busy-day limits, still 3 requests at most

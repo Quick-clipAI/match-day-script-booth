@@ -606,8 +606,7 @@ VIEWS.profiles = async m => {
     ${qs ? `<div class="card" style="margin-top:12px"><b>Squads from API-Football</b><p class="mut" style="margin:6px 0 10px">Fetches each club's current squad on spare requests (same quiet-hours rules as transfers, refreshed weekly). Players are matched to Transfermarkt profiles for the full name, birth date and nationality. A club that already has a squad here is never overwritten.</p>
       <div class="mut" style="font-size:13px"><b style="color:var(--tx)">API day ${esc(qs.today)} (UTC, resets 01:00 Lagos):</b> ${qs.matchesToday} match${qs.matchesToday === 1 ? '' : 'es'} today, ${qs.matchesTomorrow} tomorrow${qs.left != null ? ', ' + qs.left + ' requests left at the last run' : ''}.<br>${qs.fetched} of ${qs.clubs} clubs fetched, ${qs.applied} squads filled in.${qs.lastLog ? '<br>Last run: ' + esc(qs.lastLog) : ''}</div>
       <div class="row" style="margin-top:8px"><button class="btn" id="sqGo">Fetch now (up to 3 requests)</button></div>
-      <div class="row" style="margin-top:10px;align-items:flex-end"><div><label class="f">Clubs with no squad: fetch</label><input id="sqN" inputmode="numeric" value="55" style="width:90px"></div><div><label class="f">Keep for live scores</label><input id="sqR" inputmode="numeric" value="30" style="width:90px"></div><button class="btn pri" id="sqBulk">Fetch in batches</button><button class="btn hide" id="sqStop">Stop</button></div>
-      <div class="mut" id="sqProg" style="font-size:13px;margin-top:6px">Skips clubs that already have a squad (no request spent). 5 requests every 40 seconds to respect the 10-a-minute limit; keep this page open. It stops by itself when the day's requests drop to the "keep" number.</div>` : ''}
+      <div class="row" style="margin-top:10px"><button class="btn pri" id="sqPick">Choose leagues / clubs…</button></div><div id="sqPanel"></div>` : ''}
     <h3 style="margin-top:24px" id="flH">May have left (${fl.flags.length})</h3>
     <div class="card flat">${fl.flags.map((f, i) => `<div class="m"><div class="row"><div class="grow"><div class="teams">${esc(f.name)} <span class="chip ${f.kind === 'left' ? 'warn' : ''}">${f.kind === 'left' ? 'left?' : 'mismatch'}</span></div><div class="meta">${esc(f.league)} · our data: ${esc(f.bank_club)}${f.detail && f.detail.on_loan ? ' (on loan)' : ''}</div></div></div><div style="margin:6px 0;font-size:14px">${kindTxt(f)}${f.kind === 'left' ? ' <span class="mut">(could be a loan.)</span>' : ''}</div>
       <div class="row"><button class="btn sm bad" data-fl="${esc(f.key)}" data-d="left">He left: remove from ${esc(f.bank_club)}</button><button class="btn sm" data-fl="${esc(f.key)}" data-d="stay">Our data is right</button></div></div>`).join('') || '<div class="empty">No open flags. Load profiles, then run the check.</div>'}</div>`;
@@ -624,20 +623,49 @@ VIEWS.profiles = async m => {
     $('#prOut').textContent = `${saved} profiles saved. Now run the check below.`; files = []; $('#prGo').disabled = true; toast('Profiles saved', 'ok');
   }, 'Saving…');
   $('#prCheck').onclick = ev => run(ev.target, async () => { const r = await api('checkFlags'); $('#prCheckOut').textContent = `${r.players} players in our squads, ${r.profiles} profiles: ${r.found} difference(s), ${r.added} new flag(s).`; if (r.added) render(); }, 'Checking…');
-  if ($('#sqBulk')) $('#sqBulk').onclick = async () => {
-    const want = Math.max(1, Number($('#sqN').value) || 55), keep = Math.max(0, Number($('#sqR').value) || 30);
-    let done = 0, stop = false; const prog = $('#sqProg'); $('#sqBulk').disabled = true; $('#sqStop').classList.remove('hide'); $('#sqStop').onclick = () => { stop = true; };
-    try {
-      while (!stop && done < want) {
-        const r = await api('runSquads', { bulk: true, count: Math.min(5, want - done), reserve: keep });
-        done += r.calls || 0;
-        prog.textContent = `${done} of ${want} requests used. ${r.left != null ? r.left + ' left today. ' : ''}${r.remaining} club(s) with no squad still to go.`;
-        if (!r.calls || r.stopped || !r.remaining) { prog.textContent += r.stopped ? ' Stopped to keep your live-score requests.' : ' Finished.'; break; }
-        for (let i = 40; i > 0 && !stop; i--) { prog.textContent = `${done} of ${want} requests used, ${r.left != null ? r.left + ' left today, ' : ''}next batch in ${i}s…`; await new Promise(z => setTimeout(z, 1000)); }
-      }
-    } catch (e) { toast(e.message || String(e), 'bad'); }
-    VIEWS.profiles(m);
-  };
+  if ($('#sqPick')) $('#sqPick').onclick = ev => run(ev.target, async () => {
+    const pk = await api('squadPicker'); const panel = $('#sqPanel');
+    const by = {}; pk.clubs.forEach(c => (by[c.league] = by[c.league] || []).push(c));
+    panel.innerHTML = `<div class="card" style="margin-top:10px"><div class="mut" style="font-size:13px;margin-bottom:8px">Tick a whole league or single clubs. Clubs already holding a squad are never overwritten; the API list is only stored for comparison.</div>
+      <div class="row"><button class="btn sm" id="pkEmpty">Tick all clubs with no squad</button><button class="btn sm" id="pkNone">Clear</button></div>
+      ${Object.keys(by).map(l => `<details style="margin-top:8px" data-lg="${esc(l)}"><summary style="cursor:pointer;padding:6px 0"><label><input type="checkbox" class="pkL" data-l="${esc(l)}"> <b>${esc(leagueName(l))}</b></label> <span class="mut" style="font-size:12px">${by[l].filter(c => !c.players).length} of ${by[l].length} have no squad</span></summary>
+        ${by[l].map(c => `<label style="display:block;padding:4px 0 4px 22px"><input type="checkbox" class="pkC" data-l="${esc(l)}" value="${c.api_team_id}" data-club="${esc(c.club)}" data-empty="${c.players ? 0 : 1}"> ${esc(c.club)} <span class="mut" style="font-size:12px">${c.players ? c.players + ' players' : 'no squad'}${c.coach ? ' · coach' : ''}</span></label>`).join('')}</details>`).join('')}
+      <div class="row" style="margin-top:12px;align-items:flex-end"><label style="font-size:14px"><input type="checkbox" id="pkCoach" checked> Also fetch the coach (+1 request per club)</label></div>
+      <div class="row" style="margin-top:8px;align-items:flex-end"><div><label class="f">Keep for live scores</label><input id="pkRes" inputmode="numeric" value="30" style="width:90px"></div><button class="btn pri" id="pkGo">Fetch ticked</button><button class="btn hide" id="pkStop">Stop</button><span class="mut" id="pkCnt" style="font-size:13px"></span></div>
+      <div class="mut" id="pkNow" style="font-size:13px;margin-top:8px">Requests go 5 at a time, then a 40-second pause (the API allows 10 a minute). Keep this page open.</div><div id="pkOut"></div></div>`;
+    const cnt = () => { const n = panel.querySelectorAll('.pkC:checked').length; const req = n * (panel.querySelector('#pkCoach').checked ? 2 : 1); $('#pkCnt').textContent = n ? `${n} club(s), about ${req} request(s)` : ''; };
+    panel.querySelectorAll('.pkL').forEach(x => { x.onclick = e => e.stopPropagation(); x.onchange = () => { panel.querySelectorAll(`.pkC[data-l="${x.dataset.l}"]`).forEach(c => { c.checked = x.checked; }); cnt(); }; });
+    panel.querySelectorAll('.pkC').forEach(x => x.onchange = cnt); $('#pkCoach').onchange = cnt;
+    $('#pkEmpty').onclick = () => { panel.querySelectorAll('.pkC').forEach(c => { c.checked = c.dataset.empty === '1'; }); cnt(); };
+    $('#pkNone').onclick = () => { panel.querySelectorAll('input[type=checkbox].pkC, input.pkL').forEach(c => { c.checked = false; }); cnt(); };
+    let stop = false; $('#pkStop').onclick = () => { stop = true; };
+    $('#pkGo').onclick = async () => {
+      const coach = $('#pkCoach').checked, keep = Math.max(0, Number($('#pkRes').value) || 30);
+      const queue = [...panel.querySelectorAll('.pkC:checked')].map(c => ({ id: Number(c.value), league: c.dataset.l, club: c.dataset.club }));
+      if (!queue.length) return toast('Tick at least one club.', 'bad');
+      const per = coach ? 2 : 1, step = Math.floor(5 / per); let nDone = 0; const out = $('#pkOut'); out.innerHTML = ''; stop = false;
+      $('#pkGo').disabled = true; $('#pkStop').classList.remove('hide'); let cur = null;
+      const group = l => { if (cur !== l) { cur = l; out.insertAdjacentHTML('beforeend', `<h4 style="margin:14px 0 4px">${esc(leagueName(l))}</h4><div class="card flat" data-grp="${esc(l)}"></div>`); } return out.querySelector(`[data-grp="${l}"]`); };
+      try {
+        while (queue.length && !stop) {
+          const batch = queue.splice(0, step);
+          $('#pkNow').textContent = `Now: ${leagueName(batch[0].league)} — ${batch.map(b => b.club).join(', ')} (${nDone + 1} of ${nDone + queue.length + batch.length})…`;
+          const r = await api('runSquadClubs', { ids: batch.map(b => b.id), coach, reserve: keep });
+          for (const x of r.results) {
+            nDone++;
+            const sum = x.error ? `<span style="color:var(--bad)">${esc(x.error)}</span>` : `${x.players.length} players${x.applied ? ` (${x.unmatched} without a Transfermarkt match)` : x.kept ? ` · squad already here, kept (API lists ${x.api_players})` : ' · API has no players for this club'} · coach: ${x.coach ? esc(x.coach) : (x.coach_error ? 'failed' : coach ? 'not found' : 'not fetched')}`;
+            group(x.league).insertAdjacentHTML('beforeend', `<div class="m"><details><summary style="cursor:pointer"><b>${esc(x.club)}</b> <span class="mut" style="font-size:13px">${sum}</span></summary>${x.players.length ? `<table class="t" style="margin-top:6px"><tr><th>#</th><th>Player</th><th>Pos</th><th>Age</th></tr>${x.players.map(p => `<tr><td>${p.shirt ?? ''}</td><td>${esc(p.name)}</td><td>${esc(p.position || '')}</td><td>${p.age ?? ''}</td></tr>`).join('')}</table>` : '<div class="mut" style="font-size:13px;margin-top:6px">No players stored.</div>'}</details></div>`);
+          }
+          const failed = r.results.some(x => x.error);
+          if (r.stopped || failed || r.results.length < batch.length) { $('#pkNow').textContent = failed ? 'Stopped: the API returned an error (see the club above).' : r.stopped ? `Stopped to keep ${keep} requests for live scores${r.left != null ? ` (${r.left} left)` : ''}.` : 'Stopped.'; queue.length = 0; break; }
+          if (queue.length) for (let i = 40; i > 0 && !stop; i--) { $('#pkNow').textContent = `${nDone} done${r.left != null ? ', ' + r.left + ' requests left today' : ''}. Next batch in ${i}s…`; await new Promise(z => setTimeout(z, 1000)); }
+          else $('#pkNow').textContent = `Finished: ${nDone} club(s)${r.left != null ? ', ' + r.left + ' requests left today' : ''}.`;
+        }
+        if (stop) $('#pkNow').textContent = `Stopped by you after ${nDone} club(s).`;
+      } catch (e) { toast(e.message || String(e), 'bad'); }
+      $('#pkGo').disabled = false; $('#pkStop').classList.add('hide');
+    };
+  }, 'Loading clubs…');
   if ($('#sqGo')) $('#sqGo').onclick = ev => run(ev.target, async () => { const r = await api('runSquads'); toast(r.summary, r.calls ? 'ok' : undefined); VIEWS.profiles(m); }, 'Fetching…');
   if ($('#trGo')) $('#trGo').onclick = ev => run(ev.target, async () => { const r = await api('runTransfers'); toast(r.summary, r.calls ? 'ok' : undefined); VIEWS.profiles(m); }, 'Fetching…');
   // answers are remembered here and sent together when you press Confirm (the page does not reload per tap)
@@ -817,7 +845,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.6.5';
+const ADMIN_VERSION = '1.6.6';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

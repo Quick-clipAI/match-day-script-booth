@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { createMemoryStore } from '../lib/bank-store.js';
 import { normalizeProfiles } from '../lib/bank-profiles.js';
-import { compactSquad, matchSquad, squadRows, syncSquads } from '../lib/sync-squads.js';
+import { compactSquad, matchSquad, squadRows, syncSquads, syncSquadClubs, squadPicker, compactCoach } from '../lib/sync-squads.js';
 let n = 0; const t = async (name, fn) => { try { await fn(); n++; } catch (e) { console.log('FAIL', name, e.stack); process.exitCode = 1; } };
 const Q = Date.parse('2026-10-30T03:00:00Z');
 const prof = normalizeProfiles([
@@ -46,5 +46,19 @@ await t('forced run works on a busy day; emptyOnly spends nothing on clubs that 
   w2.calls.length = 0;
   const r2 = await syncSquads(w2.s, { getSquad: async id => { w2.calls.push(id); const j = { response: [{ players: [] }] }; Object.defineProperty(j, '__left', { value: 30 }); return j; }, force: true, now: Q, maxRun: 5, reserve: 30 });
   assert.equal(r2.calls, 1); assert.equal(r2.stopped, true);
+});
+await t('ticked clubs: per-club result with players and coach; existing squad kept; reserve stops', async () => {
+  const w = await world();
+  await w.s.upsertPlayers([{ id: 'EPL|2026|arsenal|x', league: 'EPL', season: 2026, club: 'Arsenal', name: 'X', shirt: 9 }]);
+  const pk = await squadPicker(w.s); assert.equal(pk.clubs.find(c => c.club === 'Arsenal').players, 1); assert.equal(pk.clubs.find(c => c.club === 'Leeds').players, 0);
+  const coachJson = { response: [{ name: 'Daniel Farke', nationality: 'Germany', career: [{ team: { id: 99 }, end: '2020' }, { team: { id: 63 }, end: null }] }] };
+  assert.equal(compactCoach(coachJson, 63).name, 'Daniel Farke'); assert.equal(compactCoach(coachJson, 42), null);
+  const sq = async id => id === 63 ? api : { response: [{ players: [{ id: 3, name: 'Jon Smith', age: 31, number: 7, position: 'Attacker' }] }] };
+  const r = await syncSquadClubs(w.s, { getSquad: sq, getCoach: async () => coachJson, teamIds: [63, 42], withCoach: true, now: Q });
+  assert.equal(r.calls, 4); assert.equal(r.results[0].club, 'Leeds'); assert.equal(r.results[0].applied, true); assert.equal(r.results[0].players.length, 4); assert.equal(r.results[0].coach, 'Daniel Farke');
+  assert.equal(r.results[1].kept, true); assert.equal(r.results[1].players.length, 1);
+  const w2 = await world(); const lowLeft = async id => { const j = id === 63 ? api : { response: [] }; Object.defineProperty(j, '__left', { value: 20, configurable: true }); return j; };
+  const r2 = await syncSquadClubs(w2.s, { getSquad: lowLeft, teamIds: [63, 42], reserve: 30, now: Q });
+  assert.equal(r2.results.length, 1); assert.equal(r2.stopped, true);
 });
 console.log(n + ' squad tests passed');

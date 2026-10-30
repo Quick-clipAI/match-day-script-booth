@@ -705,3 +705,11 @@ Tests: `tests/matchview.test.mjs` (13).
 - "Fetch now" is a manual call, so it is no longer blocked by the busy-day allowance (the reserve still protects live scores). The automatic job keeps its rules.
 - Matches tab: the **Today / Yesterday / Tomorrow** buttons use the UTC date, like API-Football.
 - Transfers "Fetch now" still follows the busy-day rule; say if you want it changed too.
+
+## Admin v1.6.6 — pick leagues / clubs for the squad fetch
+- Profiles → Squads → **Choose leagues / clubs…**: each league is a drop-down with a tick for the whole league, and a tick per club (each shows "no squad" or its player count). **Tick all clubs with no squad** is a shortcut.
+- Optional **coach** fetch (`coachs?team=`, +1 request per club); the current coach is the one whose career entry at that club has no end date.
+- While it runs the page shows the league and club in progress, then a result card per club as it finishes: players stored, how many have no Transfermarkt match, coach, and a drop-down listing the players (shirt, name, position, age).
+- 5 requests per batch then a 40-second pause; it stops by itself when the day's requests drop to the "keep for live scores" number or on an API error.
+- A club that already has a squad is never overwritten (the card says so and shows the stored players).
+- Replaces the v1.6.5 "Fetch in batches" count box.
