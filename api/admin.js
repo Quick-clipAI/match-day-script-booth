@@ -163,8 +163,9 @@ export default async function handler(req, res) {
       case 'runSquads': {                    // "Fetch now": ignores quiet hours and busy-day limits, still 3 requests at most
         const key = (process.env.API_SPORTS_KEY || '').trim();
         if (!key) return res.status(400).json({ error: 'API_SPORTS_KEY is not set' });
-        const r = await syncSquads(store, { getSquad: squadGetter(key), force: true, maxRun: 3 });
-        return res.status(200).json({ ok: true, summary: r.summary, calls: r.calls, status: await squadStatus(store) });
+        const bulk = !!body.bulk;      // bulk: only clubs with no squad, at most 5 per call, stops when the day's quota gets low
+        const r = await syncSquads(store, { getSquad: squadGetter(key), force: true, maxRun: bulk ? Math.min(5, Number(body.count) || 5) : 3, emptyOnly: bulk, reserve: Math.max(0, Number(body.reserve) || 30) });
+        return res.status(200).json({ ok: true, summary: r.summary, calls: r.calls, remaining: r.remaining, left: r.left, stopped: !!r.stopped, status: await squadStatus(store) });
       }
       case 'transferStatus': return res.status(200).json(await transferStatus(store));
       case 'runTransfers': {                 // "Fetch now": ignores quiet hours and busy-day limits, still 3 requests at most

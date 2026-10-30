@@ -34,4 +34,17 @@ await t('fills a club with no squad, keeps a club that already has one, refreshe
   assert.equal((await w.run({ now: Q + 8 * 864e5 })).calls, 2);
   assert.equal((await w.run({ now: Date.parse('2026-10-30T14:00:00Z') + 20 * 864e5 })).calls, 0);        // daytime
 });
+await t('forced run works on a busy day; emptyOnly spends nothing on clubs that have a squad; reserve stops it', async () => {
+  const w = await world();
+  const many = []; for (let i = 0; i < 31; i++) many.push(mm({ home: 'H' + i, away: 'A' + i }));
+  await w.s.upsertMatches(many.map(x => ({ ...x, date: '2026-10-30' })));
+  await w.s.upsertPlayers([{ id: 'EPL|2026|arsenal|x', league: 'EPL', season: 2026, club: 'Arsenal', name: 'X' }]);
+  assert.equal((await w.run({ now: Q })).calls, 0);                                   // automatic: busy day, nothing
+  const r = await w.run({ now: Q, force: true, emptyOnly: true });
+  assert.equal(r.calls, 1); assert.equal(r.applied, 1); assert.deepEqual(w.calls, [63]);   // Arsenal skipped, no request
+  const w2 = await world();
+  w2.calls.length = 0;
+  const r2 = await syncSquads(w2.s, { getSquad: async id => { w2.calls.push(id); const j = { response: [{ players: [] }] }; Object.defineProperty(j, '__left', { value: 30 }); return j; }, force: true, now: Q, maxRun: 5, reserve: 30 });
+  assert.equal(r2.calls, 1); assert.equal(r2.stopped, true);
+});
 console.log(n + ' squad tests passed');

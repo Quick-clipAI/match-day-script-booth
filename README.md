@@ -698,3 +698,10 @@ Tests: `tests/matchview.test.mjs` (13).
 - New **From date / To date** fields, **Order** (oldest or newest first), and quick buttons **Yesterday / Today / Tomorrow / Any date**.
 - The count line splits the total by league, so "Today" shows how many matches there are per league.
 - Admin-only change; the app version is unchanged.
+
+## Admin v1.6.5 — bulk squad fetch, API-day plan
+- Profiles → Squads: **Fetch in batches**. It fetches only clubs that have no squad (clubs that already have one cost no request), 5 requests every 40 seconds to respect the 10-a-minute limit, and stops by itself when the day's remaining requests drop to the "keep for live scores" number (default 30). Keep the page open while it runs.
+- The squads card now shows the **API day (UTC)**: matches today and tomorrow, and requests left at the last run. API-Football's day resets at 00:00 UTC (01:00 Lagos).
+- "Fetch now" is a manual call, so it is no longer blocked by the busy-day allowance (the reserve still protects live scores). The automatic job keeps its rules.
+- Matches tab: the **Today / Yesterday / Tomorrow** buttons use the UTC date, like API-Football.
+- Transfers "Fetch now" still follows the busy-day rule; say if you want it changed too.
