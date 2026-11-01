@@ -727,19 +727,23 @@ Tests: `tests/matchview.test.mjs` (13).
 ## Admin v1.6.9 — link only the clubs that are not linked
 - The "not linked" card now lists just those clubs (ticked by default, small tick on the right). **Link ticked clubs** searches only those by name (1 request each), instead of going league by league.
 
-## Admin v1.6.10 — linking shows why a club was not linked
+## Admin v1.7.0 (was numbered v1.6.10 by mistake) — linking shows why a club was not linked
 - Each club the name search could not link now shows the reason and what API-Football answered ("API returned nothing", "none fits — API said: …"), also saved in the Log.
 
-## Admin v1.6.11 — link clubs by hand, and spot second spellings
+## Admin v1.7.1 (was numbered v1.6.11 by mistake) — link clubs by hand, and spot second spellings
 - Each unlinked club now has a drop-down of the **API-Football club names we already hold** (free, no request) and a **Link** button. Linking is saved with source "manual".
 - Clubs that are just a second spelling of an already-linked club (SSC Napoli / Napoli, SS Lazio / Lazio, Como 1907 / Como, Leipzig / RB Leipzig) are flagged "Merge them in Clubs → Needs checking", not linked: they need merging, not a new API id.
 - **Read more API-Football club lists** (Ligue 2, 2. Bundesliga, Liga MX; 1 request each) adds the names of clubs that were in a lower league in 2024, so they can be picked by hand.
 - "D.C. United" now matches "DC United" (dots ignored).
 - The name search was dropped from the screen (it returned nothing for names with prefixes such as "SSC Napoli"); the code stays for later.
 
-## Admin v1.6.12 — picker fixes
+## Admin v1.7.2 (was numbered v1.6.12 by mistake) — picker fixes
 - Opening the picker now name-matches known API clubs for free ("DC United" = "D.C. United").
 - The drop-down also offers API clubs that were linked from fixtures under a name we no longer use (e.g. "Lazio · now linked as Lazio" for our "SS Lazio"). Choosing one re-links it to our spelling. Links to a club that is in this season's list are still refused.
 
-## Admin v1.6.13 — search one club by hand
+## Admin v1.7.3 (was numbered v1.6.13 by mistake) — search one club by hand
 - Each unlinked club has a text box (pre-filled with its name) and **Search API (1 request)**. The API's matches are added to that club's drop-down, labelled "search result"; nothing is linked until you pick one and tap **Link**. Edit the text to try a shorter name ("San Diego FC").
+
+## Admin v1.7.4 — faster squad fetch
+- 8 requests per batch and one batch a minute (was 4–5 requests then a 40-second pause), so ticked clubs with coaches take about 4 clubs a minute. The pause counts from the start of the batch. The screen is kept awake while it runs (where the phone allows it).
+- Version numbering: the last digit runs 0–9, then the middle one goes up (the four updates before this were numbered 1.6.10–1.6.13 by mistake and are now listed as 1.7.0–1.7.3).

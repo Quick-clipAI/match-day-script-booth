@@ -649,7 +649,7 @@ VIEWS.profiles = async m => {
         ${by[l].map(c => `<label style="display:flex;align-items:center;gap:10px;padding:5px 0 5px 22px;${c.api_team_id ? '' : 'opacity:.55'}"><span style="flex:1">${esc(c.club)} <span class="mut" style="font-size:12px">${!c.api_team_id ? 'not linked to API-Football yet' : c.players ? c.players + ' players' : 'no squad'}${c.coach ? ' · coach' : ''}</span></span><input type="checkbox" class="pkC tk" data-l="${esc(l)}" value="${c.api_team_id || ''}" data-club="${esc(c.club)}" data-empty="${c.players ? 0 : 1}" ${c.api_team_id ? '' : 'disabled'}></label>`).join('')}</details>`).join('')}
       <div class="row" style="margin-top:12px;align-items:flex-end"><label style="font-size:14px"><input type="checkbox" id="pkCoach" class="tk" checked> Also fetch the coach (+1 request per club)</label></div>
       <div class="row" style="margin-top:8px;align-items:flex-end"><div><label class="f">Keep for live scores</label><input id="pkRes" inputmode="numeric" value="30" style="width:90px"></div><button class="btn pri" id="pkGo">Fetch ticked</button><button class="btn hide" id="pkStop">Stop</button><span class="mut" id="pkCnt" style="font-size:13px"></span></div>
-      <div class="mut" id="pkNow" style="font-size:13px;margin-top:8px">Requests go 5 at a time, then a 40-second pause (the API allows 10 a minute). Keep this page open.</div><div id="pkOut"></div></div>`;
+      <div class="mut" id="pkNow" style="font-size:13px;margin-top:8px">Requests go 8 at a time, one batch a minute (the API allows 10 a minute). Keep this page open; the screen is kept awake while it runs.</div><div id="pkOut"></div></div>`;
     const cnt = () => { const n = panel.querySelectorAll('.pkC:checked:not(:disabled)').length; const req = n * (panel.querySelector('#pkCoach').checked ? 2 : 1); $('#pkCnt').textContent = n ? `${n} club(s), about ${req} request(s)` : ''; };
     panel.querySelectorAll('.pkL').forEach(x => { x.onclick = e => e.stopPropagation(); x.onchange = () => { panel.querySelectorAll(`.pkC[data-l="${x.dataset.l}"]:not(:disabled)`).forEach(c => { c.checked = x.checked; }); cnt(); }; });
     panel.querySelectorAll('.pkC').forEach(x => x.onchange = cnt); $('#pkCoach').onchange = cnt;
@@ -677,12 +677,12 @@ VIEWS.profiles = async m => {
       const coach = $('#pkCoach').checked, keep = Math.max(0, Number($('#pkRes').value) || 30);
       const queue = [...panel.querySelectorAll('.pkC:checked')].filter(c => c.value).map(c => ({ id: Number(c.value), league: c.dataset.l, club: c.dataset.club }));
       if (!queue.length) return toast('Tick at least one club.', 'bad');
-      const per = coach ? 2 : 1, step = Math.floor(5 / per); let nDone = 0; const out = $('#pkOut'); out.innerHTML = ''; stop = false;
+      const per = coach ? 2 : 1, step = Math.floor(8 / per); let wl = null; try { wl = await navigator.wakeLock.request('screen'); } catch (e) {} let nDone = 0; const out = $('#pkOut'); out.innerHTML = ''; stop = false;
       $('#pkGo').disabled = true; $('#pkStop').classList.remove('hide'); let cur = null;
       const group = l => { if (cur !== l) { cur = l; out.insertAdjacentHTML('beforeend', `<h4 style="margin:14px 0 4px">${esc(leagueName(l))}</h4><div class="card flat" data-grp="${esc(l)}"></div>`); } return out.querySelector(`[data-grp="${l}"]`); };
       try {
         while (queue.length && !stop) {
-          const batch = queue.splice(0, step);
+          const batch = queue.splice(0, step); const t0 = Date.now();
           $('#pkNow').textContent = `Now: ${leagueName(batch[0].league)} — ${batch.map(b => b.club).join(', ')} (${nDone + 1} of ${nDone + queue.length + batch.length})…`;
           const r = await api('runSquadClubs', { ids: batch.map(b => b.id), coach, reserve: keep }); refreshQuota();
           for (const x of r.results) {
@@ -692,11 +692,12 @@ VIEWS.profiles = async m => {
           }
           const failed = r.results.some(x => x.error);
           if (r.stopped || failed || r.results.length < batch.length) { $('#pkNow').textContent = failed ? 'Stopped: the API returned an error (see the club above).' : r.stopped ? `Stopped to keep ${keep} requests for live scores${r.left != null ? ` (${r.left} left)` : ''}.` : 'Stopped.'; queue.length = 0; break; }
-          if (queue.length) for (let i = 40; i > 0 && !stop; i--) { $('#pkNow').textContent = `${nDone} done${r.left != null ? ', ' + r.left + ' requests left today' : ''}. Next batch in ${i}s…`; await new Promise(z => setTimeout(z, 1000)); }
+          if (queue.length) for (let i = Math.max(1, 60 - Math.round((Date.now() - t0) / 1000)); i > 0 && !stop; i--) { $('#pkNow').textContent = `${nDone} done${r.left != null ? ', ' + r.left + ' requests left today' : ''}. Next batch in ${i}s…`; await new Promise(z => setTimeout(z, 1000)); }
           else $('#pkNow').textContent = `Finished: ${nDone} club(s)${r.left != null ? ', ' + r.left + ' requests left today' : ''}.`;
         }
         if (stop) $('#pkNow').textContent = `Stopped by you after ${nDone} club(s).`;
       } catch (e) { toast(e.message || String(e), 'bad'); }
+      try { wl && wl.release(); } catch (e) {}
       $('#pkGo').disabled = false; $('#pkStop').classList.add('hide');
     };
   }, 'Loading clubs…');
@@ -879,7 +880,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.6.13';
+const ADMIN_VERSION = '1.7.4';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

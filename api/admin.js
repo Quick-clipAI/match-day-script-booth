@@ -211,7 +211,7 @@ export default async function handler(req, res) {
         const key = (process.env.API_SPORTS_KEY || '').trim();
         if (!key) return res.status(400).json({ error: 'API_SPORTS_KEY is not set' });
         const withCoach = !!body.coach, per = withCoach ? 2 : 1;
-        const teamIds = (Array.isArray(body.ids) ? body.ids : []).map(Number).filter(Boolean).slice(0, Math.floor(5 / per));
+        const teamIds = (Array.isArray(body.ids) ? body.ids : []).map(Number).filter(Boolean).slice(0, Math.floor(8 / per));
         const r = await syncSquadClubs(store, { getSquad: squadGetter(key), getCoach: coachGetter(key), teamIds, withCoach, reserve: Math.max(0, Number(body.reserve) || 30) });
         return res.status(200).json({ ok: true, ...r, taken: teamIds.length });
       }
