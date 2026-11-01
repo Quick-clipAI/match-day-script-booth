@@ -747,3 +747,9 @@ Tests: `tests/matchview.test.mjs` (13).
 ## Admin v1.7.4 — faster squad fetch
 - 8 requests per batch and one batch a minute (was 4–5 requests then a 40-second pause), so ticked clubs with coaches take about 4 clubs a minute. The pause counts from the start of the batch. The screen is kept awake while it runs (where the phone allows it).
 - Version numbering: the last digit runs 0–9, then the middle one goes up (the four updates before this were numbered 1.6.10–1.6.13 by mistake and are now listed as 1.7.0–1.7.3).
+
+## v1.7.5 — full match statistics for Premier League and La Liga only; request guard
+- **Match details** (events, line-ups, ratings, statistics: 1 request per finished match) are now fetched only for **EPL and LALIGA** matches. Other leagues still get their result (one request per date covers every league). Set `DETAIL_LEAGUES` (e.g. `EPL,LALIGA,SERIEA` or `*`) to change this.
+- **Request guard:** the due-sync and details jobs now record the API's own "requests left today". When 15 or fewer are left, details wait so the results of the day still get fetched. A number from a previous UTC day never blocks anything.
+- **Dates follow the API:** when the API reports a different kick-off day for a match that has not been played, our date moves to it (not for cups, whose ids contain the date). A rescheduled import drops the old kick-off. Done by hand today: Deportivo La Coruña v Osasuna (2 Nov), Lorient v Brest (2 Nov), Lyon v Angers (1 Nov); three postponed Saudi matches lost their stale kick-off.
+- Header version is the admin version (1.7.5).
