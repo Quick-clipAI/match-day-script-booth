@@ -7,7 +7,7 @@ import { runSync, safeEq } from '../lib/sync-run.js';
 import { fetchText, teamsGetter, transfersGetter, squadGetter, coachGetter, searchTeamsGetter, statusGetter, quotaOf } from '../lib/apisports.js';
 import { clubSuspects, pairKey } from '../lib/club-suspects.js';
 import { normalizeDetail, DETAIL_PROMPT } from '../lib/manual-detail.js';
-import { linkClubs } from '../lib/link-clubs.js';
+import { linkClubs, readExtraLists } from '../lib/link-clubs.js';
 import { syncSquads, squadStatus, squadPicker, syncSquadClubs } from '../lib/sync-squads.js';
 import { syncTransfers, transferStatus } from '../lib/sync-transfers.js';
 import { normalizeSquad, staleVariants } from '../lib/bank-squad.js';
@@ -179,6 +179,20 @@ export default async function handler(req, res) {
         if (!key) return res.status(400).json({ error: 'API_SPORTS_KEY is not set' });
         const r = await linkClubs(store, { getTeams: teamsGetter(key), searchTeams: searchTeamsGetter(key), search: !!body.search, maxCalls: 5, reserve: Math.max(0, Number(body.reserve) || 30), tried: Array.isArray(body.tried) ? body.tried.map(String) : [], only: Array.isArray(body.only) ? body.only.map(String) : null });
         return res.status(200).json({ ok: true, ...r });
+      }
+      case 'readExtraLists': {               // 1 request per ticked league
+        const key = (process.env.API_SPORTS_KEY || '').trim();
+        if (!key) return res.status(400).json({ error: 'API_SPORTS_KEY is not set' });
+        return res.status(200).json({ ok: true, ...(await readExtraLists(store, { getTeams: teamsGetter(key), leagues: (Array.isArray(body.leagues) ? body.leagues : []).map(Number).slice(0, 6), reserve: Math.max(0, Number(body.reserve) || 30) })) });
+      }
+      case 'linkManual': {                   // free: the person picked the API club for one of ours
+        const id = Number(body.api_team_id), league = String(body.league || ''), club = String(body.club || '').trim();
+        if (!id || !LEAGUES[league] || !club) return fail(res, 400, 'Pick a club and an API club.');
+        const known = (await store.listTeamIds()).find(i => i.api_team_id === id);
+        if (known && known.club && known.club !== club) return fail(res, 409, `That API club is already linked to ${known.club}.`);
+        await store.upsertTeamIds([{ api_team_id: id, league, club, api_name: (known && known.api_name) || null, source: 'manual' }]);
+        await store.addLog({ kind: 'link-clubs', ok: true, summary: `Linked by hand: ${club} (${league}) = API team ${id}${known && known.api_name ? ' "' + known.api_name + '"' : ''}.` });
+        return res.status(200).json({ ok: true });
       }
       case 'squadPicker': return res.status(200).json(await squadPicker(store));
       case 'runSquadClubs': {                // the clubs the person ticked (the page sends a few at a time)

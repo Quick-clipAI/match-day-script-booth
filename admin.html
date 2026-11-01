@@ -639,9 +639,12 @@ VIEWS.profiles = async m => {
     const pk = await api('squadPicker'); const panel = $('#sqPanel');
     const by = {}; pk.clubs.forEach(c => (by[c.league] = by[c.league] || []).push(c));
     panel.innerHTML = `<div class="card" style="margin-top:10px"><div class="mut" style="font-size:13px;margin-bottom:8px">Tick a whole league or single clubs. Clubs already holding a squad are never overwritten; the API list is only stored for comparison.</div>
-      <div class="row"><button class="btn sm" id="pkEmpty">Tick all clubs with no squad</button><button class="btn sm" id="pkNone">Clear</button></div>${pk.clubs.some(c => !c.api_team_id) ? `<div class="card flat" style="margin-top:10px;padding:10px"><b>${pk.clubs.filter(c => !c.api_team_id).length} club(s) not linked to API-Football</b><div class="mut" style="font-size:13px;margin:4px 0 8px">Tick the ones to link. Each is searched by name (1 request per club) and linked only when exactly one club of the right country fits; unclear ones stay unlinked.</div>
-      ${pk.clubs.filter(c => !c.api_team_id).map(c => `<label style="display:flex;align-items:center;gap:10px;padding:4px 0"><span style="flex:1">${esc(c.club)} <span class="mut" style="font-size:12px">${esc(leagueName(c.league))}</span></span><input type="checkbox" class="lkC tk" value="${esc(c.league + '|' + c.club)}" checked></label>`).join('')}
-      <div class="row" style="margin-top:8px"><button class="btn" id="lkGo">Link ticked clubs</button><span class="mut" id="lkMsg" style="font-size:13px"></span></div><div class="mut" id="lkLog" style="font-size:12px;margin-top:6px"></div></div>` : ''}
+      <div class="row"><button class="btn sm" id="pkEmpty">Tick all clubs with no squad</button><button class="btn sm" id="pkNone">Clear</button></div>${pk.clubs.some(c => !c.api_team_id) ? `<div class="card flat" style="margin-top:10px;padding:10px"><b>${pk.clubs.filter(c => !c.api_team_id).length} club(s) not linked to API-Football</b><div class="mut" style="font-size:13px;margin:4px 0 8px">Pick the matching API-Football club for each one (free, no request). The list holds the club names we already know from API-Football. If a club is missing from it, read more club lists below (1 request per list).</div>
+      ${pk.clubs.filter(c => !c.api_team_id).map(c => `<div style="padding:6px 0;border-top:1px solid var(--line,#8884)"><div>${esc(c.club)} <span class="mut" style="font-size:12px">${esc(leagueName(c.league))}</span></div>${c.dupOf ? `<div class="mut" style="font-size:13px">Looks like a second spelling of <b style="color:var(--tx)">${esc(c.dupOf)}</b>, which is already linked. Merge them in Clubs → Needs checking instead.</div>` : `<div class="row" style="margin-top:4px;flex-wrap:nowrap"><select class="lkSel" data-l="${esc(c.league)}" data-c="${esc(c.club)}" style="flex:1;min-width:0"><option value="">Choose the API-Football club…</option>${[...pk.apiNames].sort((x, y) => (x.league === c.league ? 0 : 1) - (y.league === c.league ? 0 : 1) || x.api_name.localeCompare(y.api_name)).map(x => `<option value="${x.api_team_id}">${esc(x.api_name)}${x.league === 'EXTRA' ? ' (other league)' : ' (' + esc(leagueName(x.league)) + ')'}</option>`).join('')}</select><button class="btn sm lkOne">Link</button></div>`}</div>`).join('')}
+      <div style="margin-top:10px;border-top:1px solid var(--line,#8884);padding-top:8px"><b style="font-size:14px">Read more API-Football club lists</b>
+      <div class="mut" style="font-size:13px;margin:2px 0 6px">For clubs that were in a lower league in 2024 (the free plan only has 2022–2024).</div>
+      ${[[62, 'Ligue 2 (Lorient …)'], [79, '2. Bundesliga (Köln …)'], [262, 'Liga MX (León, Monterrey, Cruz Azul …)']].map(([id, n]) => `<label style="display:flex;align-items:center;gap:10px;padding:3px 0"><span style="flex:1">${n}</span><input type="checkbox" class="lkX tk" value="${id}"></label>`).join('')}
+      <div class="row" style="margin-top:6px"><button class="btn" id="lkRead">Read ticked lists</button><span class="mut" id="lkMsg" style="font-size:13px"></span></div></div></div>` : ''}
       ${Object.keys(by).map(l => `<details style="margin-top:6px;border-top:1px solid var(--line,#8884)" data-lg="${esc(l)}"><summary style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:8px 0;list-style:none"><span class="mut">▸</span><b style="flex:1">${esc(leagueName(l))}</b><span class="mut" style="font-size:12px">${by[l].filter(c => c.api_team_id && !c.players).length} no squad${by[l].some(c => !c.api_team_id) ? ' · ' + by[l].filter(c => !c.api_team_id).length + ' not linked' : ''} · ${by[l].length} clubs</span><input type="checkbox" class="pkL tk" data-l="${esc(l)}" title="Tick the whole league"></summary>
         ${by[l].map(c => `<label style="display:flex;align-items:center;gap:10px;padding:5px 0 5px 22px;${c.api_team_id ? '' : 'opacity:.55'}"><span style="flex:1">${esc(c.club)} <span class="mut" style="font-size:12px">${!c.api_team_id ? 'not linked to API-Football yet' : c.players ? c.players + ' players' : 'no squad'}${c.coach ? ' · coach' : ''}</span></span><input type="checkbox" class="pkC tk" data-l="${esc(l)}" value="${c.api_team_id || ''}" data-club="${esc(c.club)}" data-empty="${c.players ? 0 : 1}" ${c.api_team_id ? '' : 'disabled'}></label>`).join('')}</details>`).join('')}
       <div class="row" style="margin-top:12px;align-items:flex-end"><label style="font-size:14px"><input type="checkbox" id="pkCoach" class="tk" checked> Also fetch the coach (+1 request per club)</label></div>
@@ -652,21 +655,16 @@ VIEWS.profiles = async m => {
     panel.querySelectorAll('.pkC').forEach(x => x.onchange = cnt); $('#pkCoach').onchange = cnt;
     $('#pkEmpty').onclick = () => { panel.querySelectorAll('.pkC:not(:disabled)').forEach(c => { c.checked = c.dataset.empty === '1'; }); cnt(); };
     $('#pkNone').onclick = () => { panel.querySelectorAll('input[type=checkbox].pkC, input.pkL').forEach(c => { c.checked = false; }); cnt(); };
-    if ($('#lkGo')) $('#lkGo').onclick = async () => {
-      const only = [...panel.querySelectorAll('.lkC:checked')].map(x => x.value); if (!only.length) return toast('Tick at least one club.', 'bad');
-      $('#lkGo').disabled = true; const tried = []; let total = 0, reqs = 0;
-      try {
-        for (let round = 0; round < 12; round++) {
-          const r = await api('linkClubs', { search: true, only, tried, reserve: Math.max(0, Number($('#pkRes').value) || 30) }); refreshQuota();
-          total += r.linked.length; reqs += r.calls; r.skipped.forEach(x => { tried.push(x.league + '|' + x.club); $('#lkLog').insertAdjacentHTML('beforeend', `<div style="padding:3px 0"><b>${esc(x.club)}</b>: ${esc(x.why)}${x.seen && x.seen.length ? ' — API said: ' + esc(x.seen.join('; ')) : ''}</div>`); }); r.linked.forEach(x => { if (x.how === 'search') tried.push(x.league + '|' + x.club); });
-          $('#lkMsg').textContent = `${total} linked, ${reqs} request(s)${r.left != null ? ', ' + r.left + ' left' : ''}; ${r.unlinked.length} not linked yet…`;
-          if (r.error) { $('#lkMsg').textContent += ' Stopped: ' + r.error; break; }
-          if (!r.calls) { $('#lkMsg').textContent = `Done: ${total} linked, ${reqs} request(s); ${r.unlinked.length} still not linked.`; break; }
-          for (let i = 40; i > 0; i--) { $('#lkMsg').textContent = `${total} linked, ${reqs} request(s)${r.left != null ? ', ' + r.left + ' left' : ''}. Next batch in ${i}s…`; await new Promise(z => setTimeout(z, 1000)); }
-        }
-      } catch (e) { toast(e.message || String(e), 'bad'); }
-      $('#lkGo').disabled = false; toast('Linking finished. Reopen "Choose leagues / clubs" to see the new links.', 'ok');
-    };
+    panel.querySelectorAll('.lkOne').forEach(b => b.onclick = () => run(b, async () => {
+      const sel = b.parentElement.querySelector('.lkSel'); if (!sel.value) return toast('Choose the API-Football club first.', 'bad');
+      await api('linkManual', { api_team_id: Number(sel.value), league: sel.dataset.l, club: sel.dataset.c });
+      toast(sel.dataset.c + ' linked.', 'ok'); b.closest('div[style*="border-top"]').remove();
+    }));
+    if ($('#lkRead')) $('#lkRead').onclick = ev => run(ev.target, async () => {
+      const leagues = [...panel.querySelectorAll('.lkX:checked')].map(x => Number(x.value)); if (!leagues.length) return toast('Tick at least one list.', 'bad');
+      const r = await api('readExtraLists', { leagues, reserve: Math.max(0, Number($('#pkRes').value) || 30) }); refreshQuota();
+      $('#lkMsg').textContent = r.summary + '. Tap "Choose leagues / clubs…" again to see the new names.'; toast(r.error ? r.error : 'Lists read.', r.error ? 'bad' : 'ok');
+    }, 'Reading…');
     let stop = false; $('#pkStop').onclick = () => { stop = true; };
     $('#pkGo').onclick = async () => {
       const coach = $('#pkCoach').checked, keep = Math.max(0, Number($('#pkRes').value) || 30);
@@ -874,7 +872,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.6.10';
+const ADMIN_VERSION = '1.6.11';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

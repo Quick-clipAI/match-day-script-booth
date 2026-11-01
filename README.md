@@ -729,3 +729,10 @@ Tests: `tests/matchview.test.mjs` (13).
 
 ## Admin v1.6.10 — linking shows why a club was not linked
 - Each club the name search could not link now shows the reason and what API-Football answered ("API returned nothing", "none fits — API said: …"), also saved in the Log.
+
+## Admin v1.6.11 — link clubs by hand, and spot second spellings
+- Each unlinked club now has a drop-down of the **API-Football club names we already hold** (free, no request) and a **Link** button. Linking is saved with source "manual".
+- Clubs that are just a second spelling of an already-linked club (SSC Napoli / Napoli, SS Lazio / Lazio, Como 1907 / Como, Leipzig / RB Leipzig) are flagged "Merge them in Clubs → Needs checking", not linked: they need merging, not a new API id.
+- **Read more API-Football club lists** (Ligue 2, 2. Bundesliga, Liga MX; 1 request each) adds the names of clubs that were in a lower league in 2024, so they can be picked by hand.
+- "D.C. United" now matches "DC United" (dots ignored).
+- The name search was dropped from the screen (it returned nothing for names with prefixes such as "SSC Napoli"); the code stays for later.

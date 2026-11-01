@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { createMemoryStore } from '../lib/bank-store.js';
 import { normalizeProfiles } from '../lib/bank-profiles.js';
-import { looseSame, rematch, linkClubs } from '../lib/link-clubs.js';
+import { looseSame, rematch, linkClubs, readExtraLists } from '../lib/link-clubs.js';
 import { compactSquad, matchSquad, squadRows, syncSquads, syncSquadClubs, squadPicker, compactCoach } from '../lib/sync-squads.js';
 let n = 0; const t = async (name, fn) => { try { await fn(); n++; } catch (e) { console.log('FAIL', name, e.stack); process.exitCode = 1; } };
 const Q = Date.parse('2026-10-30T03:00:00Z');
@@ -85,5 +85,13 @@ await t('link only the ticked clubs', async () => {
   const asked = []; const search = async name => { asked.push(name); return { response: [] }; };
   const r = await linkClubs(s, { getTeams: async () => ({ response: [] }), searchTeams: search, search: true, only: ['EPL|Sunderland'] });
   assert.deepEqual(asked, ['Sunderland']); assert.equal(r.calls, 1);
+});
+await t('picker flags second spellings, extra lists are stored as unnamed API clubs', async () => {
+  assert.ok(looseSame('D.C. United', 'DC United')); assert.ok(looseSame('SSC Napoli', 'Napoli')); assert.ok(looseSame('Como 1907', 'Como'));
+  const s = createMemoryStore(); await s.upsertMatches([mm({ home: 'Napoli', away: 'SSC Napoli' })]);
+  await s.upsertTeamIds([{ api_team_id: 492, league: 'EPL', club: 'Napoli', api_name: 'Napoli', source: 'fixture' }]);
+  const pk = await squadPicker(s); const x = pk.clubs.find(c => c.club === 'SSC Napoli'); assert.equal(x.dupOf, 'Napoli'); assert.equal(x.api_team_id, null);
+  const r = await readExtraLists(s, { getTeams: async id => ({ response: [{ team: { id: 99, name: 'Lorient' } }, { team: { id: 492, name: 'Napoli' } }] }), leagues: [62, 9999] });
+  assert.equal(r.calls, 1); assert.equal(r.added, 1); assert.ok((await squadPicker(s)).apiNames.some(a => a.api_name === 'Lorient'));
 });
 console.log(n + ' squad tests passed');
