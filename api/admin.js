@@ -185,6 +185,15 @@ export default async function handler(req, res) {
         if (!key) return res.status(400).json({ error: 'API_SPORTS_KEY is not set' });
         return res.status(200).json({ ok: true, ...(await readExtraLists(store, { getTeams: teamsGetter(key), leagues: (Array.isArray(body.leagues) ? body.leagues : []).map(Number).slice(0, 6), reserve: Math.max(0, Number(body.reserve) || 30) })) });
       }
+      case 'searchClub': {                   // 1 request: candidates for the person to pick from, nothing is linked here
+        const key = (process.env.API_SPORTS_KEY || '').trim();
+        if (!key) return res.status(400).json({ error: 'API_SPORTS_KEY is not set' });
+        const name = String(body.name || '').trim(); if (name.length < 3) return fail(res, 400, 'Type at least 3 letters.');
+        const j = await searchTeamsGetter(key)(name);
+        const e = j && j.errors && !Array.isArray(j.errors) ? Object.values(j.errors) : [];
+        if (e.length) return fail(res, 502, String(e[0]).slice(0, 160));
+        return res.status(200).json({ ok: true, left: j.__left == null ? null : j.__left, found: (j.response || []).filter(r => r.team && r.team.id).slice(0, 12).map(r => ({ api_team_id: r.team.id, api_name: r.team.name, country: r.team.country || '', national: !!r.team.national })) });
+      }
       case 'linkManual': {                   // free: the person picked the API club for one of ours
         const id = Number(body.api_team_id), league = String(body.league || ''), club = String(body.club || '').trim();
         if (!id || !LEAGUES[league] || !club) return fail(res, 400, 'Pick a club and an API club.');
@@ -193,7 +202,7 @@ export default async function handler(req, res) {
           const idx = await store.clubIndex(); const live = idx.some(c => c.league === known.league && c.club === known.club && c.last_season >= Math.max(0, ...idx.map(x => x.last_season || 0)));
           if (live) return fail(res, 409, `That API club is already linked to ${known.club}.`);
         }
-        await store.upsertTeamIds([{ api_team_id: id, league, club, api_name: (known && known.api_name) || null, source: 'manual' }]);
+        await store.upsertTeamIds([{ api_team_id: id, league, club, api_name: (known && known.api_name) || String(body.api_name || '').slice(0, 120) || null, source: 'manual' }]);
         await store.addLog({ kind: 'link-clubs', ok: true, summary: `Linked by hand: ${club} (${league}) = API team ${id}${known && known.api_name ? ' "' + known.api_name + '"' : ''}.` });
         return res.status(200).json({ ok: true });
       }

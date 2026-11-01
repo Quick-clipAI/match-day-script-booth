@@ -740,3 +740,6 @@ Tests: `tests/matchview.test.mjs` (13).
 ## Admin v1.6.12 — picker fixes
 - Opening the picker now name-matches known API clubs for free ("DC United" = "D.C. United").
 - The drop-down also offers API clubs that were linked from fixtures under a name we no longer use (e.g. "Lazio · now linked as Lazio" for our "SS Lazio"). Choosing one re-links it to our spelling. Links to a club that is in this season's list are still refused.
+
+## Admin v1.6.13 — search one club by hand
+- Each unlinked club has a text box (pre-filled with its name) and **Search API (1 request)**. The API's matches are added to that club's drop-down, labelled "search result"; nothing is linked until you pick one and tap **Link**. Edit the text to try a shorter name ("San Diego FC").
