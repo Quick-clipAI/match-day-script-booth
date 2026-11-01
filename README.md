@@ -736,3 +736,7 @@ Tests: `tests/matchview.test.mjs` (13).
 - **Read more API-Football club lists** (Ligue 2, 2. Bundesliga, Liga MX; 1 request each) adds the names of clubs that were in a lower league in 2024, so they can be picked by hand.
 - "D.C. United" now matches "DC United" (dots ignored).
 - The name search was dropped from the screen (it returned nothing for names with prefixes such as "SSC Napoli"); the code stays for later.
+
+## Admin v1.6.12 — picker fixes
+- Opening the picker now name-matches known API clubs for free ("DC United" = "D.C. United").
+- The drop-down also offers API clubs that were linked from fixtures under a name we no longer use (e.g. "Lazio · now linked as Lazio" for our "SS Lazio"). Choosing one re-links it to our spelling. Links to a club that is in this season's list are still refused.

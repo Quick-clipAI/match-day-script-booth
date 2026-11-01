@@ -189,7 +189,10 @@ export default async function handler(req, res) {
         const id = Number(body.api_team_id), league = String(body.league || ''), club = String(body.club || '').trim();
         if (!id || !LEAGUES[league] || !club) return fail(res, 400, 'Pick a club and an API club.');
         const known = (await store.listTeamIds()).find(i => i.api_team_id === id);
-        if (known && known.club && known.club !== club) return fail(res, 409, `That API club is already linked to ${known.club}.`);
+        if (known && known.club && known.club !== club) {       // allowed only when that name is not one of this season's clubs (an orphan from a fixture)
+          const idx = await store.clubIndex(); const live = idx.some(c => c.league === known.league && c.club === known.club && c.last_season >= Math.max(0, ...idx.map(x => x.last_season || 0)));
+          if (live) return fail(res, 409, `That API club is already linked to ${known.club}.`);
+        }
         await store.upsertTeamIds([{ api_team_id: id, league, club, api_name: (known && known.api_name) || null, source: 'manual' }]);
         await store.addLog({ kind: 'link-clubs', ok: true, summary: `Linked by hand: ${club} (${league}) = API team ${id}${known && known.api_name ? ' "' + known.api_name + '"' : ''}.` });
         return res.status(200).json({ ok: true });

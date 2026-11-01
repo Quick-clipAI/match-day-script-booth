@@ -94,4 +94,12 @@ await t('picker flags second spellings, extra lists are stored as unnamed API cl
   const r = await readExtraLists(s, { getTeams: async id => ({ response: [{ team: { id: 99, name: 'Lorient' } }, { team: { id: 492, name: 'Napoli' } }] }), leagues: [62, 9999] });
   assert.equal(r.calls, 1); assert.equal(r.added, 1); assert.ok((await squadPicker(s)).apiNames.some(a => a.api_name === 'Lorient'));
 });
+await t('picker links "DC United" for free and offers orphan API clubs (linked under a name we no longer use)', async () => {
+  const s = createMemoryStore(); await s.upsertMatches([mm({ home: 'D.C. United', away: 'SS Lazio' })]);
+  await s.upsertTeamIds([{ api_team_id: 1615, league: 'EPL', club: null, api_name: 'DC United', source: 'teams' }, { api_team_id: 487, league: 'EPL', club: 'Lazio', api_name: 'Lazio', source: 'fixture' }]);
+  const pk = await squadPicker(s);
+  assert.equal(pk.clubs.find(c => c.club === 'D.C. United').api_team_id, 1615);
+  assert.equal(pk.clubs.find(c => c.club === 'SS Lazio').api_team_id, null);
+  assert.ok(pk.apiNames.some(a => a.api_team_id === 487 && a.linked_as === 'Lazio'));   // offered in the drop-down
+});
 console.log(n + ' squad tests passed');
