@@ -726,3 +726,6 @@ Tests: `tests/matchview.test.mjs` (13).
 
 ## Admin v1.6.9 — link only the clubs that are not linked
 - The "not linked" card now lists just those clubs (ticked by default, small tick on the right). **Link ticked clubs** searches only those by name (1 request each), instead of going league by league.
+
+## Admin v1.6.10 — linking shows why a club was not linked
+- Each club the name search could not link now shows the reason and what API-Football answered ("API returned nothing", "none fits — API said: …"), also saved in the Log.
