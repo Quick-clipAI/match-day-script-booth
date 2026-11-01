@@ -80,4 +80,10 @@ await t('quota parsing', async () => {
   assert.deepEqual(quotaOf({ response: { requests: { current: 53, limit_day: 100 } } }), { used: 53, limit: 100, left: 47 });
   assert.equal(quotaOf({ response: [] }), null);
 });
+await t('link only the ticked clubs', async () => {
+  const s = createMemoryStore(); await s.upsertMatches([mm({ home: 'Hull City', away: 'Sunderland' })]);
+  const asked = []; const search = async name => { asked.push(name); return { response: [] }; };
+  const r = await linkClubs(s, { getTeams: async () => ({ response: [] }), searchTeams: search, search: true, only: ['EPL|Sunderland'] });
+  assert.deepEqual(asked, ['Sunderland']); assert.equal(r.calls, 1);
+});
 console.log(n + ' squad tests passed');

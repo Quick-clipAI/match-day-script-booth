@@ -177,7 +177,7 @@ export default async function handler(req, res) {
       case 'linkClubs': {                    // up to 5 requests per call; the page repeats it
         const key = (process.env.API_SPORTS_KEY || '').trim();
         if (!key) return res.status(400).json({ error: 'API_SPORTS_KEY is not set' });
-        const r = await linkClubs(store, { getTeams: teamsGetter(key), searchTeams: searchTeamsGetter(key), search: !!body.search, maxCalls: 5, reserve: Math.max(0, Number(body.reserve) || 30), tried: Array.isArray(body.tried) ? body.tried.map(String) : [] });
+        const r = await linkClubs(store, { getTeams: teamsGetter(key), searchTeams: searchTeamsGetter(key), search: !!body.search, maxCalls: 5, reserve: Math.max(0, Number(body.reserve) || 30), tried: Array.isArray(body.tried) ? body.tried.map(String) : [], only: Array.isArray(body.only) ? body.only.map(String) : null });
         return res.status(200).json({ ok: true, ...r });
       }
       case 'squadPicker': return res.status(200).json(await squadPicker(store));

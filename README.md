@@ -723,3 +723,6 @@ Tests: `tests/matchview.test.mjs` (13).
 ## Admin v1.6.8 — daily API requests shown under the version
 - The header shows **API requests today: N left of 100** (resets 00:00 UTC = 01:00 Lagos). It refreshes every 2 minutes, after every fetch or link batch, and when tapped. It turns orange at 30 or fewer.
 - It reads API-Football's own `status` call, which per its documentation does not use a request. If the answer has an unexpected shape the line says "unavailable" instead of guessing.
+
+## Admin v1.6.9 — link only the clubs that are not linked
+- The "not linked" card now lists just those clubs (ticked by default, small tick on the right). **Link ticked clubs** searches only those by name (1 request each), instead of going league by league.
