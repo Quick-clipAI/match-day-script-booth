@@ -174,7 +174,8 @@ function dlg(html) { const d = $('#dlg'); d.innerHTML = html; if (!d.open) d.sho
 function closeDlg() { const d = $('#dlg'); if (d.open) d.close(); }
 const fmt = iso => { if (!iso) return '–'; const d = new Date(iso + 'T00:00:00Z'); return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }); };
 const ago = iso => { const m = Math.round((Date.now() - new Date(iso)) / 60000); if (m < 2) return 'just now'; if (m < 90) return m + ' min ago'; const h = Math.round(m / 60); if (h < 48) return h + ' h ago'; return Math.round(h / 24) + ' days ago'; };
-const seasonLbl = s => s + '/' + String(s + 1).slice(-2);
+const CAL_KEYS = ['MLS', 'INTERMIAMI'];   // seasons that run inside one calendar year
+const seasonLbl = (s, k) => CAL_KEYS.includes(k) ? String(s) : s + '/' + String(s + 1).slice(-2);
 const leagueName = k => (state.ov && state.ov.leagues.find(l => l.key === k) || {}).short || k;
 const leagueOpts = (sel, all = true) => (all ? '<option value="">All leagues</option>' : '') + (state.ov ? state.ov.leagues : []).map(l => `<option value="${l.key}" ${l.key === sel ? 'selected' : ''}>${esc(l.name)}</option>`).join('');
 
@@ -268,7 +269,7 @@ VIEWS.overview = async m => {
         s.conflicts ? `<span class="chip bad">${s.conflicts} conflict${s.conflicts > 1 ? 's' : ''}</span>` : '',
         s.postponed ? `<span class="chip info">${s.postponed} postponed</span>` : ''
       ].join('');
-      return `<div class="seas" data-l="${l.key}" data-s="${s.season}"><span class="l">${seasonLbl(s.season)}</span>${chips}<span class="grow"></span><span class="mut mono" style="font-size:11px">${s.last_result ? 'last ' + fmt(s.last_result) : ''}</span></div>`;
+      return `<div class="seas" data-l="${l.key}" data-s="${s.season}"><span class="l">${seasonLbl(s.season, l.key)}</span>${chips}<span class="grow"></span><span class="mut mono" style="font-size:11px">${s.last_result ? 'last ' + fmt(s.last_result) : ''}</span></div>`;
     }).join('') : `<p class="mut" style="margin:8px 0 0;font-size:14px">Nothing stored yet.</p>`;
     return `<div class="lg"><div class="row"><h3 class="grow">${esc(l.name)}</h3>${l.hasOf && !seasons.length ? `<button class="btn sm" data-of="${l.key}">Load</button>` : ''}</div>${body}</div>`;
   }).join('');
@@ -329,7 +330,7 @@ VIEWS.gaps = async m => {
 const FORMAT_PROMPT = `I will give you football results. Reply with ONLY valid JSON (no commentary, no code fence) in exactly this shape:
 
 {
-  "league": "EPL",            // one of: EPL, LALIGA, SERIEA, BUNDESLIGA, LIGUE1, SPL, UCL, UEL, UECL, INTERMIAMI
+  "league": "EPL",            // one of: EPL, LALIGA, SERIEA, BUNDESLIGA, LIGUE1, SPL, UCL, UEL, UECL, MLS, INTERMIAMI
   "season": 2025,             // the year the season STARTS (2025 = 2025/26)
   "matches": [
     { "date": "2025-08-15", "home": "Liverpool", "away": "Bournemouth", "hg": 4, "ag": 2, "round": "Matchday 1" }
@@ -414,7 +415,7 @@ function reportHtml(rep, kind) {
   let h = `<div class="card"><b>${rep.applied ? 'Saved' : 'Preview — nothing saved yet'}</b><div class="row" style="margin-top:8px">${bits.join('')}</div>`;
   (rep.groups || []).forEach(g => {
     const s = g.samples; const line = (arr, f) => arr && arr.length ? `<div class="pre" style="margin:4px 0 0">${arr.map(f).join('\n')}</div>` : '';
-    h += `<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><b>${esc(g.name)} ${seasonLbl(g.season)}</b> <span class="mut">${g.fresh} new · ${g.filled} filled · ${g.same} same</span>`
+    h += `<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><b>${esc(g.name)} ${seasonLbl(g.season, g.league)}</b> <span class="mut">${g.fresh} new · ${g.filled} filled · ${g.same} same</span>`
       + line(s.fresh, x => `+ ${x.date} ${x.home} ${x.hg ?? ''}${x.hg != null ? '-' + x.ag : 'v'} ${x.away}`)
       + line(s.filled, x => `✓ ${x.date} ${x.home} ${x.hg}-${x.ag} ${x.away}`)
       + line(s.rescheduled, x => `↻ ${x.home} v ${x.away}: ${x.was} → ${x.date}`)
@@ -429,7 +430,7 @@ function reportHtml(rep, kind) {
 function unknownHtml(rep) {
   if (!rep.unknownTeams || !rep.unknownTeams.length) return '';
   return `<div class="card"><b>Club names I don't recognise</b><p class="mut" style="margin:4px 0 10px">Choose which club each one is, or type the name to add it as a new club.</p>` + rep.unknownTeams.map((u, i) => `
-    <div style="margin-top:10px"><div class="mono" style="font-size:13px">“${esc(u.name)}” <span class="mut">· ${esc(leagueName(u.league))} ${seasonLbl(u.season)} · ${u.rows} matches</span></div>
+    <div style="margin-top:10px"><div class="mono" style="font-size:13px">“${esc(u.name)}” <span class="mut">· ${esc(leagueName(u.league))} ${seasonLbl(u.season, u.league)} · ${u.rows} matches</span></div>
     <div class="row" style="margin-top:4px">${(u.suggestions || []).map(s => `<button class="btn sm" data-sug="${i}" data-v="${esc(s)}">${esc(s)}</button>`).join('')}</div>
     <input data-map="${esc(u.name)}" id="map${i}" placeholder="Name to use" style="margin-top:6px"></div>`).join('') + '</div>';
 }
@@ -498,7 +499,7 @@ VIEWS.matches = async m => {
   const load = async () => {
     const r = await api('matches', { ...read(), limit: 300 }); state.cache.rows = r.rows;
     $('#fTab').disabled = !(state.filters.league && state.filters.season);
-    $('#mOut').innerHTML = `<p class="mut" style="font-size:13px">${r.total} match${r.total === 1 ? '' : 'es'}${Object.keys(r.byLeague || {}).length > 1 ? ' (' + Object.entries(r.byLeague).map(([k, n]) => leagueName(k) + ' ' + n).join(', ') + ')' : ''}${r.total > 300 ? ' (showing the first 300, narrow the filter)' : ''}</p>` + (r.rows.length ? `<div class="card flat">${r.rows.map(x => `<div class="m" data-id="${esc(x.id)}" style="cursor:pointer"><div class="row"><div class="grow"><div class="teams">${esc(x.home)} <span class="mono" style="color:${x.status === 'finished' ? 'var(--tx)' : 'var(--mut)'}">${x.status === 'finished' ? x.hg + '–' + x.ag : 'v'}</span> ${esc(x.away)}</div><div class="meta">${leagueName(x.league)} ${seasonLbl(x.season)} · ${esc(x.round || '')} · ${fmt(x.date)}</div></div>${x.verified ? '<span class="chip ok">verified</span>' : ''}${x.conflict ? `<span class="chip bad">conflict ${x.conflict.hg}-${x.conflict.ag}</span>` : ''}${x.status !== 'finished' && x.status !== 'scheduled' ? `<span class="chip info">${x.status}</span>` : ''}</div></div>`).join('')}</div>` : '<div class="empty">No matches here.</div>');
+    $('#mOut').innerHTML = `<p class="mut" style="font-size:13px">${r.total} match${r.total === 1 ? '' : 'es'}${Object.keys(r.byLeague || {}).length > 1 ? ' (' + Object.entries(r.byLeague).map(([k, n]) => leagueName(k) + ' ' + n).join(', ') + ')' : ''}${r.total > 300 ? ' (showing the first 300, narrow the filter)' : ''}</p>` + (r.rows.length ? `<div class="card flat">${r.rows.map(x => `<div class="m" data-id="${esc(x.id)}" style="cursor:pointer"><div class="row"><div class="grow"><div class="teams">${esc(x.home)} <span class="mono" style="color:${x.status === 'finished' ? 'var(--tx)' : 'var(--mut)'}">${x.status === 'finished' ? x.hg + '–' + x.ag : 'v'}</span> ${esc(x.away)}</div><div class="meta">${leagueName(x.league)} ${seasonLbl(x.season, x.league)} · ${esc(x.round || '')} · ${fmt(x.date)}</div></div>${x.verified ? '<span class="chip ok">verified</span>' : ''}${x.conflict ? `<span class="chip bad">conflict ${x.conflict.hg}-${x.conflict.ag}</span>` : ''}${x.status !== 'finished' && x.status !== 'scheduled' ? `<span class="chip info">${x.status}</span>` : ''}</div></div>`).join('')}</div>` : '<div class="empty">No matches here.</div>');
     $('#mOut').querySelectorAll('.m').forEach(el => el.onclick = () => editMatch(state.cache.rows.find(x => x.id === el.dataset.id), load));
   };
   $('#fGo').onclick = ev => run(ev.target, load);
@@ -880,7 +881,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.7.5';
+const ADMIN_VERSION = '1.7.6';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

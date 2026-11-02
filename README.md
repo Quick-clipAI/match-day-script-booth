@@ -753,3 +753,11 @@ Tests: `tests/matchview.test.mjs` (13).
 - **Request guard:** the due-sync and details jobs now record the API's own "requests left today". When 15 or fewer are left, details wait so the results of the day still get fetched. A number from a previous UTC day never blocks anything.
 - **Dates follow the API:** when the API reports a different kick-off day for a match that has not been played, our date moves to it (not for cups, whose ids contain the date). A rescheduled import drops the old kick-off. Done by hand today: Deportivo La Coruña v Osasuna (2 Nov), Lorient v Brest (2 Nov), Lyon v Angers (1 Nov); three postponed Saudi matches lost their stale kick-off.
 - Header version is the admin version (1.7.5).
+
+## v1.7.6 — MLS is a real league
+- **MLS** (Major League Soccer, 30 clubs, calendar-year season such as 2026) is now its own league. API-Football's "Major League Soccer / USA" matches go to MLS, Inter Miami's included. League matches use ids without the date (`MLS|2026|home|away`), so a rescheduled game stays one match.
+- **Inter Miami (cups and other competitions)** stays as a separate section for Inter Miami's games outside the league (Leagues Cup, Campeones Cup and similar). League key `INTERMIAMI` is unchanged.
+- Transfers and squads read MLS through API-Football league 253. Key lists in the import help now include `MLS`.
+- The admin shows MLS and Inter Miami seasons as `2026`, not `2026/27`.
+- Fixed three older tests that broke when details became EPL/LaLiga-only (they now pass `leagues: null`).
+- New test file `tests/mls.test.mjs`. Header version is the admin version (1.7.6).

@@ -34,25 +34,25 @@ await t('syncDue records the API fixture id; syncDetails fetches once, 1 request
   const id = (await s.listMatches({}))[0].id;
   assert.equal((await s.getDetail(id)).api_fixture_id, 1635702); assert.equal((await s.getDetail(id)).data, null);
   const calls = []; const getDetail = async (i) => { calls.push(i); return { response: [FULL] }; };
-  const r = await syncDetails(s, { getDetail, now: NOW }); assert.equal(r.calls, 1); assert.equal(r.saved, 1); assert.deepEqual(calls, [1635702]);
-  const r2 = await syncDetails(s, { getDetail, now: NOW + 60000 }); assert.equal(r2.calls, 0, 'already saved');
+  const r = await syncDetails(s, { leagues: null, getDetail, now: NOW }); assert.equal(r.calls, 1); assert.equal(r.saved, 1); assert.deepEqual(calls, [1635702]);
+  const r2 = await syncDetails(s, { leagues: null, getDetail, now: NOW + 60000 }); assert.equal(r2.calls, 0, 'already saved');
   assert.equal((await s.getDetail(id)).data.lineups.home.formation, '4-3-3');
 });
 await t('an API error stops the loop and pauses details for an hour (cannot burn the daily quota)', async () => {
   const s = createMemoryStore(); await s.addDetailStubs([{ match_id: 'a', api_fixture_id: 1 }, { match_id: 'b', api_fixture_id: 2 }, { match_id: 'c', api_fixture_id: 3 }]);
   let calls = 0; const getDetail = async () => { calls++; return { errors: { requests: 'You have reached the request limit for the day' }, response: [] }; };
-  const r = await syncDetails(s, { getDetail, now: NOW }); assert.equal(calls, 1); assert.equal(r.saved, 0);
-  const r2 = await syncDetails(s, { getDetail, now: NOW + 20 * 60000 }); assert.equal(calls, 1, 'paused'); assert.match(r2.summary, /paused/);
-  const r3 = await syncDetails(s, { getDetail, now: NOW + 90 * 60000 }); assert.equal(calls, 2, 'tries again after an hour');
+  const r = await syncDetails(s, { leagues: null, getDetail, now: NOW }); assert.equal(calls, 1); assert.equal(r.saved, 0);
+  const r2 = await syncDetails(s, { leagues: null, getDetail, now: NOW + 20 * 60000 }); assert.equal(calls, 1, 'paused'); assert.match(r2.summary, /paused/);
+  const r3 = await syncDetails(s, { leagues: null, getDetail, now: NOW + 90 * 60000 }); assert.equal(calls, 2, 'tries again after an hour');
 });
 await t('an empty answer for a fixture is stored as unavailable and not asked again', async () => {
   const s = createMemoryStore(); await s.addDetailStubs([{ match_id: 'a', api_fixture_id: 1 }]);
-  await syncDetails(s, { getDetail: async () => ({ errors: [], response: [] }), now: NOW }); assert.equal((await s.getDetail('a')).data.unavailable, true);
-  assert.equal((await syncDetails(s, { getDetail: async () => assert.fail('no'), now: NOW + 1 })).calls, 0);
+  await syncDetails(s, { leagues: null, getDetail: async () => ({ errors: [], response: [] }), now: NOW }); assert.equal((await s.getDetail('a')).data.unavailable, true);
+  assert.equal((await syncDetails(s, { leagues: null, getDetail: async () => assert.fail('no'), now: NOW + 1 })).calls, 0);
 });
 await t('stubs older than 3 days are not chased', async () => {
   const s = createMemoryStore(); await s.addDetailStubs([{ match_id: 'a', api_fixture_id: 1 }]);
-  const r = await syncDetails(s, { getDetail: async () => assert.fail('no'), now: Date.now() + 5 * 864e5 }); assert.equal(r.calls, 0);
+  const r = await syncDetails(s, { leagues: null, getDetail: async () => assert.fail('no'), now: Date.now() + 5 * 864e5 }); assert.equal(r.calls, 0);
 });
 
 // ---- tables
