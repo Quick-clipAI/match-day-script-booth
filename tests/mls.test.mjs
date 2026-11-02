@@ -17,3 +17,20 @@ t('parseApiFootball names the MLS comp "Major League Soccer"', () => {
   assert.equal(r.rows[0].league, 'MLS'); assert.equal(r.rows[0].comp_name, 'Major League Soccer');
 });
 console.log('mls tests:', n, 'passed');
+import { createMemoryStore } from '../lib/bank-store.js';
+import { stampKickoffs, syncDue } from '../lib/sync-due.js';
+const NOWK = Date.parse('2026-11-07T20:00:00Z');
+const mk = (o) => ({ id: 'MLS|2026|inter miami|charlotte', league: 'MLS', comp_name: 'Major League Soccer', season: 2026, round: 'MLS Regular Season', date: '2026-11-07', home: 'Inter Miami', away: 'Charlotte', status: 'scheduled', source: 'paste', ...o });
+{
+  const s = createMemoryStore(); await s.upsertMatches([mk({})]);
+  const getFixtures = async (d) => d === '2026-11-08' ? { response: [{ fixture: { id: 9, date: '2026-11-08T01:00:00+00:00', status: { short: 'NS' } }, league: { name: 'Major League Soccer', country: 'USA' }, teams: { home: { name: 'Inter Miami' }, away: { name: 'Charlotte' } }, goals: {}, score: {} }] } : { response: [] };
+  const r = await stampKickoffs(s, { getFixtures, now: NOWK });
+  assert.equal(r.calls, 2); assert.equal(r.stamped, 1);
+  const m = (await s.listMatches({}))[0];
+  assert.equal(m.kickoff.slice(0, 16).replace(' ', 'T'), '2026-11-08T01:00'); assert.equal(m.date, '2026-11-08');
+  const r2 = await stampKickoffs(s, { getFixtures, now: NOWK + 3600000 }); assert.equal(r2.calls, 0);   // nothing left to stamp
+  // due exactly 110 minutes after the stamped kick-off, not at 22:30 of the old date
+  const early = await syncDue(s, { getFixtures: async () => assert.fail('too early'), now: Date.parse('2026-11-08T02:30:00Z') }); assert.equal(early.ran, false);
+  n++;
+}
+console.log('stamp test ok');

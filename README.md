@@ -761,3 +761,9 @@ Tests: `tests/matchview.test.mjs` (13).
 - The admin shows MLS and Inter Miami seasons as `2026`, not `2026/27`.
 - Fixed three older tests that broke when details became EPL/LaLiga-only (they now pass `leagues: null`).
 - New test file `tests/mls.test.mjs`. Header version is the admin version (1.7.6).
+
+## v1.7.7 — exact result timing for matches without a kick-off
+- **Why:** a match is checked 110 minutes after its kick-off, but only when a kick-off is stored. Matches from pasted/imported files (all of MLS) had none, so they fell back to 22:30 UTC on their stored date. US games usually kick off after that (and the stored date is the US-local day, often one day before the UTC day the API uses), so results could wait for the next day's check.
+- **Fix:** `stampKickoffs` runs inside the 20-minute job. When a stored upcoming match has no kick-off it asks the API for today's and tomorrow's matches (UTC; 2 requests, at most once every 6 hours, never when 20 or fewer requests are left) and saves the exact kick-off (and the UTC day, when the id has no date). From then on the normal 110-minute rule applies, so results arrive about 2 hours after kick-off whatever the time zone. Nothing is asked when every upcoming match already has a kick-off.
+- Shown as "kickoffs" in the job's answer and as `stamp-kickoffs` in the Log.
+- Header version is the admin version (1.7.7).
