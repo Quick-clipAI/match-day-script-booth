@@ -3,10 +3,11 @@
 import { storeFromEnv } from '../lib/bank-store.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { syncDue, stampKickoffs } from '../lib/sync-due.js';
-import { fixturesGetter, detailGetter, teamsGetter, transfersGetter, squadGetter } from '../lib/apisports.js';
+import { fixturesGetter, detailGetter, teamsGetter, transfersGetter, squadGetter, seasonFixturesGetter } from '../lib/apisports.js';
 import { syncSquads } from '../lib/sync-squads.js';
 import { syncTransfers } from '../lib/sync-transfers.js';
 import { syncDetails } from '../lib/match-detail.js';
+import { backfillIds } from '../lib/backfill-ids.js';
 
 
 export default async function handler(req, res) {
@@ -38,6 +39,11 @@ export default async function handler(req, res) {
   if (!ok) return res.status(401).json({ error: 'Not allowed' });
   const { store, error } = storeFromEnv();
   if (error) return res.status(500).json({ error });
+  // ?mode=backfill&league=UCL&season=2026 : ONE request that queues every finished match of that season for details
+  if (req.query && req.query.mode === 'backfill') {
+    try { const r = await backfillIds(store, { getSeasonFixtures: seasonFixturesGetter((process.env.API_SPORTS_KEY || '').trim()), league: String(req.query.league || 'UCL').toUpperCase(), season: Number(req.query.season) }); return res.status(200).json({ ok: !r.error, ...r }); }
+    catch (e) { return res.status(500).json({ error: String(e && e.message || e).slice(0, 200) }); }
+  }
   try {
     const out = await runSync(store);
     return res.status(200).json({ ok: !!(out.api.ok || (out.openfootball && out.openfootball.ok)), api: out.api.summary, openfootball: out.openfootball.summary });

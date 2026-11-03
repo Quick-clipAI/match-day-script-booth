@@ -792,3 +792,7 @@ Tests: `tests/matchview.test.mjs` (13).
 - Data: new `GET /api/competition?league=UCL&season=2026&today=…` (read-only, from the data bank, no API credits). Logos load from API-Football's public image host; if one cannot load, a text badge is shown.
 - Fixed: the lineup team bars shared a style name with the match screen's top bar and darkened it (renamed `mv-tbar`). Table titles use the right season label for calendar-year leagues (MLS shows 2026).
 - New test file `tests/competition.test.mjs`.
+
+## Champions League details backfill (site)
+- `DETAIL_LEAGUES` default is now `EPL,LALIGA,UCL`.
+- New `lib/backfill-ids.js` + `GET /api/cron-sync?mode=backfill&league=UCL&season=2026` (admin key or cron secret): ONE API request lists the whole season, matches each finished bank match to its API id and queues it. `syncDetails` then fetches 3 matches per 20-minute run (1 request each), always keeping 15 requests for results. If the free plan refuses the season, the answer and the log (`backfill-ids`) say so and nothing is queued.
