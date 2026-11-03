@@ -65,7 +65,7 @@ async function run() {
   try { sessionStorage.setItem('stk_ak', ak); } catch (e) {}
   $('go').disabled = true; st('Asking StrikerAPI…');
   try {
-    const r = await fetch('/api/striker', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': ak }, body: JSON.stringify({ tool: $('tool').value, args }) });
+    const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': ak }, body: JSON.stringify({ action: 'striker', tool: $('tool').value, args }) });
     const j = await r.json();
     if (!r.ok && !j.data) { st('HTTP ' + r.status + ' — ' + (j.error || 'failed'), 'bad'); $('out').textContent = JSON.stringify(j, null, 2); return; }
     show(j);

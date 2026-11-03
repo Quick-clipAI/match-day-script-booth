@@ -804,5 +804,5 @@ Tests: `tests/matchview.test.mjs` (13).
 - The Super Cup has a logo and colour ready but no card yet (it is a single match, not a league).
 
 ## StrikerAPI test (Champions League match data)
-- `api/striker.js`: POST `{tool, args}` with header `x-admin-key`; forwards to `https://mcp.strikerapi.com/v1/ucl/<tool>` using the Vercel env var `STRIKERAPI_KEY` (never in code). Allowed tools: list_games (2 credits), get_standings (2), get_game (5), get_lineups (5), get_leaders (5), get_events (10). Free plan: 500 credits/month.
+- Admin action `striker` (`lib/striker.js`, inside `api/admin.js` because the free Vercel plan allows only 12 serverless functions and the site already uses all 12): POST `/api/admin` `{action:'striker', tool, args}` with header `x-admin-key`; forwards to `https://mcp.strikerapi.com/v1/ucl/<tool>` using the Vercel env var `STRIKERAPI_KEY` (never in code). Allowed tools: list_games (2 credits), get_standings (2), get_game (5), get_lineups (5), get_leaders (5), get_events (10). Free plan: 500 credits/month.
 - `striker-test.html` (open `/striker-test.html`): phone-friendly test page that asks for the admin key, runs a tool, lists matches with buttons for stats/lineups/events, shows credits used/left and what the answer contains. Nothing is written to our database; this is only to judge coverage first.

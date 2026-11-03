@@ -4,6 +4,7 @@ import { storeFromEnv } from '../lib/bank-store.js';
 import { LEAGUES, LEAGUE_KEYS, norm, makeRow, matchId, isIsoDate, currentSeason, coverageOf, computeTable } from '../lib/bank-core.js';
 import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } from '../lib/bank-sync.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
+import { strikerCall } from '../lib/striker.js';
 import { backfillIds } from '../lib/backfill-ids.js';
 import { seasonFixturesGetter, fetchText, teamsGetter, transfersGetter, squadGetter, coachGetter, searchTeamsGetter, statusGetter, quotaOf } from '../lib/apisports.js';
 import { clubSuspects, pairKey } from '../lib/club-suspects.js';
@@ -367,6 +368,10 @@ export default async function handler(req, res) {
         if (!Number.isInteger(season)) return fail(res, 400, 'Pick a season.');
         const out = await syncOpenfootball(store, { fetchText, season, leagues: body.leagues && body.leagues.length ? body.leagues : undefined, today: now, dryRun: body.dryRun !== false, interactive: true, applyConflicts: body.applyConflicts || false });
         return res.status(200).json(out);
+      }
+      case 'striker': {
+        const r = await strikerCall(String(body.tool || ''), body.args);
+        return res.status(r.status).json(r.body);
       }
       case 'backfill-details': {
         const league = String(body.league || 'UCL').toUpperCase(), season = Number(body.season) || currentSeason(null, now);
