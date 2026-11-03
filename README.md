@@ -796,3 +796,4 @@ Tests: `tests/matchview.test.mjs` (13).
 ## Champions League details backfill (site)
 - `DETAIL_LEAGUES` default is now `EPL,LALIGA,UCL`.
 - New `lib/backfill-ids.js` + `GET /api/cron-sync?mode=backfill&league=UCL&season=2026` (admin key or cron secret): ONE API request lists the whole season, matches each finished bank match to its API id and queues it. `syncDetails` then fetches 3 matches per 20-minute run (1 request each), always keeping 15 requests for results. If the free plan refuses the season, the answer and the log (`backfill-ids`) say so and nothing is queued.
+- Admin v1.7.9: Overview has a button "Queue Champions League match details (1 request)" (admin action `backfill-details`) that runs the lookup above.

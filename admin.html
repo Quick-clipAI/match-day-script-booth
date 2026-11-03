@@ -873,7 +873,9 @@ VIEWS.log = async m => {
   const r = await api('log', { n: 60 });
   m.innerHTML = head('Log', 'What the daily update and your imports have done.')
     + `<div class="row"><button class="btn pri" id="syncNow">Run the daily update now</button></div>`
+    + `<div class="row"><button class="btn" id="bfUcl">Queue Champions League match details (1 request)</button></div>`
     + `<div class="card flat" style="margin-top:12px">${r.logs.map(l => `<div class="m"><div class="row"><span class="chip ${l.ok ? 'ok' : 'bad'}">${l.ok ? 'ok' : 'failed'}</span><span class="chip">${esc(l.kind)}</span><span class="mut mono" style="font-size:11px">${ago(l.at)}</span></div><div style="margin-top:6px;font-size:14px">${esc(l.summary || '')}</div></div>`).join('') || '<div class="empty">Nothing logged yet.</div>'}</div>`;
+  $('#bfUcl').onclick = ev => run(ev.target, async () => { const o = await api('backfill-details', { league: 'UCL' }); toast(o.summary || (o.ok ? 'Done' : 'Failed'), o.ok ? 'ok' : 'bad'); }, 'Asking…');
   $('#syncNow').onclick = ev => run(ev.target, async () => { const o = await api('sync'); toast(o.ok ? 'Update finished' : 'Update had problems', o.ok ? 'ok' : 'bad'); await refreshOv(); render(); }, 'Updating…');
 };
 
@@ -881,7 +883,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.7.8';
+const ADMIN_VERSION = '1.7.9';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
