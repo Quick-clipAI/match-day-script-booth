@@ -802,3 +802,7 @@ Tests: `tests/matchview.test.mjs` (13).
 - Logos are our own files in `logos/` (256×256 PNG: epl, laliga, seriea, bundesliga, ligue1, spl, mls, ucl, uel, uecl, supercup). The old api-sports logo URL is no longer used. `spl.png` has white lettering, so it sits on a dark chip; the others sit on a white chip.
 - Each league has a colour set in `index.html` (`.lg-<KEY>`: `--lg` fill, `--lg-ink` readable text colour for dark and light theme; all pass 4.5:1 contrast). Used by the competition card, the competition screen (header line, active tab, active chips) and league fixture cards (left edge). Ligue 1 and the Super Cup use neutral greys because their logos are black/grey; the Saudi league uses the green of its logo.
 - The Super Cup has a logo and colour ready but no card yet (it is a single match, not a league).
+
+## StrikerAPI test (Champions League match data)
+- `api/striker.js`: POST `{tool, args}` with header `x-admin-key`; forwards to `https://mcp.strikerapi.com/v1/ucl/<tool>` using the Vercel env var `STRIKERAPI_KEY` (never in code). Allowed tools: list_games (2 credits), get_standings (2), get_game (5), get_lineups (5), get_leaders (5), get_events (10). Free plan: 500 credits/month.
+- `striker-test.html` (open `/striker-test.html`): phone-friendly test page that asks for the admin key, runs a tool, lists matches with buttons for stats/lineups/events, shows credits used/left and what the answer contains. Nothing is written to our database; this is only to judge coverage first.

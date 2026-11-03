@@ -32,6 +32,9 @@
     },
     "api/competition.js": {
       "maxDuration": 30
+    },
+    "api/striker.js": {
+      "maxDuration": 30
     }
   },
   "crons": [

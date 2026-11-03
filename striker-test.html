@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex"><title>StrikerAPI test</title>
+<style>
+:root{color-scheme:dark;--bg:#000;--card:#0d0d0c;--line:#2b2a28;--text:#f2ede4;--dim:#948f86;--brand:#FF6A1A;--ok:#7f9d72;--bad:#ff7373}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,sans-serif}
+main{max-width:760px;margin:auto;padding:18px 14px 60px}h1{font-size:24px;margin:4px 0}.sub{color:var(--dim);font-size:13px;line-height:1.5;margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+label{display:block;font-size:12px;color:var(--dim);margin:10px 0 5px}input,select,textarea{width:100%;background:#050505;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px;font:14px ui-monospace,monospace}
+textarea{min-height:90px}button{border:0;border-radius:10px;padding:12px 14px;font-weight:700;background:var(--brand);color:#fff;min-height:44px}button.s{background:#262522;color:var(--text)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}#st{white-space:pre-wrap;font-size:13px;color:var(--dim);margin-top:10px}#st.ok{color:var(--ok)}#st.bad{color:var(--bad)}
+.m{border-top:1px solid var(--line);padding:10px 0}.m:first-child{border-top:0}.m small{color:var(--dim);display:block;margin-top:2px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,monospace;max-height:420px;overflow:auto;background:#050505;border:1px solid var(--line);border-radius:10px;padding:12px}
+.sum{font-size:13px;line-height:1.6}
+</style></head><body><main>
+<h1>StrikerAPI test</h1>
+<p class="sub">Champions League match data, called through our own server. The StrikerAPI key never reaches this page; it stays in Vercel. Free plan: 500 credits a month, so each button shows its cost.</p>
+<div class="card">
+  <label for="ak">Admin key (the one you use in the admin page)</label><input id="ak" type="password" autocomplete="off" placeholder="Admin key">
+  <label for="tool">What to ask</label>
+  <select id="tool"><option value="list_games">list_games — matches and results (2 credits)</option><option value="get_standings">get_standings — league table (2 credits)</option><option value="get_game">get_game — one match, box scores (5 credits)</option><option value="get_lineups">get_lineups — one match (5 credits)</option><option value="get_events">get_events — one match (10 credits)</option><option value="get_leaders">get_leaders — season top scorers etc. (5 credits)</option></select>
+  <label for="args">Details (JSON)</label><textarea id="args" spellcheck="false">{"season":2026,"status":"final","limit":5}</textarea>
+  <div class="row"><button id="go">Run</button><button class="s" id="copy">Copy answer</button></div>
+  <div id="st" role="status"></div>
+</div>
+<div class="card"><b>Matches found</b><div id="list" class="sub" style="margin-top:8px">Run list_games first.</div></div>
+<div class="card"><b>What the answer holds</b><div id="sum" class="sum sub" style="margin-top:8px">Nothing yet.</div></div>
+<div class="card"><b>Raw answer</b><pre id="out">—</pre></div>
+</main>
+<script>
+const $ = id => document.getElementById(id); let last = null;
+const DEF = { list_games: { season: 2026, status: 'final', limit: 5 }, get_standings: { season: 2026 }, get_game: { game_id: '' }, get_lineups: { game_id: '' }, get_events: { game_id: '' }, get_leaders: { season: 2026 } };
+try { $('ak').value = sessionStorage.getItem('stk_ak') || ''; } catch (e) {}
+$('tool').onchange = () => { $('args').value = JSON.stringify(DEF[$('tool').value], null, 2); };
+function st(t, k) { $('st').textContent = t; $('st').className = k || ''; }
+function count(o, keys) { for (const k of keys) if (o && Array.isArray(o[k])) return o[k].length; return null; }
+function summarise(tool, d) {
+  const g = d && (d.game || d); const out = [];
+  if (tool === 'list_games') out.push('Matches returned: ' + (count(d, ['games']) ?? '?'));
+  else {
+    out.push('Top-level fields: ' + Object.keys(g || {}).slice(0, 14).join(', '));
+    for (const [label, keys] of [['Player lines', ['players', 'player_stats', 'player_lines', 'box_scores']], ['Events', ['events']], ['Starting XI / lineups', ['lineups', 'home_lineup', 'starters']]]) { const n = count(g, keys); if (n != null) out.push(label + ': ' + n); }
+  }
+  return out.join('\n') || 'No recognisable fields.';
+}
+function show(j) {
+  last = j; $('out').textContent = JSON.stringify(j, null, 2);
+  const d = j.data || {}; $('sum').textContent = summarise(j.tool, d);
+  const games = Array.isArray(d.games) ? d.games : []; const host = $('list'); host.innerHTML = '';
+  if (!games.length) { if (j.tool === 'list_games') host.textContent = 'No matches in this answer.'; return; }
+  games.forEach(g => {
+    const home = (g.home && (g.home.name || g.home.abbrev)) || 'Home', away = (g.away && (g.away.name || g.away.abbrev)) || 'Away';
+    const sc = ((g.home && g.home.score) ?? '-') + ' – ' + ((g.away && g.away.score) ?? '-');
+    const div = document.createElement('div'); div.className = 'm';
+    const b = document.createElement('b'); b.textContent = home + ' ' + sc + ' ' + away;
+    const sm = document.createElement('small'); sm.textContent = [g.date, g.stage, 'ID ' + g.game_id].filter(Boolean).join(' · ');
+    const row = document.createElement('div'); row.className = 'row';
+    [['get_game', 'Stats · 5'], ['get_lineups', 'Lineups · 5'], ['get_events', 'Events · 10']].forEach(([t, l]) => { const x = document.createElement('button'); x.className = 's'; x.textContent = l; x.onclick = () => { $('tool').value = t; $('args').value = JSON.stringify({ game_id: String(g.game_id) }, null, 2); run(); }; row.appendChild(x); });
+    div.append(b, sm, row); host.appendChild(div);
+  });
+}
+async function run() {
+  const ak = $('ak').value.trim(); if (!ak) return st('Enter the admin key first.', 'bad');
+  let args; try { args = JSON.parse($('args').value); } catch (e) { return st('The details are not valid JSON: ' + e.message, 'bad'); }
+  try { sessionStorage.setItem('stk_ak', ak); } catch (e) {}
+  $('go').disabled = true; st('Asking StrikerAPI…');
+  try {
+    const r = await fetch('/api/striker', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': ak }, body: JSON.stringify({ tool: $('tool').value, args }) });
+    const j = await r.json();
+    if (!r.ok && !j.data) { st('HTTP ' + r.status + ' — ' + (j.error || 'failed'), 'bad'); $('out').textContent = JSON.stringify(j, null, 2); return; }
+    show(j);
+    st((j.ok ? 'Success' : 'StrikerAPI said HTTP ' + j.status) + ' · ' + j.tool + (j.creditsUsed != null ? '\nCredits used: ' + j.creditsUsed : '') + (j.creditsLeft != null ? ' · left: ' + j.creditsLeft : ''), j.ok ? 'ok' : 'bad');
+  } catch (e) { st('Could not reach our server: ' + e.message, 'bad'); } finally { $('go').disabled = false; }
+}
+$('go').onclick = run;
+$('copy').onclick = async () => { if (!last) return st('Nothing to copy.'); try { await navigator.clipboard.writeText(JSON.stringify(last, null, 2)); st('Copied.', 'ok'); } catch (e) { st('Copy was blocked.', 'bad'); } };
+</script></body></html>
