@@ -511,6 +511,26 @@ body.new-chat .composer-card{box-shadow:0 14px 40px -14px rgba(0,0,0,.55)}
 .cp-st{display:grid;grid-template-columns:26px 1fr auto;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--border-soft);font-size:14px}.cp-st:first-of-type{border-top:0}.cp-st .no{color:var(--text-dim);font-variant-numeric:tabular-nums}.cp-st .nm{display:flex;flex-direction:column;align-items:flex-start;gap:1px}.cp-st small{color:var(--text-dim);font-size:11.5px}
 .cp-club{background:none;border:0;padding:6px 0;min-height:32px;color:var(--text-dim);font:500 12px var(--sans);text-align:left;cursor:pointer;text-decoration:underline;text-decoration-style:dotted}.cp-club.main{color:var(--text);font-size:14px;font-weight:500;text-decoration:none;padding:0;min-height:0}
 .cp-tbl tbody tr{cursor:pointer}
+.lg-EPL{--lg:#4A1062;--lg-ink:#C99BF0}:root[data-theme="light"] .lg-EPL{--lg-ink:#4A1062}
+.lg-LALIGA{--lg:#D92E28;--lg-ink:#FF7A74}:root[data-theme="light"] .lg-LALIGA{--lg-ink:#C4231D}
+.lg-SERIEA{--lg:#0B6FC4;--lg-ink:#5AB0FF}:root[data-theme="light"] .lg-SERIEA{--lg-ink:#0B5FA8}
+.lg-BUNDESLIGA{--lg:#D20515;--lg-ink:#FF6B73}:root[data-theme="light"] .lg-BUNDESLIGA{--lg-ink:#C00412}
+.lg-LIGUE1{--lg:#2B2B2B;--lg-ink:#E6E6E6}:root[data-theme="light"] .lg-LIGUE1{--lg-ink:#111111}
+.lg-SPL{--lg:#2F7F14;--lg-ink:#7FD957}:root[data-theme="light"] .lg-SPL{--lg-ink:#2F7A14}
+.lg-MLS{--lg:#C8271C;--lg-ink:#FF7A70}:root[data-theme="light"] .lg-MLS{--lg-ink:#B01F15}
+.lg-UCL{--lg:#14307F;--lg-ink:#7C9BFF}:root[data-theme="light"] .lg-UCL{--lg-ink:#14307F}
+.lg-UEL{--lg:#C44A06;--lg-ink:#FF9248}:root[data-theme="light"] .lg-UEL{--lg-ink:#B24505}
+.lg-UECL{--lg:#0B8A25;--lg-ink:#4FD672}:root[data-theme="light"] .lg-UECL{--lg-ink:#0B7E22}
+.lg-SUPERCUP{--lg:#3A3A3A;--lg-ink:#D0D0D0}:root[data-theme="light"] .lg-SUPERCUP{--lg-ink:#222222}
+.cp-card,.fx-card[class*="lg-"]{border-left:4px solid var(--lg,var(--border))}
+.cp-card .fx-go,.fx-card[class*="lg-"] .fx-go{color:var(--lg-ink,var(--text-dim))}
+.cp-card{background:linear-gradient(90deg,color-mix(in srgb,var(--lg,transparent) 16%,var(--surface2)),var(--surface2) 70%)}
+.cp-logo.dk{background:#1b1b1b}
+#mv-view[class*="lg-"] .mv-tab[aria-selected="true"]{border-bottom-color:var(--lg-ink);color:var(--text)}
+#mv-view[class*="lg-"] .mv-chip[aria-pressed="true"]{background:var(--lg);border-color:var(--lg);color:#fff}
+#mv-view[class*="lg-"] .cp-head{border-bottom:2px solid var(--lg);margin-bottom:4px}
+#mv-view[class*="lg-"] .cp-today{color:var(--lg-ink)}
+
 .mv-tbl{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
 .mv-tbl th{font-size:11px;color:var(--text-dim);font-weight:600;text-align:right;padding:6px 4px;white-space:nowrap}
 .mv-tbl td{padding:9px 4px;text-align:right;border-top:1px solid var(--border-soft)}
@@ -3809,7 +3829,7 @@ function fixtureCardsHtml(cards){
     const mid = done ? `<span class="fx-score">${Number(c.hg)} – ${Number(c.ag)}</span>` : `<span class="fx-vs">v</span>`;
     const sub = done ? 'Full time' : 'Upcoming';
     const meta = [c.competition, c.round].filter(Boolean).join(' · ');
-    return `<div class="fx-card" role="button" tabindex="0" aria-label="${escapeHtml(c.home + ' versus ' + c.away + ', open match details')}" data-fx="${escapeHtml(c.id || '')}" data-d="${escapeHtml(c.date || '')}" data-h="${escapeHtml(c.home)}" data-a="${escapeHtml(c.away)}" data-c="${escapeHtml(c.competition || '')}" data-s="${escapeHtml(c.status || '')}" data-hg="${c.hg == null ? '' : Number(c.hg)}" data-ag="${c.ag == null ? '' : Number(c.ag)}">`
+    return `<div class="fx-card${LG_CLASS(c.league)}" role="button" tabindex="0" aria-label="${escapeHtml(c.home + ' versus ' + c.away + ', open match details')}" data-fx="${escapeHtml(c.id || '')}" data-d="${escapeHtml(c.date || '')}" data-h="${escapeHtml(c.home)}" data-a="${escapeHtml(c.away)}" data-c="${escapeHtml(c.competition || '')}" data-s="${escapeHtml(c.status || '')}" data-hg="${c.hg == null ? '' : Number(c.hg)}" data-ag="${c.ag == null ? '' : Number(c.ag)}">`
       + `<div class="fx-meta">${escapeHtml(meta)}</div>`
       + `<div class="fx-row"><div class="fx-team">${clubBadgeHtml(c.home)}<span class="fx-name">${escapeHtml(c.home)}</span></div>${mid}<div class="fx-team">${clubBadgeHtml(c.away)}<span class="fx-name">${escapeHtml(c.away)}</span></div></div>`
       + `<div class="fx-foot"><span>${escapeHtml(fixtureDateText(c.date, c.time))}</span><span class="fx-state${done ? '' : ' up'}">${sub}</span><span class="fx-go">Details ›</span></div></div>`;
@@ -3994,7 +4014,7 @@ async function openMatch(ref, opener){
   const el = mvq('mv-view'); if (!el) return;
   const key = ref.id || [ref.date, ref.home, ref.away].join('|'); const token = ++MV.token;
   if (!MV.open){ MV.open = true; MV.opener = opener || null; try { history.pushState({ mv: 1 }, ''); } catch (e) { /* history unavailable */ } }
-  el.hidden = false; el.classList.add('open'); MV.kind = 'match'; MV.tab = 'facts'; MV.stage = null; MV.view = null;
+  el.hidden = false; el.classList.add('open'); cpTheme(String(ref.id || '').split('|')[0]); MV.kind = 'match'; MV.tab = 'facts'; MV.stage = null; MV.view = null;
   mvq('mv-comp').textContent = [ref.competition, ref.round].filter(Boolean).join(' · ');
   mvq('mv-head').innerHTML = mvHeadHtml({ match: { home: ref.home, away: ref.away, status: ref.status, hg: ref.hg, ag: ref.ag, date: ref.date, time: ref.time, kickoff: null }, detail: null });
   mvq('mv-tabs').innerHTML = ''; mvq('mv-body').innerHTML = '<div class="mv-skel"></div><div class="mv-skel"></div><div class="mv-skel"></div>';
@@ -4045,17 +4065,18 @@ document.addEventListener('keydown', e => {
 /* from /api/competition (our own data bank).                           */
 /* ------------------------------------------------------------------ */
 const CP = { round: null, club: '', seg: 'players', pstat: 'scorers', cstat: 'GF' };
-const CP_LOGO = { EPL: 39, LALIGA: 140, SERIEA: 135, BUNDESLIGA: 78, LIGUE1: 61, SPL: 307, MLS: 253, UCL: 2, UEL: 3, UECL: 848 };
+const CP_LOGO = { EPL: 'epl', LALIGA: 'laliga', SERIEA: 'seriea', BUNDESLIGA: 'bundesliga', LIGUE1: 'ligue1', SPL: 'spl', MLS: 'mls', UCL: 'ucl', UEL: 'uel', UECL: 'uecl', SUPERCUP: 'supercup' };
+const LG_CLASS = k => (CP_LOGO[k] ? ' lg-' + k : '');
 function cpLogoHtml(key, name, big){
   const id = CP_LOGO[key], fb = escapeHtml(clubBadgeCode(name));
-  return id ? `<img class="cp-logo${big ? ' big' : ''}" src="https://media.api-sports.io/football/leagues/${id}.png" alt="" loading="lazy" referrerpolicy="no-referrer" data-fb="${fb}">` : `<span class="cp-logo cp-fb${big ? ' big' : ''}">${fb}</span>`;
+  return id ? `<img class="cp-logo${big ? ' big' : ''}${key === 'SPL' ? ' dk' : ''}" src="logos/${id}.png" alt="" loading="lazy" data-fb="${fb}">` : `<span class="cp-logo cp-fb${big ? ' big' : ''}">${fb}</span>`;
 }
 document.addEventListener('error', e => {      // a logo that cannot load becomes a text badge
   const t = e.target; if (t && t.tagName === 'IMG' && t.classList.contains('cp-logo')){ const s = document.createElement('span'); s.className = t.className.replace('cp-logo', 'cp-logo cp-fb'); s.textContent = t.dataset.fb || ''; t.replaceWith(s); }
 }, true);
 function competitionCardHtml(c){
   const tabs = ['Table', 'Fixtures', 'Stats'].join(' · ');
-  return `<div class="fx-card cp-card" role="button" tabindex="0" aria-label="${escapeHtml('Open ' + c.name + ' ' + (c.label || ''))}" data-cp="${escapeHtml(c.league)}" data-cs="${escapeHtml(String(c.season || ''))}" data-ct="${escapeHtml(c.tab || 'table')}">`
+  return `<div class="fx-card cp-card${LG_CLASS(c.league)}" role="button" tabindex="0" aria-label="${escapeHtml('Open ' + c.name + ' ' + (c.label || ''))}" data-cp="${escapeHtml(c.league)}" data-cs="${escapeHtml(String(c.season || ''))}" data-ct="${escapeHtml(c.tab || 'table')}">`
     + `<div class="cp-row">${cpLogoHtml(c.league, c.name)}<div class="cp-txt"><div class="cp-name">${escapeHtml(c.name)}</div><div class="cp-sub">${escapeHtml((c.label || '') + ' · ' + tabs)}</div></div><span class="fx-go">Open ›</span></div></div>`;
 }
 const CP_INTENT = [
@@ -4074,13 +4095,14 @@ function competitionFollowUp(text){
   const label = ((last.querySelector('.cp-sub') || {}).textContent || '').split(' · ')[0];
   return { type: 'competition', league: last.dataset.cp, season: Number(last.dataset.cs) || null, name, label, tab: cpIntentTab(text) };
 }
+function cpTheme(key){ const el = mvq('mv-view'); if (!el) return; el.className = el.className.replace(/\blg-\w+\b/g, '').trim(); if (CP_LOGO[key]) el.classList.add('lg-' + key); }
 const cpq = (v, k) => (v.tabs.find(t => t.key === k) ? k : v.tabs[0].key);
 function cpRenderTabs(v){
   mvq('mv-tabs').innerHTML = v.tabs.map(t => `<button class="mv-tab" role="tab" id="mvt-${t.key}" data-tab="${t.key}" aria-selected="${MV.tab === t.key}" tabindex="${MV.tab === t.key ? 0 : -1}">${escapeHtml(t.label)}</button>`).join('');
 }
 function cpShow(v, tab){
   MV.kind = 'comp'; MV.view = v; MV.tab = cpq(v, tab || MV.tab);
-  const c = v.competition;
+  const c = v.competition; cpTheme(c.key);
   mvq('mv-comp').textContent = c.short;
   mvq('mv-head').innerHTML = `<div class="cp-head">${cpLogoHtml(c.key, c.short, true)}<div><div class="cp-title">${escapeHtml(c.name)}</div><div class="cp-season">${escapeHtml(c.label)}</div></div></div>`;
   cpRenderTabs(v); mvSetTab(MV.tab);
@@ -4089,7 +4111,7 @@ async function openCompetition(ref, opener){
   const el = mvq('mv-view'); if (!el) return;
   const token = ++MV.token;
   if (!MV.open){ MV.open = true; MV.opener = opener || null; try { history.pushState({ mv: 1 }, ''); } catch (e) { /* history unavailable */ } }
-  MV.parent = null; MV.kind = 'comp'; MV.view = null; MV.stage = null; el.hidden = false; el.classList.add('open');
+  MV.parent = null; MV.kind = 'comp'; MV.view = null; MV.stage = null; el.hidden = false; el.classList.add('open'); cpTheme(ref.league);
   CP.round = null; CP.club = ''; CP.seg = 'players'; CP.pstat = 'scorers'; CP.cstat = 'GF';
   mvq('mv-comp').textContent = ref.name || ''; mvq('mv-head').innerHTML = `<div class="cp-head">${cpLogoHtml(ref.league, ref.name || ref.league, true)}<div><div class="cp-title">${escapeHtml(ref.name || '')}</div><div class="cp-season">${escapeHtml(ref.label || '')}</div></div></div>`;
   mvq('mv-tabs').innerHTML = ''; mvq('mv-body').innerHTML = '<div class="mv-skel"></div><div class="mv-skel"></div><div class="mv-skel"></div>';

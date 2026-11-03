@@ -797,3 +797,8 @@ Tests: `tests/matchview.test.mjs` (13).
 - `DETAIL_LEAGUES` default is now `EPL,LALIGA,UCL`.
 - New `lib/backfill-ids.js` + `GET /api/cron-sync?mode=backfill&league=UCL&season=2026` (admin key or cron secret): ONE API request lists the whole season, matches each finished bank match to its API id and queues it. `syncDetails` then fetches 3 matches per 20-minute run (1 request each), always keeping 15 requests for results. If the free plan refuses the season, the answer and the log (`backfill-ids`) say so and nothing is queued.
 - Admin v1.7.9: Overview has a button "Queue Champions League match details (1 request)" (admin action `backfill-details`) that runs the lookup above.
+
+## League logos and theme colours (site)
+- Logos are our own files in `logos/` (256×256 PNG: epl, laliga, seriea, bundesliga, ligue1, spl, mls, ucl, uel, uecl, supercup). The old api-sports logo URL is no longer used. `spl.png` has white lettering, so it sits on a dark chip; the others sit on a white chip.
+- Each league has a colour set in `index.html` (`.lg-<KEY>`: `--lg` fill, `--lg-ink` readable text colour for dark and light theme; all pass 4.5:1 contrast). Used by the competition card, the competition screen (header line, active tab, active chips) and league fixture cards (left edge). Ligue 1 and the Super Cup use neutral greys because their logos are black/grey; the Saudi league uses the green of its logo.
+- The Super Cup has a logo and colour ready but no card yet (it is a single match, not a league).
