@@ -34,3 +34,13 @@ const mk = (o) => ({ id: 'MLS|2026|inter miami|charlotte', league: 'MLS', comp_n
   n++;
 }
 console.log('stamp test ok');
+import { mergeTeams } from '../lib/bank-sync.js';
+{
+  const s = createMemoryStore();
+  await s.upsertAliases([{ alias: 'rb leipzig', canonical: 'Leipzig' }]);   // the old wrong reverse rule
+  await s.upsertMatches([{ id: 'BUNDESLIGA|2026|leipzig|bayern munchen', league: 'BUNDESLIGA', comp_name: 'Bundesliga', season: 2026, round: 'Matchday 1', date: '2026-08-29', home: 'Leipzig', away: 'Bayern München', status: 'scheduled', source: 'openfootball' }]);
+  await mergeTeams(s, { league: 'BUNDESLIGA', from: 'Leipzig', to: 'RB Leipzig' });
+  const al = new Map((await s.listAliases()).map(a => [a.alias, a.canonical]));
+  assert.equal(al.get('rb leipzig'), 'RB Leipzig'); assert.equal(al.get('leipzig'), 'RB Leipzig');
+}
+console.log('alias test ok');

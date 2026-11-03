@@ -767,3 +767,8 @@ Tests: `tests/matchview.test.mjs` (13).
 - **Fix:** `stampKickoffs` runs inside the 20-minute job. When a stored upcoming match has no kick-off it asks the API for today's and tomorrow's matches (UTC; 2 requests, at most once every 6 hours, never when 20 or fewer requests are left) and saves the exact kick-off (and the UTC day, when the id has no date). From then on the normal 110-minute rule applies, so results arrive about 2 hours after kick-off whatever the time zone. Nothing is asked when every upcoming match already has a kick-off.
 - Shown as "kickoffs" in the job's answer and as `stamp-kickoffs` in the Log.
 - Header version is the admin version (1.7.7).
+
+## v1.7.8 — merged clubs stay merged
+- **Bug:** after "Merge Leipzig into RB Leipzig" the club came back every day. An older merge in the opposite direction had left the spelling rule `rb leipzig → Leipzig`, so the daily openfootball sync turned "RB Leipzig" back into "Leipzig" and re-added 34 matches.
+- **Fix:** a merge now also stores `kept name → kept name`, which overrides any old reverse rule. The wrong rule in the database was corrected by hand. If "Leipzig" is listed again in Clubs → Needs checking, merge it once more; it will not come back.
+- Header version is the admin version (1.7.8).
