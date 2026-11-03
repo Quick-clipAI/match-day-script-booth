@@ -772,3 +772,9 @@ Tests: `tests/matchview.test.mjs` (13).
 - **Bug:** after "Merge Leipzig into RB Leipzig" the club came back every day. An older merge in the opposite direction had left the spelling rule `rb leipzig → Leipzig`, so the daily openfootball sync turned "RB Leipzig" back into "Leipzig" and re-added 34 matches.
 - **Fix:** a merge now also stores `kept name → kept name`, which overrides any old reverse rule. The wrong rule in the database was corrected by hand. If "Leipzig" is listed again in Clubs → Needs checking, merge it once more; it will not come back.
 - Header version is the admin version (1.7.8).
+
+## Site — one shared pitch for the line-up tab
+- The **Lineup** tab now shows both teams on **one pitch** like FotMob: the home team in the top half (goalkeeper at the top, its left side on the viewer's right), the away team in the bottom half (goalkeeper at the bottom). Team name and formation sit in a bar above and below the pitch.
+- Under the pitch: **Coach** (home name on the left, away name on the right), **Substitutes** (those who came on, home left and away right, with rating) and **Bench** (unused).
+- "Injured and suspended players" (FotMob) is not shown: the data we store has no injury list.
+- Site only (`index.html`). The Android app gets it with its next release.
