@@ -781,3 +781,14 @@ Tests: `tests/matchview.test.mjs` (13).
 
 ## App v1.6.4 — one shared pitch on the Lineup tab
 - The website and the Android app (web update, no new APK needed) show both teams on one pitch with coaches and substitutes side by side. The version shown in the app header is 1.6.4.
+
+## Site — competition card and competition screen
+- **Card:** when a question is about a competition and names no club ("today's champion league matches", "what's the group stage situation?", "premier league table", "top scorers in la liga") the answer gets a **competition card** (logo, name, season) instead of a match card. A short follow-up such as "which match is the biggest?" or "what's the situation?" reuses the competition shown just before. Question about one or two clubs still gets the match card.
+- **Screen:** tapping the card opens the competition on the tab that fits the question: fixtures for "matches/today/results", table for "table/standings/situation/group stage", stats for "scorers/assists", knockout for "round of 16/semi-finals". The person can switch tabs.
+  - **Table / League phase:** table with qualification colours; tap a club to see its matches.
+  - **Fixtures:** one round at a time (‹ ›), the round with today's matches opens first, today is marked; tap a match to open it, back returns to the competition.
+  - **Stats:** Players (top scorers, assists) and Clubs (goals scored, conceded, clean sheets, goals per match). Player stats come from full match details, which are saved for the Premier League and La Liga only, so other competitions say so. Corners, passes and possession are not shown (no reliable source yet).
+  - **Knockout:** Champions League, Europa League and Conference League, once knockout matches are stored.
+- Data: new `GET /api/competition?league=UCL&season=2026&today=…` (read-only, from the data bank, no API credits). Logos load from API-Football's public image host; if one cannot load, a text badge is shown.
+- Fixed: the lineup team bars shared a style name with the match screen's top bar and darkened it (renamed `mv-tbar`). Table titles use the right season label for calendar-year leagues (MLS shows 2026).
+- New test file `tests/competition.test.mjs`.
