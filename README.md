@@ -778,3 +778,6 @@ Tests: `tests/matchview.test.mjs` (13).
 - Under the pitch: **Coach** (home name on the left, away name on the right), **Substitutes** (those who came on, home left and away right, with rating) and **Bench** (unused).
 - "Injured and suspended players" (FotMob) is not shown: the data we store has no injury list.
 - Site only (`index.html`). The Android app gets it with its next release.
+
+## App v1.6.4 — one shared pitch on the Lineup tab
+- The website and the Android app (web update, no new APK needed) show both teams on one pitch with coaches and substitutes side by side. The version shown in the app header is 1.6.4.
