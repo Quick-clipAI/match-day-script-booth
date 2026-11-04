@@ -3871,7 +3871,11 @@ function mvScorersHtml(v){
     ev.filter(e => e.side === side && e.type === 'goal' && /^(normal goal|penalty)$/i.test(e.detail || '')).forEach(e => { const k = e.player || '?'; if (!map.has(k)) map.set(k, []); map.get(k).push(mvMin(e) + (/penalty/i.test(e.detail) ? ' (pen)' : '')); });
     return [...map].map(([n, ms]) => `${escapeHtml(n)} ${ms.join(', ')}`).join('<br>');
   };
-  const h = by('home'), a = by('away');
+  let h = by('home'), a = by('away');
+  if (!h && !a && v.detail && v.detail.source === 'strikerapi' && v.detail.lineups){      // player lines only (no goal minutes)
+    const own = side => { const l = v.detail.lineups[side]; return l ? [...l.xi, ...l.subs].filter(p => p.g > 0).map(p => escapeHtml(p.name) + (p.g > 1 ? ' ×' + p.g : '')).join('<br>') : ''; };
+    h = own('home'); a = own('away');
+  }
   return h || a ? `<div class="mv-scorers"><div>${h}</div><div aria-hidden="true">⚽</div><div>${a}</div></div>` : '';
 }
 function mvHeadHtml(v){
@@ -3893,7 +3897,7 @@ function mvRenderTabs(v){
 function mvFactsHtml(v){
   const m = v.match, d = v.detail;
   const rows = [['Competition', m.competition], ['Round', m.round], ['Date', fixtureDateText(m.date, '')], [m.status === 'finished' ? 'Kick-off' : 'Kick-off', mvTime(m)], ['Venue', d && d.venue ? [d.venue.name, d.venue.city].filter(Boolean).join(', ') : ''], ['Referee', d && d.referee ? d.referee : ''],
-    ['Half-time', m.status === 'finished' && m.ht_h != null ? m.ht_h + ' – ' + m.ht_a : ''], ['Details', d && d.source === 'manual' ? 'Entered by hand' : '']].filter(r => r[1]);
+    ['Half-time', m.status === 'finished' && m.ht_h != null ? m.ht_h + ' – ' + m.ht_a : ''], ['Details', d && d.source === 'manual' ? 'Entered by hand' : (d && d.source === 'strikerapi' ? 'Team stats and player lines (no goal minutes)' : '')]].filter(r => r[1]);
   let out = `<div class="mv-card"><div class="mv-h">Match</div><div class="mv-meta">${rows.map(r => `<div><span>${r[0]}</span><span>${escapeHtml(r[1])}</span></div>`).join('')}</div></div>`;
   if (!d) return out + `<div class="mv-card">${mvNoDetail(v)}</div>`;
   if (d.best) out += `<div class="mv-card"><div class="mv-h">Highest rated player</div><div class="mv-potm">${mvRt(d.best.rating)}<div><div class="nm">${escapeHtml(d.best.name)}</div><div class="cl">${escapeHtml(d.best.side === 'home' ? m.home : m.away)}</div></div></div></div>`;

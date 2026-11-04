@@ -808,3 +808,9 @@ Tests: `tests/matchview.test.mjs` (13).
 - `striker-test.html` (open `/striker-test.html`): phone-friendly test page that asks for the admin key, runs a tool, lists matches with buttons for stats/lineups/events, shows credits used/left and what the answer contains. Nothing is written to our database; this is only to judge coverage first.
 - Every StrikerAPI call made through the admin action is saved in the Supabase table `striker_results` (full answer, credits used/left). StrikerAPI takes ONE match per request (no bulk option in its docs), so `striker-bulk` loops on our server: step `list` (2 credits, whole season) then step `games` (5 credits per match, 6 per call, skips matches already saved, stops at 60 credits left). Buttons for both are on `/striker-test.html`.
 - API-Football refused UCL season 2026 on the free plan ("Free plans do not have access to this season, try from 2022 to 2024"), so the admin button "Queue Champions League match details" cannot work on this plan.
+
+## StrikerAPI -> match details (Champions League)
+- `lib/striker-import.js`: converts each saved `get_game` answer into our match-detail format (`source: 'strikerapi'`): team stats (possession, xG, shots, corners, fouls, cards, saves, passes, tackles, interceptions, clearances), line-ups from player lines (minutes on/off, goals, assists, cards, saves, shots) and venue. Matches are placed by date + score, names settle ties. Details from another source are never overwritten; re-running is safe.
+- StrikerAPI's `get_game` has NO goal minutes, substitution events, formations or coaches, so those are empty (the match header lists scorers without minutes; the Facts tab says so). `get_events` (10 credits/match) would add minutes.
+- Competition Stats tab: for these matches scorers and assists are tallied from the player lines (own goals are not counted as goals).
+- Admin action `striker-import` / button "3 · Put the saved matches into the app" on `/striker-test.html`.
