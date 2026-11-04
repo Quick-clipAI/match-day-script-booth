@@ -847,3 +847,6 @@ The quick update (bundle.zip) failed on the phone every time with "Failed to dow
 - **Coverage limit:** only matches with stored details count. Today that is about 6-17 matches per league (of 70-110 played) and 58 of 63 in the Champions League, so a "top scorer in La Liga" computed now would be wrong. Leaderboards and the player card must say "from N matches we have data for" until the details catch up.
 - StrikerAPI matches (UCL) have goals, assists and minutes but no ratings.
 - Tests: `tests/player-season.test.mjs`.
+
+## Full match stats for all five big leagues
+Default `DETAIL_LEAGUES` is now `EPL,LALIGA,SERIEA,BUNDESLIGA,LIGUE1,UCL` (was EPL, LALIGA, UCL). Finding: only matches that finished after the detail job went live have an API-Football fixture id (stub); the older matches of the season have none, and the season-wide fixture lookup is refused on the free plan, so those cannot be filled from API-Football. Player season stats therefore build forward from the first stored match. Set `DETAIL_LEAGUES=*` in Vercel to include every league.

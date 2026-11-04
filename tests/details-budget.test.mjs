@@ -10,7 +10,7 @@ await t('only EPL, LALIGA and UCL matches get details by default; others wait', 
   const asked = []; const getDetail = async id => { asked.push(id); return { response: [] }; };
   await syncDetails(s, { getDetail, now: Date.now(), leagues: ['EPL', 'LALIGA'] });
   assert.deepEqual(asked.sort(), [1, 3]);
-  assert.equal(detailLeagues().join(), 'EPL,LALIGA,UCL');
+  assert.equal(detailLeagues().join(), 'EPL,LALIGA,SERIEA,BUNDESLIGA,LIGUE1,UCL');
 });
 await t('details stop when 15 or fewer requests are left today (kept for results)', async () => {
   const s = createMemoryStore(); await s.addDetailStubs([{ match_id: 'EPL|2026|a|b', api_fixture_id: 1 }]);
