@@ -29,7 +29,7 @@ await t('compactDetail: an answer with nothing in it is marked unavailable', () 
 });
 await t('syncDue records the API fixture id; syncDetails fetches once, 1 request, then never again', async () => {
   const s = createMemoryStore(); await s.upsertMatches([m({ date: '2026-10-22', home: 'Paris Saint-Germain', away: 'Barcelona', kickoff: '2026-10-22T19:00:00Z' })]);
-  const getFixtures = async () => ({ response: [{ fixture: { id: 1635702, date: '2026-10-22T19:00:00+00:00', status: { short: 'FT' } }, league: { name: 'x', country: 'World' }, teams: { home: { name: 'Paris Saint Germain' }, away: { name: 'FC Barcelona' } }, goals: { home: 4, away: 2 }, score: { halftime: { home: 1, away: 0 }, penalty: {} } }] });
+  const getFixtures = async () => ({ response: [{ fixture: { id: 1635702, date: '2026-10-22T19:00:00+00:00', status: { short: 'FT' } }, league: { name: 'UEFA Champions League', country: 'World' }, teams: { home: { name: 'Paris Saint Germain' }, away: { name: 'FC Barcelona' } }, goals: { home: 4, away: 2 }, score: { halftime: { home: 1, away: 0 }, penalty: {} } }] });
   await syncDue(s, { getFixtures, now: NOW });
   const id = (await s.listMatches({}))[0].id;
   assert.equal((await s.getDetail(id)).api_fixture_id, 1635702); assert.equal((await s.getDetail(id)).data, null);

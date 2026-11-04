@@ -814,3 +814,8 @@ Tests: `tests/matchview.test.mjs` (13).
 - StrikerAPI's `get_game` has NO goal minutes, substitution events, formations or coaches, so those are empty (the match header lists scorers without minutes; the Facts tab says so). `get_events` (10 credits/match) would add minutes.
 - Competition Stats tab: for these matches scorers and assists are tallied from the player lines (own goals are not counted as goals).
 - Admin action `striker-import` / button "3 · Put the saved matches into the app" on `/striker-test.html`.
+
+## Fix: youth / women's look-alike matches (UCL, 3 Nov 2026)
+- Cause: `syncDue` and `stampKickoffs` looked a due match up by club names among ALL fixtures of the day. Fixtures such as "Atletico Madrid U19 v Bayern Munich U19" (UEFA Youth League, same match day) passed the loose name test, so 5 Champions League matches got the youth score and the youth fixture's id (so `syncDetails` then saved youth line-ups/stats). The daily sync (which only takes fixtures of the exact competition name) later flagged them as 5 conflicts.
+- Fix: `findFixture` in `lib/sync-due.js` only accepts fixtures of the match's own competition (exact API competition name + country); for competitions without an API name, youth/women/reserve look-alikes are skipped. Test added in `tests/syncdue.test.mjs`.
+- Data repaired by hand: the 5 scores set to the values the daily sync had put in `conflict` (they match FotMob), half-time cleared, and the 5 wrong detail rows marked unavailable.

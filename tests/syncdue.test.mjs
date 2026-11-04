@@ -5,7 +5,7 @@ import { syncDue, isDue } from '../lib/sync-due.js';
 const NOW = Date.parse('2026-10-22T23:00:00Z');
 let n = 0; const t = async (name, fn) => { try { await fn(); n++; } catch (e) { console.log('FAIL', name, e.stack); process.exitCode = 1; } };
 const m = (o) => ({ id: `${o.league || 'UCL'}|2026|${o.date}|${o.home.toLowerCase()}|${o.away.toLowerCase()}`, league: 'UCL', comp_name: 'x', season: 2026, round: null, time: null, kickoff: null, hg: null, ag: null, ht_h: null, ht_a: null, status: 'scheduled', note: null, source: 'paste', verified: false, conflict: null, ...o });
-const fx = (home, away, short, hg, ag, date = '2026-10-22T19:00:00+00:00') => ({ fixture: { date, status: { short } }, league: { name: 'Whatever', country: 'World' }, teams: { home: { name: home }, away: { name: away } }, goals: { home: hg, away: ag }, score: { halftime: { home: 0, away: 1 }, penalty: { home: null, away: null } } });
+const fx = (home, away, short, hg, ag, date = '2026-10-22T19:00:00+00:00') => ({ fixture: { date, status: { short } }, league: { name: 'UEFA Champions League', country: 'World' }, teams: { home: { name: home }, away: { name: away } }, goals: { home: hg, away: ag }, score: { halftime: { home: 0, away: 1 }, penalty: { home: null, away: null } } });
 async function world(rows, resp, opts = {}) {
   const s = createMemoryStore(); await s.upsertMatches(rows); const calls = [];
   const getFixtures = async (d) => { calls.push(d); return { response: resp(d) }; };
@@ -57,3 +57,20 @@ await t('a stored date that disagrees with the real kick-off day: ask for the ki
   const x = (await w.s.listMatches({}))[0]; assert.equal(x.date, '2026-10-21'); assert.equal(x.hg, 1);
 });
 console.log(n + ' sync-due tests passed');
+
+// Youth / women's fixtures with the same club names must never be taken for the senior match (UCL 3 Nov 2026: 5 wrong results)
+{
+  const { createMemoryStore } = await import('../lib/bank-store.js');
+  const { syncDue } = await import('../lib/sync-due.js');
+  const store = createMemoryStore();
+  await store.upsertMatches([{ id: 'UCL|2026|2026-11-03|atletico madrid|bayern munchen', league: 'UCL', comp_name: 'UEFA Champions League', season: 2026, round: 'Matchday 4', date: '2026-11-03', kickoff: '2026-11-03T20:00:00+00:00', home: 'Atletico Madrid', away: 'Bayern München', status: 'scheduled', source: 'paste' }]);
+  const fx = (id, lg, h, a, hg, ag) => ({ fixture: { id, date: '2026-11-03T14:00:00+00:00', status: { short: 'FT' } }, league: { id: 1, name: lg, country: 'World', season: 2026 }, teams: { home: { id: 1, name: h }, away: { id: 2, name: a } }, goals: { home: hg, away: ag }, score: { halftime: { home: 0, away: 0 } } });
+  const youth = fx(1637361, 'UEFA Youth League', 'Atletico Madrid U19', 'Bayern Munich U19', 4, 1);
+  const senior = fx(1635700, 'UEFA Champions League', 'Atletico Madrid', 'Bayern München', 0, 2);
+  const getFixtures = async () => ({ response: [youth, senior], __left: 90 });
+  await syncDue(store, { getFixtures, now: Date.parse('2026-11-03T23:00:00Z') });
+  const m = await store.getMatch('UCL|2026|2026-11-03|atletico madrid|bayern munchen');
+  assert.equal(m.hg, 0); assert.equal(m.ag, 2);
+  assert.equal((await store.getDetail(m.id)).api_fixture_id, 1635700);
+  console.log('youth look-alike test passed');
+}
