@@ -831,3 +831,6 @@ Chat answers about matches now come from form, table and stakes, not club reputa
 - **System prompt**: new paragraph "ANALYSE WHAT IS HAPPENING NOW": analyse current strength and form, never rank by size or history, back claims with the data block or a web search, and never state injuries, line-ups or availability unless a source says so. Injuries, suspensions and line-ups are not in our data.
 - Not included yet: goal and assist leaders per club (saved match stats exist only for some matches).
 - Tests: `tests/dossier.test.mjs`.
+
+## Release v1.6.5 (site + app)
+Competition cards and screens, own league logos (`logos/`, bundled inside the app), per-league brand colours, StrikerAPI match data, and analysis-style chat answers (match briefings). The app gets it as an over-the-air update from the creator-booth-app repo.
