@@ -834,3 +834,6 @@ Chat answers about matches now come from form, table and stakes, not club reputa
 
 ## Release v1.6.5 (site + app)
 Competition cards and screens, own league logos (`logos/`, bundled inside the app), per-league brand colours, StrikerAPI match data, and analysis-style chat answers (match briefings). The app gets it as an over-the-air update from the creator-booth-app repo.
+
+## v1.6.6: update sheet goes straight to the file download
+The quick update (bundle.zip) failed on the phone every time with "Failed to download" even though both download links answered 200 and the zip is valid, so `OTA_ENABLED = false` in `index.html`: the update sheet now has one button, "Download update", which opens the APK (installs over the app, login and chats stay). Set it to true to try the quick update again. Cause of the quick-update failure is not found.
