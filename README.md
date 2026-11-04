@@ -837,3 +837,6 @@ Competition cards and screens, own league logos (`logos/`, bundled inside the ap
 
 ## v1.6.6: update sheet goes straight to the file download
 The quick update (bundle.zip) failed on the phone every time with "Failed to download" even though both download links answered 200 and the zip is valid, so `OTA_ENABLED = false` in `index.html`: the update sheet now has one button, "Download update", which opens the APK (installs over the app, login and chats stay). Set it to true to try the quick update again. Cause of the quick-update failure is not found.
+
+## Injuries test (admin)
+`injuries-probe` admin action + a box on `/striker-test.html`: one API-Football `injuries` request for a club (and optional season, date). Why: the earlier tests through a browser tool added an extra `_vercel_share` parameter, which makes API-Football return an empty list, so they proved nothing. Run it from the test page to see what the plan really returns. Nothing is saved.

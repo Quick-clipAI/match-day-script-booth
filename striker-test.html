@@ -28,6 +28,9 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,monos
   <div class="row"><button class="s" id="b1">1 · List the season (2 credits)</button><button id="b2">2 · Fetch all matches (5 each)</button></div>
   <div class="row"><button class="s" id="b3">3 · Put the saved matches into the app</button></div>
   <div id="bst" class="sub" style="white-space:pre-wrap;margin-top:10px"></div></div>
+<div class="card"><b>Injuries test (API-Football, 1 request)</b>
+  <p class="sub" style="margin:6px 0 0">Asks who is unavailable for one club. Team id 541 = Real Madrid, 85 = PSG. Leave season and date empty to get the club's current list. The answer appears in "Raw answer".</p>
+  <div class="row"><input id="ij-team" placeholder="team id" value="541" style="width:90px"><input id="ij-season" placeholder="season" style="width:90px"><input id="ij-date" placeholder="date YYYY-MM-DD" style="width:150px"><button class="s" id="ij-go">Check injuries</button></div></div>
 <div class="card"><b>Matches found</b><div id="list" class="sub" style="margin-top:8px">Run list_games first.</div></div>
 <div class="card"><b>What the answer holds</b><div id="sum" class="sum sub" style="margin-top:8px">Nothing yet.</div></div>
 <div class="card"><b>Raw answer</b><pre id="out">—</pre></div>
@@ -100,6 +103,7 @@ $('b2').onclick = async () => {
   } catch (e) { bst(e.message); } finally { $('b2').disabled = false; }
 };
 $('b3').onclick = async () => { $('b3').disabled = true; bst('Importing…'); try { const j = await adm({ action: 'striker-import', league: 'UCL', season: 2026 }); bst(j.summary + (j.unmatched && j.unmatched.length ? '\nNot placed:\n' + j.unmatched.join('\n') : '')); } catch (e) { bst(e.message); } finally { $('b3').disabled = false; } };
+$('ij-go').onclick = async () => { $('ij-go').disabled = true; try { const j = await adm({ action: 'injuries-probe', team: $('ij-team').value, season: $('ij-season').value, date: $('ij-date').value }); last = j; $('out').textContent = JSON.stringify(j, null, 2); st(j.ok ? ('Answer: ' + j.results + ' player(s)') : j.error, j.ok ? 'ok' : ''); } catch (e) { st(e.message); } finally { $('ij-go').disabled = false; } };
 $('go').onclick = run;
 $('copy').onclick = async () => { if (!last) return st('Nothing to copy.'); try { await navigator.clipboard.writeText(JSON.stringify(last, null, 2)); st('Copied.', 'ok'); } catch (e) { st('Copy was blocked.', 'bad'); } };
 </script></body></html>
