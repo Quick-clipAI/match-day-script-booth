@@ -840,3 +840,10 @@ The quick update (bundle.zip) failed on the phone every time with "Failed to dow
 
 ## Injuries test (admin)
 `injuries-probe` admin action + a box on `/striker-test.html`: one API-Football `injuries` request for a club (and optional season, date). Why: the earlier tests through a browser tool added an extra `_vercel_share` parameter, which makes API-Football return an empty list, so they proved nothing. Run it from the test page to see what the plan really returns. Nothing is saved.
+
+## Player season stats and "Creator Booth rating" (first part)
+`lib/player-season.js` builds one season of player numbers from the match details we already store: appearances, minutes, goals, assists, cards, a list of matches with the rating in each, and the **Creator Booth rating** = the average of the stored per-match ratings (it will differ a little from other sites, as ratings always do). Also `clubLeaders` (best recent performers of a club) and `leaderboard` (goals, assists, rating, per league or overall).
+- The match briefings now carry "Best recent performers" per club (needs at least 2 rated matches in the last 5 stored).
+- **Coverage limit:** only matches with stored details count. Today that is about 6-17 matches per league (of 70-110 played) and 58 of 63 in the Champions League, so a "top scorer in La Liga" computed now would be wrong. Leaderboards and the player card must say "from N matches we have data for" until the details catch up.
+- StrikerAPI matches (UCL) have goals, assists and minutes but no ratings.
+- Tests: `tests/player-season.test.mjs`.
