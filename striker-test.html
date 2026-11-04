@@ -31,6 +31,9 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,monos
 <div class="card"><b>Injuries test (API-Football, 1 request)</b>
   <p class="sub" style="margin:6px 0 0">Asks who is unavailable for one club. Team id 541 = Real Madrid, 85 = PSG. Leave season and date empty to get the club's current list. The answer appears in "Raw answer".</p>
   <div class="row"><input id="ij-team" placeholder="team id" value="541" style="width:90px"><input id="ij-season" placeholder="season" style="width:90px"><input id="ij-date" placeholder="date YYYY-MM-DD" style="width:150px"><button class="s" id="ij-go">Check injuries</button></div></div>
+<div class="card"><b>Catch up older matches (API-Football, 1 request per day)</b>
+  <p class="sub" style="margin:6px 0 0">Looks up one past day at a time, newest first (10 days per press), and queues full stats for every older finished match of that day in the five big leagues and the Champions League. The stats themselves are then fetched by the normal job, 1 request each. If the plan refuses past days, the reason shows here and nothing more is spent.</p>
+  <div class="row"><button class="s" id="bd-go">Queue older matches (10 days)</button></div><div id="bd-st" class="sub" style="white-space:pre-wrap;margin-top:8px"></div></div>
 <div class="card"><b>Matches found</b><div id="list" class="sub" style="margin-top:8px">Run list_games first.</div></div>
 <div class="card"><b>What the answer holds</b><div id="sum" class="sum sub" style="margin-top:8px">Nothing yet.</div></div>
 <div class="card"><b>Raw answer</b><pre id="out">—</pre></div>
@@ -104,6 +107,7 @@ $('b2').onclick = async () => {
 };
 $('b3').onclick = async () => { $('b3').disabled = true; bst('Importing…'); try { const j = await adm({ action: 'striker-import', league: 'UCL', season: 2026 }); bst(j.summary + (j.unmatched && j.unmatched.length ? '\nNot placed:\n' + j.unmatched.join('\n') : '')); } catch (e) { bst(e.message); } finally { $('b3').disabled = false; } };
 $('ij-go').onclick = async () => { $('ij-go').disabled = true; try { const j = await adm({ action: 'injuries-probe', team: $('ij-team').value, season: $('ij-season').value, date: $('ij-date').value }); last = j; $('out').textContent = JSON.stringify(j, null, 2); st(j.ok ? ('Answer: ' + j.results + ' player(s)') : j.error, j.ok ? 'ok' : ''); } catch (e) { st(e.message); } finally { $('ij-go').disabled = false; } };
+$('bd-go').onclick = async () => { $('bd-go').disabled = true; $('bd-st').textContent = 'Working…'; try { const j = await adm({ action: 'backfill-dates', max: 10 }); $('bd-st').textContent = j.summary + (j.left != null ? '\nRequests left today: ' + j.left : ''); } catch (e) { $('bd-st').textContent = e.message; } finally { $('bd-go').disabled = false; } };
 $('go').onclick = run;
 $('copy').onclick = async () => { if (!last) return st('Nothing to copy.'); try { await navigator.clipboard.writeText(JSON.stringify(last, null, 2)); st('Copied.', 'ok'); } catch (e) { st('Copy was blocked.', 'bad'); } };
 </script></body></html>

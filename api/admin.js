@@ -6,8 +6,9 @@ import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } fro
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { strikerSaved, strikerBulk } from '../lib/striker.js';
 import { importStriker } from '../lib/striker-import.js';
-import { backfillIds } from '../lib/backfill-ids.js';
-import { seasonFixturesGetter, fetchText, teamsGetter, transfersGetter, squadGetter, coachGetter, searchTeamsGetter, statusGetter, quotaOf, injuriesGetter } from '../lib/apisports.js';
+import { backfillIds, backfillByDates } from '../lib/backfill-ids.js';
+import { detailLeagues } from '../lib/match-detail.js';
+import { fixturesGetter, seasonFixturesGetter, fetchText, teamsGetter, transfersGetter, squadGetter, coachGetter, searchTeamsGetter, statusGetter, quotaOf, injuriesGetter } from '../lib/apisports.js';
 import { clubSuspects, pairKey } from '../lib/club-suspects.js';
 import { normalizeDetail, DETAIL_PROMPT } from '../lib/manual-detail.js';
 import { linkClubs, readExtraLists } from '../lib/link-clubs.js';
@@ -389,6 +390,12 @@ export default async function handler(req, res) {
       case 'striker-bulk': {
         const out = await strikerBulk(store, { step: body.step, season: body.season, max: body.max, reserve: body.reserve, dryRun: !!body.dryRun });
         return res.status(200).json(out);
+      }
+      case 'backfill-dates': {              // 1 request per day, newest first: queues full stats for older finished matches
+        const key = (process.env.API_SPORTS_KEY || '').trim();
+        if (!key) return res.status(200).json({ ok: false, error: 'no key' });
+        const r = await backfillByDates(store, { getFixtures: fixturesGetter(key), leagues: detailLeagues() || undefined, todayISO: String(now).slice(0, 10), maxDates: Math.min(20, Number(body.max) || 10), reserve: Math.max(0, Number(body.reserve) || 30), now: Date.parse(now) || Date.now() });
+        return res.status(200).json({ ok: !r.error, ...r });
       }
       case 'backfill-details': {
         const league = String(body.league || 'UCL').toUpperCase(), season = Number(body.season) || currentSeason(null, now);
