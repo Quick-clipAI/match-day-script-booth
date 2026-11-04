@@ -823,3 +823,11 @@ Tests: `tests/matchview.test.mjs` (13).
 ## League brand colours (replaces the colours sampled from the logos)
 - `index.html` `.lg-<KEY>`: primary and accent hex per competition as supplied by the owner (MLS #001F5B/#E2231A, EPL #3D195B/#00FF87, La Liga #FF4B44/#111111, Serie A #0081C6/#00239C, Bundesliga #D10214/#1A1A1A, Ligue 1 #B2F600/#0B1B3D, Saudi Pro League #006C35/#C5A059, UCL #000B29/#0052B4, UEL #FF6600/#111111, UECL #00FF66/#121212). These values were not checked against the leagues' own brand guides. Super Cup stays grey (no colour supplied).
 - Derived per league so text stays readable on both themes: `--lg-fill` (chips, header glow: the primary, or the accent/lightened primary when the primary is too dark to see on the dark card), `--lg-edge` (left edge, active tab, links; at least 4.5:1 on the dark and the light card), `--lg-pill` (season pill, the accent), `--lg-on` / `--lg-pill-on` (text on those fills).
+
+## Analysis-style chat answers (site, v1.6.5 content)
+Chat answers about matches now come from form, table and stakes, not club reputation.
+- **`lib/match-dossier.js`** builds a briefing per match from stored results only: competition table position and zone (a club with no played match gets no position), last 5 results across all stored competitions, current run, goals for and against, previous meetings, and the points gap.
+- **`matchdayBriefing()` in `lib/bank-context.js`**: questions like "which match is the biggest", "tonight", "matchday", "who plays" with no club named get the briefing for the next match day (and the day after), up to 10 matches ordered by combined table position. A named league, or the competition screen the user just opened (`&lg=KEY` sent by the chat and read by `api/bank.js` as `focus`), limits it.
+- **System prompt**: new paragraph "ANALYSE WHAT IS HAPPENING NOW": analyse current strength and form, never rank by size or history, back claims with the data block or a web search, and never state injuries, line-ups or availability unless a source says so. Injuries, suspensions and line-ups are not in our data.
+- Not included yet: goal and assist leaders per club (saved match stats exist only for some matches).
+- Tests: `tests/dossier.test.mjs`.

@@ -24,7 +24,8 @@ export default async function handler(req, res) {
     const today = isIsoDate(t) ? t : new Date().toISOString().slice(0, 10);
     // a chat question is also a trigger: if a match should be over and has no result yet, look it up first (throttled, max 4 s)
     if (process.env.API_SPORTS_KEY) { try { await Promise.race([syncDue(store, { getFixtures: fixturesGetter(process.env.API_SPORTS_KEY.trim()) }), new Promise(r => setTimeout(r, 4000))]); } catch (e) { /* the answer must not depend on it */ } }
-    const out = await planContext(q, today, store, { cache });
+    const lg = String((req.query && req.query.lg) || '').toUpperCase().slice(0, 12);
+    const out = await planContext(q, today, store, { cache, focus: lg });
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json(out);
   } catch (e) {
