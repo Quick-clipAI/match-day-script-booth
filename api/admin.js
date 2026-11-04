@@ -391,6 +391,20 @@ export default async function handler(req, res) {
         const out = await strikerBulk(store, { step: body.step, season: body.season, max: body.max, reserve: body.reserve, dryRun: !!body.dryRun });
         return res.status(200).json(out);
       }
+      case 'missing-csv': {                 // finished matches of the current season that have no full stats yet, as CSV text
+        const rows = [];
+        for (const lg of Object.keys(LEAGUES)) {
+          const season = currentSeason(LEAGUES[lg], now);
+          const fin = (await store.listMatches({ league: lg, season }).catch(() => [])).filter(m => m.status === 'finished');
+          const have = new Set((await store.listDetailsLike(lg + '|' + season + '|').catch(() => [])).map(d => d.match_id));
+          const queued = new Map((await store.pendingDetails(5000, '', [lg]).catch(() => [])).map(d => [d.match_id, d.api_fixture_id]));
+          for (const m of fin) if (!have.has(m.id)) rows.push([m.id, lg, season, m.date, m.home, m.away, m.hg, m.ag, queued.has(m.id) ? 'waiting (fixture id ' + queued.get(m.id) + ')' : 'no fixture id']);
+        }
+        rows.sort((x, y) => (x[1] + x[3] < y[1] + y[3] ? -1 : 1));
+        const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+        const csv = ['match_id,league,season,date,home,away,home_goals,away_goals,status'].concat(rows.map(r => r.map(q).join(','))).join('\n');
+        return res.status(200).json({ ok: true, count: rows.length, csv });
+      }
       case 'backfill-dates': {              // 1 request per day, newest first: queues full stats for older finished matches
         const key = (process.env.API_SPORTS_KEY || '').trim();
         if (!key) return res.status(200).json({ ok: false, error: 'no key' });

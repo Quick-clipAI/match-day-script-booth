@@ -857,3 +857,6 @@ Default `DETAIL_LEAGUES` is now `EPL,LALIGA,SERIEA,BUNDESLIGA,LIGUE1,UCL` (was E
 ## Full match stats for every competition, from now on
 Default `DETAIL_LEAGUES` is now `*` (all competitions). Each finished match gets its result about 110 minutes after kick-off (`syncDue`), a details slot at that moment, and its full stats (events, line-ups, ratings) from the details job, 1 request each, 3 per 20-minute run, stopping when 15 requests are left for results. About 17 matches finish per day across all competitions (MLS 3, Serie A 2, the rest about 1.3 each), so this costs about 17 of the 100 daily requests.
 **Older matches cannot be filled from API-Football on the free plan:** a date lookup only allows today +/- 1 day ("try from 2026-11-03 to 2026-11-05"), and season lookups are refused. football-data.org's free plan has no line-ups, scorers or ratings (those need its paid Deep Data plan), and StrikerAPI covers the Champions League only. No free source for older matches' ratings is known. The "Queue older matches" button stays for the days still inside the 3-day window.
+
+## Missing-stats list (CSV)
+Admin action `missing-csv` and a button on `/striker-test.html`: downloads every finished match of the current season without full stats (id, league, date, teams, score, and "waiting (fixture id N)" or "no fixture id").
