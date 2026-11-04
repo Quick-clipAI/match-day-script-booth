@@ -23,6 +23,10 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,monos
   <div class="row"><button id="go">Run</button><button class="s" id="copy">Copy answer</button></div>
   <div id="st" role="status"></div>
 </div>
+<div class="card"><b>All Champions League matches</b>
+  <p class="sub" style="margin:6px 0 0">Every answer is saved in our database, so you never need to copy JSON. StrikerAPI takes one match per request, so the server loops for you. Matches already saved are never fetched twice.</p>
+  <div class="row"><button class="s" id="b1">1 · List the season (2 credits)</button><button id="b2">2 · Fetch all matches (5 each)</button></div>
+  <div id="bst" class="sub" style="white-space:pre-wrap;margin-top:10px"></div></div>
 <div class="card"><b>Matches found</b><div id="list" class="sub" style="margin-top:8px">Run list_games first.</div></div>
 <div class="card"><b>What the answer holds</b><div id="sum" class="sum sub" style="margin-top:8px">Nothing yet.</div></div>
 <div class="card"><b>Raw answer</b><pre id="out">—</pre></div>
@@ -44,7 +48,7 @@ function summarise(tool, d) {
   return out.join('\n') || 'No recognisable fields.';
 }
 function show(j) {
-  last = j; $('out').textContent = JSON.stringify(j, null, 2);
+  last = j; const full = JSON.stringify(j, null, 2); $('out').textContent = full.length > 6000 ? full.slice(0, 6000) + '\n… (' + full.length + ' characters in total; the full answer is saved in the database)' : full;
   const d = j.data || {}; $('sum').textContent = summarise(j.tool, d);
   const games = Array.isArray(d.games) ? d.games : []; const host = $('list'); host.innerHTML = '';
   if (!games.length) { if (j.tool === 'list_games') host.textContent = 'No matches in this answer.'; return; }
@@ -69,9 +73,31 @@ async function run() {
     const j = await r.json();
     if (!r.ok && !j.data) { st('HTTP ' + r.status + ' — ' + (j.error || 'failed'), 'bad'); $('out').textContent = JSON.stringify(j, null, 2); return; }
     show(j);
-    st((j.ok ? 'Success' : 'StrikerAPI said HTTP ' + j.status) + ' · ' + j.tool + (j.creditsUsed != null ? '\nCredits used: ' + j.creditsUsed : '') + (j.creditsLeft != null ? ' · left: ' + j.creditsLeft : ''), j.ok ? 'ok' : 'bad');
+    st((j.saved ? 'Saved in the database. ' : '') + (j.ok ? 'Success' : 'StrikerAPI said HTTP ' + j.status) + ' · ' + j.tool + (j.creditsUsed != null ? '\nCredits used: ' + j.creditsUsed : '') + (j.creditsLeft != null ? ' · left: ' + j.creditsLeft : ''), j.ok ? 'ok' : 'bad');
   } catch (e) { st('Could not reach our server: ' + e.message, 'bad'); } finally { $('go').disabled = false; }
 }
+
+async function adm(body) {
+  const ak = $('ak').value.trim(); if (!ak) throw new Error('Enter the admin key first.');
+  try { sessionStorage.setItem('stk_ak', ak); } catch (e) {}
+  const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': ak }, body: JSON.stringify(body) });
+  const j = await r.json(); if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j;
+}
+function bst(t) { $('bst').textContent = t; }
+$('b1').onclick = async () => { $('b1').disabled = true; bst('Listing the season…'); try { const j = await adm({ action: 'striker-bulk', step: 'list', season: 2026 }); bst(j.ok ? ('Found ' + j.matches + ' finished matches. Saved: ' + (j.saved ? 'yes' : 'no') + '\nCredits left: ' + j.creditsLeft) : ('Failed: ' + (j.error || 'see the raw answer'))); } catch (e) { bst(e.message); } finally { $('b1').disabled = false; } };
+$('b2').onclick = async () => {
+  $('b2').disabled = true;
+  try {
+    const p = await adm({ action: 'striker-bulk', step: 'games', dryRun: true });
+    if (!p.total) { bst('Run step 1 first.'); return; }
+    if (!p.remaining) { bst('All ' + p.total + ' matches are already saved.'); return; }
+    if (!confirm(p.remaining + ' matches still to fetch = about ' + p.cost + ' credits. Start? It stops by itself when 60 credits are left.')) { bst('Cancelled. Nothing spent.'); return; }
+    let j;
+    do { j = await adm({ action: 'striker-bulk', step: 'games', max: 6, reserve: 60 }); bst('Saved ' + j.saved + ' of ' + j.total + ' · remaining ' + j.remaining + (j.creditsLeft != null ? ' · credits left ' + j.creditsLeft : '') + (j.stopped ? '\nStopped: ' + j.stopped : '')); }
+    while (j.fetched > 0 && j.remaining > 0 && !j.stopped);
+    if (!j.remaining) bst($('bst').textContent + '\nDone. Tell Claude to read the saved matches.');
+  } catch (e) { bst(e.message); } finally { $('b2').disabled = false; }
+};
 $('go').onclick = run;
 $('copy').onclick = async () => { if (!last) return st('Nothing to copy.'); try { await navigator.clipboard.writeText(JSON.stringify(last, null, 2)); st('Copied.', 'ok'); } catch (e) { st('Copy was blocked.', 'bad'); } };
 </script></body></html>

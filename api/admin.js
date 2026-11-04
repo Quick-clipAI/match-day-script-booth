@@ -4,7 +4,7 @@ import { storeFromEnv } from '../lib/bank-store.js';
 import { LEAGUES, LEAGUE_KEYS, norm, makeRow, matchId, isIsoDate, currentSeason, coverageOf, computeTable } from '../lib/bank-core.js';
 import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } from '../lib/bank-sync.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
-import { strikerCall } from '../lib/striker.js';
+import { strikerSaved, strikerBulk } from '../lib/striker.js';
 import { backfillIds } from '../lib/backfill-ids.js';
 import { seasonFixturesGetter, fetchText, teamsGetter, transfersGetter, squadGetter, coachGetter, searchTeamsGetter, statusGetter, quotaOf } from '../lib/apisports.js';
 import { clubSuspects, pairKey } from '../lib/club-suspects.js';
@@ -370,8 +370,12 @@ export default async function handler(req, res) {
         return res.status(200).json(out);
       }
       case 'striker': {
-        const r = await strikerCall(String(body.tool || ''), body.args);
+        const r = await strikerSaved(store, String(body.tool || ''), body.args);
         return res.status(r.status).json(r.body);
+      }
+      case 'striker-bulk': {
+        const out = await strikerBulk(store, { step: body.step, season: body.season, max: body.max, reserve: body.reserve, dryRun: !!body.dryRun });
+        return res.status(200).json(out);
       }
       case 'backfill-details': {
         const league = String(body.league || 'UCL').toUpperCase(), season = Number(body.season) || currentSeason(null, now);
