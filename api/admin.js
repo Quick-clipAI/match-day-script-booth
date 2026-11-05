@@ -10,6 +10,7 @@ import { parseCsv, importOpenMatchday } from '../lib/openmatchday-import.js';
 import { backfillIds, backfillByDates } from '../lib/backfill-ids.js';
 import { detailLeagues } from '../lib/match-detail.js';
 import { highlightlyProbe, openLigaProbe } from '../lib/probes.js';
+import { importOpenLiga, OPENLIGA_URL } from '../lib/openliga-import.js';
 import { fixturesGetter, seasonFixturesGetter, fetchText, teamsGetter, transfersGetter, squadGetter, coachGetter, searchTeamsGetter, statusGetter, quotaOf, injuriesGetter } from '../lib/apisports.js';
 import { clubSuspects, pairKey } from '../lib/club-suspects.js';
 import { normalizeDetail, DETAIL_PROMPT } from '../lib/manual-detail.js';
@@ -400,7 +401,17 @@ export default async function handler(req, res) {
       }
       case 'highlightly-probe': {           // 3 requests: matches of one date, events and lineups of the first finished match
         const date = /^\d{4}-\d{2}-\d{2}$/.test(body.date || '') ? body.date : '2026-10-01';
-        return res.status(200).json(await highlightlyProbe({ key: (process.env.HIGHLIGHTLY_API_KEY || '').trim(), date, league: String(body.league || 'Premier League').slice(0, 60) }));
+        return res.status(200).json(await highlightlyProbe({ key: (process.env.HIGHLIGHTLY_API_KEY || '').trim(), date, league: String(body.league || 'Premier League').slice(0, 60), country: String(body.country || '').slice(0, 40) }));
+      }
+      case 'openliga-import': {             // Bundesliga goals for every played matchday (free, no key)
+        const season = Number(body.season) || 2026, raw = [];
+        for (let g = 1; g <= 34; g++) {
+          let list = [];
+          try { const r = await fetch(OPENLIGA_URL(season, g), { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(8000) }); list = r.ok ? await r.json() : []; } catch (e) { list = []; }
+          if (!Array.isArray(list) || !list.length) break;
+          raw.push(...list); if (!list.some(x => x.matchIsFinished)) break;
+        }
+        return res.status(200).json(await importOpenLiga(store, raw, { league: 'BUNDESLIGA', season }));
       }
       case 'openliga-probe': {              // free, no key
         return res.status(200).json(await openLigaProbe({ season: Number(body.season) || 2026, group: Number(body.group) || 1 }));
