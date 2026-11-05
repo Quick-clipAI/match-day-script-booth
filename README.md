@@ -860,3 +860,7 @@ Default `DETAIL_LEAGUES` is now `*` (all competitions). Each finished match gets
 
 ## Missing-stats list (CSV)
 Admin action `missing-csv` and a button on `/striker-test.html`: downloads every finished match of the current season without full stats (id, league, date, teams, score, and "waiting (fixture id N)" or "no fixture id").
+
+## Recovered match stats (CSV import)
+`lib/openmatchday-import.js`, admin action `openmatchday-import`, file box on `/striker-test.html`. The user recovered 390 older matches (Premier League 76, La Liga 95, Serie A 83, Ligue 1 70, Bundesliga 66) as a CSV from OpenLigaDB and fixture downloads. Each row is saved as a detail with `source: 'openmatchday'` only when its score equals our stored score (all 390 do). Saved: shots, shots on target, corners, fouls, yellow and red cards, half-time score (Facts tab), and goal minutes when the list has every goal (not shown yet; side and scorer unknown). Not available from this source: line-ups, player ratings, goal scorers, so these matches do not feed player stats or Creator Booth ratings. Details from any other source are never overwritten; repeating the import is safe. 30 rows were flagged "REVIEW TEAM MATCH" because the team names are written differently (Spurs, Man Utd...); their scores match, and the stats are saved the same.
+Tests: `tests/openmatchday.test.mjs`.

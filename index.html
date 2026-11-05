@@ -3900,7 +3900,7 @@ function mvRenderTabs(v){
 function mvFactsHtml(v){
   const m = v.match, d = v.detail;
   const rows = [['Competition', m.competition], ['Round', m.round], ['Date', fixtureDateText(m.date, '')], [m.status === 'finished' ? 'Kick-off' : 'Kick-off', mvTime(m)], ['Venue', d && d.venue ? [d.venue.name, d.venue.city].filter(Boolean).join(', ') : ''], ['Referee', d && d.referee ? d.referee : ''],
-    ['Half-time', m.status === 'finished' && m.ht_h != null ? m.ht_h + ' – ' + m.ht_a : ''], ['Details', d && d.source === 'manual' ? 'Entered by hand' : (d && d.source === 'strikerapi' ? 'Team stats and player lines (no goal minutes)' : '')]].filter(r => r[1]);
+    ['Half-time', m.status === 'finished' && m.ht_h != null ? m.ht_h + ' – ' + m.ht_a : (d && d.halftime ? d.halftime.home + ' – ' + d.halftime.away : '')], ['Details', d && d.source === 'manual' ? 'Entered by hand' : (d && d.source === 'strikerapi' ? 'Team stats and player lines (no goal minutes)' : (d && d.source === 'openmatchday' ? 'Team stats only (no line-ups or ratings)' : ''))]].filter(r => r[1]);
   let out = `<div class="mv-card"><div class="mv-h">Match</div><div class="mv-meta">${rows.map(r => `<div><span>${r[0]}</span><span>${escapeHtml(r[1])}</span></div>`).join('')}</div></div>`;
   if (!d) return out + `<div class="mv-card">${mvNoDetail(v)}</div>`;
   if (d.best) out += `<div class="mv-card"><div class="mv-h">Highest rated player</div><div class="mv-potm">${mvRt(d.best.rating)}<div><div class="nm">${escapeHtml(d.best.name)}</div><div class="cl">${escapeHtml(d.best.side === 'home' ? m.home : m.away)}</div></div></div></div>`;

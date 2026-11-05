@@ -6,6 +6,7 @@ import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } fro
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { strikerSaved, strikerBulk } from '../lib/striker.js';
 import { importStriker } from '../lib/striker-import.js';
+import { parseCsv, importOpenMatchday } from '../lib/openmatchday-import.js';
 import { backfillIds, backfillByDates } from '../lib/backfill-ids.js';
 import { detailLeagues } from '../lib/match-detail.js';
 import { fixturesGetter, seasonFixturesGetter, fetchText, teamsGetter, transfersGetter, squadGetter, coachGetter, searchTeamsGetter, statusGetter, quotaOf, injuriesGetter } from '../lib/apisports.js';
@@ -386,6 +387,11 @@ export default async function handler(req, res) {
       case 'striker-import': {
         const out = await importStriker(store, { league: String(body.league || 'UCL').toUpperCase(), season: Number(body.season) || 2026 });
         return res.status(200).json(out);
+      }
+      case 'openmatchday-import': {         // the recovered CSV pasted from a file; saved as team stats (no players)
+        const rows = parseCsv(String(body.csv || '').slice(0, 2000000));
+        if (!rows.length || !rows[0].match_id) return fail(res, 400, 'That does not look like the recovered-matches CSV (no match_id column)');
+        return res.status(200).json(await importOpenMatchday(store, rows));
       }
       case 'striker-bulk': {
         const out = await strikerBulk(store, { step: body.step, season: body.season, max: body.max, reserve: body.reserve, dryRun: !!body.dryRun });
