@@ -208,7 +208,7 @@ if (window.PasswordCredential && navigator.credentials && navigator.credentials.
 $('#logout').onclick = lock;
 
 // ---------------------------------------------------------------- tabs
-const TABS = [['overview', 'Overview'], ['gaps', 'Gaps'], ['import', 'Import'], ['matches', 'Matches'], ['clubs', 'Clubs'], ['players', 'Players'], ['profiles', 'Profiles'], ['inbox', 'Inbox'], ['facts', 'Facts'], ['log', 'Log']];
+const TABS = [['overview', 'Overview'], ['gaps', 'Gaps'], ['import', 'Import'], ['matches', 'Matches'], ['clubs', 'Clubs'], ['players', 'Players'], ['profiles', 'Profiles'], ['inbox', 'Inbox'], ['facts', 'Facts'], ['log', 'Log'], ['tools', 'Tools']];
 function drawTabs() {
   $('#tabs').innerHTML = TABS.map(([k, l]) => {
     let dot = '';
@@ -242,6 +242,27 @@ const head = (t, s) => `<h2>${t}</h2><p class="sub">${s || ''}</p>`;
 
 // ---------------------------------------------------------------- overview
 const VIEWS = {};
+// Tools: the helper pages (progress, tests) opened inside the admin, with a list to switch between them.
+const TOOL_PAGES = [
+  ['highlightly.html', 'Match data progress', 'Highlightly fill-in: requests used today, last fetch, what each match holds, gaps and log.'],
+  ['striker-test.html', 'Data sources and imports', 'Tests and imports: StrikerAPI, Highlightly, OpenLigaDB, recovered stats CSV, missing-matches list, injuries check.']
+];
+VIEWS.tools = async m => {
+  const cur = state.nav && state.nav.page;
+  if (!cur) {
+    m.innerHTML = `<section class="card"><h2>Pages</h2><p class="sub">Helper pages. They open here, and they use the key you already entered.</p>` +
+      TOOL_PAGES.map(([u, t, d]) => `<div class="row" style="justify-content:space-between;align-items:center;gap:10px;border-top:1px solid var(--line);padding:12px 0"><div><b>${esc(t)}</b><br><small>${esc(d)}</small></div><button class="btn sm" data-u="${u}">Open</button></div>`).join('') + `</section>`;
+    m.querySelectorAll('[data-u]').forEach(b => b.onclick = () => go('tools', { page: b.dataset.u }));
+    return;
+  }
+  try { sessionStorage.setItem('stk_ak', KEY); } catch (e) { /* the page asks for the key itself */ }
+  const meta = TOOL_PAGES.find(x => x[0] === cur) || [cur, cur, ''];
+  m.innerHTML = `<div class="row" style="gap:6px;margin-bottom:8px;flex-wrap:wrap"><button class="btn sm" id="tpBack">← Pages</button>` +
+    TOOL_PAGES.filter(x => x[0] !== cur).map(([u, t]) => `<button class="btn sm" data-u="${u}">${esc(t)}</button>`).join('') +
+    `<a class="btn sm" style="text-decoration:none;display:inline-flex;align-items:center;color:inherit" href="/${cur}" target="_blank" rel="noopener">Open in a new tab</a></div><iframe src="/${cur}" title="${esc(meta[1])}" style="width:100%;height:calc(100vh - 190px);min-height:520px;border:1px solid var(--line);border-radius:12px;background:#000"></iframe>`;
+  $('#tpBack').onclick = () => go('tools');
+  m.querySelectorAll('[data-u]').forEach(b => b.onclick = () => go('tools', { page: b.dataset.u }));
+};
 VIEWS.overview = async m => {
   await refreshOv();
   const ov = state.ov; let ping = null; try { ping = await api('ping'); } catch (e) { }
@@ -883,7 +904,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.7.9';
+const ADMIN_VERSION = '1.8.0';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
