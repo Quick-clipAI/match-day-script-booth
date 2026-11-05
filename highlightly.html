@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex"><title>Match data progress</title>
+<style>
+:root{color-scheme:dark;--bg:#000;--card:#0d0d0c;--line:#2b2a28;--text:#f2ede4;--dim:#948f86;--brand:#FF6A1A;--ok:#7f9d72;--bad:#ff7373;--warn:#e0b25a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,sans-serif}
+main{max-width:760px;margin:auto;padding:18px 14px 70px}h1{font-size:24px;margin:4px 0}h2{font-size:16px;margin:0 0 8px}.sub{color:var(--dim);font-size:13px;line-height:1.5;margin:0 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+input{width:100%;background:#050505;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px;font:14px ui-monospace,monospace}
+button{border:0;border-radius:10px;padding:11px 14px;font-weight:700;background:var(--brand);color:#fff;min-height:44px}button.s{background:#262522;color:var(--text)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.k{background:#050505;border:1px solid var(--line);border-radius:12px;padding:10px}.k b{display:block;font-size:20px}.k span{font-size:12px;color:var(--dim)}
+.bar{height:8px;border-radius:6px;background:#1c1b19;overflow:hidden;margin:6px 0;display:flex}.bar i{display:block;height:100%}
+.lg{display:flex;justify-content:space-between;gap:8px;font-size:13px}.lg small{color:var(--dim)}
+.chip{padding:8px 12px;border-radius:20px;background:#1c1b19;color:var(--dim);font-size:13px;border:1px solid var(--line);min-height:36px}.chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.m{border-top:1px solid var(--line);padding:10px 0}.m:first-child{border-top:0}.mh{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;cursor:pointer}.mh b{font-size:14px}.mh small{display:block;color:var(--dim);font-size:12px;margin-top:2px}
+.pill{font-size:11px;padding:3px 8px;border-radius:10px;white-space:nowrap;font-weight:700}.done{background:#22331d;color:var(--ok)}.waiting{background:#3a2f12;color:var(--warn)}.kept{background:#1e2733;color:#8fb4e8}.failed,.goals-differ{background:#3a1a1a;color:var(--bad)}
+.det{font-size:12px;color:var(--dim);line-height:1.7;margin-top:8px;display:none}.det.open{display:block}
+.log div{font-size:13px;padding:6px 0;border-top:1px solid var(--line)}.log div:first-child{border-top:0}.log small{color:var(--dim)}
+#msg{white-space:pre-wrap;font-size:13px;color:var(--dim);margin-top:10px}
+</style></head><body><main>
+<h1>Match data progress</h1>
+<p class="sub">Highlightly fill-in for older Premier League, La Liga, Serie A and Ligue 1 matches: what has been fetched, what each match holds, when it last ran and where the gaps are.</p>
+<div class="card"><input id="ak" type="password" autocomplete="off" placeholder="Admin key">
+<div class="row"><button id="refresh">Refresh</button><button class="s" id="fetch">Fetch 15 matches now</button></div><div id="msg"></div></div>
+<div id="app"></div>
+<script>
+const $ = id => document.getElementById(id); let DATA = null, FILTER = 'all', LEAGUE = 'all';
+try { $('ak').value = sessionStorage.getItem('stk_ak') || ''; } catch (e) {}
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const lagos = iso => { if (!iso) return 'never'; try { return new Date(iso).toLocaleString('en-GB', { timeZone: 'Africa/Lagos', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' (Lagos)'; } catch (e) { return iso; } };
+const ago = iso => { if (!iso) return ''; const m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; };
+async function adm(body) {
+  const ak = $('ak').value.trim(); if (!ak) throw new Error('Enter the admin key first.');
+  try { sessionStorage.setItem('stk_ak', ak); } catch (e) {}
+  const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': ak }, body: JSON.stringify(body) });
+  const j = await r.json(); if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j;
+}
+const LBL = { done: 'Fetched', waiting: 'Waiting', kept: 'Better data kept', failed: 'Not available', 'goals-differ': 'Goals differ' };
+function render() {
+  const d = DATA; if (!d) return;
+  const q = d.requests, tot = d.leagues.reduce((a, l) => ({ f: a.f + l.finished, d: a.d + l.done, k: a.k + l.kept }), { f: 0, d: 0, k: 0 });
+  const rem = q.highlightlyRemaining != null ? `Highlightly says ${q.highlightlyRemaining} left (${ago(q.remainingAt)})` : 'Highlightly does not report its own count';
+  let h = `<div class="card"><h2>Today</h2><div class="grid">
+    <div class="k"><b>${q.requestsToday} / ${q.dailyCapRequests}</b><span>fetch requests used today (limit we keep: ${q.dailyCapRequests} of ${q.highlightlyLimit})</span></div>
+    <div class="k"><b>${q.fetchedToday} / ${q.dailyCapMatches}</b><span>matches fetched today</span></div>
+    <div class="k"><b>${esc(lagos(d.lastFetchAt))}</b><span>last fetch ${esc(ago(d.lastFetchAt))}</span></div>
+    <div class="k"><b>${d.gaps}</b><span>gaps: not fetched yet, not available or goals differ</span></div></div>
+    <p class="sub" style="margin:10px 0 0">${esc(rem)}. Loading the lists and the test boxes also use requests; those are not counted here. The server fetches 2 matches every 20 minutes by itself.</p></div>`;
+  h += `<div class="card"><h2>Progress</h2>` + d.leagues.map(l => { const p = x => l.finished ? (x / l.finished * 100).toFixed(1) : 0;
+    return `<div class="lg"><b>${esc(l.name)}</b><span>${l.done + l.kept} of ${l.finished}</span></div><div class="bar"><i style="width:${p(l.done)}%;background:var(--ok)"></i><i style="width:${p(l.kept)}%;background:#8fb4e8"></i><i style="width:${p(l.failed + l.goalsDiffer)}%;background:var(--bad)"></i></div><div class="lg"><small>fetched ${l.done} · better data kept ${l.kept}</small><small>waiting ${l.waiting}${l.failed ? ' · not available ' + l.failed : ''}${l.goalsDiffer ? ' · goals differ ' + l.goalsDiffer : ''}</small></div><br>`; }).join('') +
+    `<p class="sub" style="margin:0">Bundesliga goals come from OpenLigaDB and are not counted here.</p></div>`;
+  const chips = [['all', 'All'], ['done', 'Fetched'], ['waiting', 'Waiting'], ['kept', 'Kept'], ['failed', 'Not available'], ['goals-differ', 'Goals differ']];
+  h += `<div class="card"><h2>Matches</h2><div class="row" style="margin:0 0 8px">${[['all', 'All leagues'], ...d.leagues.map(l => [l.league, l.name])].map(([k, t]) => `<button class="chip ${LEAGUE === k ? 'on' : ''}" data-lg="${k}">${esc(t)}</button>`).join('')}</div>
+    <div class="row" style="margin:0 0 6px">${chips.map(([k, t]) => `<button class="chip ${FILTER === k ? 'on' : ''}" data-f="${k}">${t}</button>`).join('')}</div><div id="list"></div></div>`;
+  h += `<div class="card"><h2>Log (last 30)</h2><div class="log">${d.log.length ? d.log.map(x => `<div>${esc(x.match)}<br><small>${esc(lagos(x.at))} · ${esc(x.result)}</small></div>`).join('') : '<small>Nothing fetched yet.</small>'}</div></div>`;
+  $('app').innerHTML = h;
+  document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { FILTER = b.dataset.f; render(); });
+  document.querySelectorAll('[data-lg]').forEach(b => b.onclick = () => { LEAGUE = b.dataset.lg; render(); });
+  const rows = d.matches.filter(m => (FILTER === 'all' || m.status === FILTER) && (LEAGUE === 'all' || m.league === LEAGUE));
+  $('list').innerHTML = (rows.length ? rows.slice(0, 150).map((m, i) => { const c = m.counts;
+    return `<div class="m"><div class="mh" data-i="${i}"><div><b>${esc(m.home)} ${m.hg}–${m.ag} ${esc(m.away)}</b><small>${esc(m.date)}${m.fetchedAt ? ' · fetched ' + esc(lagos(m.fetchedAt)) : ''}</small></div><span class="pill ${m.status}">${LBL[m.status]}</span></div>
+      <div class="det" id="d${i}">${c ? `Goals ${c.goals} (with assist ${c.assists}) · cards ${c.cards} · substitutions ${c.subs}<br>Line-ups: home ${c.homeXI}+${c.homeBench}, away ${c.awayXI}+${c.awayBench}<br>${m.events.map(esc).join('<br>')}` : `Data source now: ${esc(m.source || 'team stats only / none')}`}</div></div>`; }).join('') + (rows.length > 150 ? `<p class="sub">Showing 150 of ${rows.length}. Use the filters.</p>` : '') : '<p class="sub">No match here.</p>');
+  document.querySelectorAll('.mh').forEach(e => e.onclick = () => $('d' + e.dataset.i).classList.toggle('open'));
+}
+async function load() { $('msg').textContent = 'Loading…'; try { DATA = await adm({ action: 'highlightly-status' }); $('msg').textContent = ''; render(); } catch (e) { $('msg').textContent = e.message; } }
+$('refresh').onclick = load;
+$('fetch').onclick = async () => { $('fetch').disabled = true; $('msg').textContent = 'Fetching 15 matches (about 30 seconds)…'; try { const j = await adm({ action: 'highlightly-sync', step: 'fetch', max: 15 }); $('msg').textContent = j.summary || j.error || ''; await load(); $('msg').textContent = j.summary || ''; } catch (e) { $('msg').textContent = e.message; } finally { $('fetch').disabled = false; } };
+if ($('ak').value) load();
+</script></main></body></html>

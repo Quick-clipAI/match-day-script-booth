@@ -37,3 +37,11 @@ await s.saveManualDetail('EPL|2026|chelsea|bournemouth', { v: 1, source: 'api-fo
 assert.equal(await applyHl(s, row('EPL|2026|chelsea|bournemouth', 'Chelsea', 'AFC Bournemouth', 5, 1), d), 'goals-differ');
 assert.equal(await applyHl(s, row('EPL|2026|chelsea|bournemouth', 'Chelsea', 'AFC Bournemouth', 1, 1), d), 'kept');
 console.log('highlightly tests: 14 passed');
+// status panel
+import { hlStatus } from '../lib/highlightly-status.js';
+const st = await hlStatus(s, { now: Date.now() });
+const epl = st.leagues.find(x => x.league === 'EPL');
+assert.equal(epl.finished, 2); assert.equal(epl.done, 1); assert.equal(epl.kept, 1);
+const done = st.matches.find(x => x.status === 'done'); assert.equal(done.counts.goals, 2); assert.ok(done.events.some(e => e.includes('assist')));
+assert.equal(st.requests.fetchedToday, 2); assert.equal(st.requests.requestsToday, 4); assert.ok(st.lastFetchAt); assert.equal(st.log.length, 2);
+console.log('highlightly status tests: 6 passed');
