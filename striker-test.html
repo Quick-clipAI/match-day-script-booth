@@ -40,6 +40,12 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,monos
 <div class="card"><b>Put recovered match stats into the app (CSV)</b>
   <p class="sub" style="margin:6px 0 0">Choose the recovered CSV file. Shots, corners, fouls and cards are saved on each match whose score agrees with ours. Matches that already have fuller stats are kept as they are. Safe to repeat.</p>
   <div class="row"><input type="file" id="om-file" accept=".csv,text/csv"><button class="s" id="om-go">Import</button></div><div id="om-st" class="sub" style="white-space:pre-wrap;margin-top:8px"></div></div>
+<div class="card"><b>Test: Highlightly (old matches, 3 requests)</b>
+  <p class="sub" style="margin:6px 0 0">Asks Highlightly for one past day of a league, then the events and the line-up of its first finished match. Shows whether the free plan answers for old dates and whether the answer has players, goals and assists.</p>
+  <div class="row"><input id="hl-date" value="2026-10-01" style="width:120px"><input id="hl-league" value="Premier League" style="width:160px"><button class="s" id="hl-go">Test Highlightly</button></div></div>
+<div class="card"><b>Test: OpenLigaDB (Bundesliga goals, free)</b>
+  <p class="sub" style="margin:6px 0 0">Reads one Bundesliga matchday and shows whether each match lists its goals with scorer and minute.</p>
+  <div class="row"><input id="ol-group" value="1" style="width:70px"><button class="s" id="ol-go">Test OpenLigaDB</button></div></div>
 <div class="card"><b>Matches found</b><div id="list" class="sub" style="margin-top:8px">Run list_games first.</div></div>
 <div class="card"><b>What the answer holds</b><div id="sum" class="sum sub" style="margin-top:8px">Nothing yet.</div></div>
 <div class="card"><b>Raw answer</b><pre id="out">—</pre></div>
@@ -116,6 +122,9 @@ $('ij-go').onclick = async () => { $('ij-go').disabled = true; try { const j = a
 $('bd-go').onclick = async () => { $('bd-go').disabled = true; $('bd-st').textContent = 'Working…'; try { const j = await adm({ action: 'backfill-dates', max: 10 }); $('bd-st').textContent = j.summary + (j.left != null ? '\nRequests left today: ' + j.left : ''); } catch (e) { $('bd-st').textContent = e.message; } finally { $('bd-go').disabled = false; } };
 $('ms-go').onclick = async () => { $('ms-go').disabled = true; $('ms-st').textContent = 'Working…'; try { const j = await adm({ action: 'missing-csv' }); const b = new Blob([j.csv], { type: 'text/csv' }), u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = 'matches-without-stats.csv'; document.body.appendChild(a); a.click(); a.remove(); $('ms-st').textContent = j.count + ' matches in the file.'; } catch (e) { $('ms-st').textContent = e.message; } finally { $('ms-go').disabled = false; } };
 $('om-go').onclick = async () => { const f = $('om-file').files[0]; if (!f) { $('om-st').textContent = 'Choose the CSV file first.'; return; } $('om-go').disabled = true; $('om-st').textContent = 'Importing…'; try { const j = await adm({ action: 'openmatchday-import', csv: await f.text() }); $('om-st').textContent = j.summary || JSON.stringify(j); } catch (e) { $('om-st').textContent = e.message; } finally { $('om-go').disabled = false; } };
+const probe = (btn, body) => async () => { $(btn).disabled = true; try { const j = await adm(body()); last = j; $('out').textContent = JSON.stringify(j, null, 2); st(j.ok === false ? (j.error || 'Failed: see Raw answer') : 'Done: scroll to "Raw answer" and copy it to Claude.', j.ok === false ? '' : 'ok'); } catch (e) { st(e.message); } finally { $(btn).disabled = false; } };
+$('hl-go').onclick = probe('hl-go', () => ({ action: 'highlightly-probe', date: $('hl-date').value, league: $('hl-league').value }));
+$('ol-go').onclick = probe('ol-go', () => ({ action: 'openliga-probe', season: 2026, group: Number($('ol-group').value) || 1 }));
 $('go').onclick = run;
 $('copy').onclick = async () => { if (!last) return st('Nothing to copy.'); try { await navigator.clipboard.writeText(JSON.stringify(last, null, 2)); st('Copied.', 'ok'); } catch (e) { st('Copy was blocked.', 'bad'); } };
 </script></body></html>

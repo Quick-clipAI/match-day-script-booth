@@ -9,6 +9,7 @@ import { importStriker } from '../lib/striker-import.js';
 import { parseCsv, importOpenMatchday } from '../lib/openmatchday-import.js';
 import { backfillIds, backfillByDates } from '../lib/backfill-ids.js';
 import { detailLeagues } from '../lib/match-detail.js';
+import { highlightlyProbe, openLigaProbe } from '../lib/probes.js';
 import { fixturesGetter, seasonFixturesGetter, fetchText, teamsGetter, transfersGetter, squadGetter, coachGetter, searchTeamsGetter, statusGetter, quotaOf, injuriesGetter } from '../lib/apisports.js';
 import { clubSuspects, pairKey } from '../lib/club-suspects.js';
 import { normalizeDetail, DETAIL_PROMPT } from '../lib/manual-detail.js';
@@ -396,6 +397,13 @@ export default async function handler(req, res) {
       case 'striker-bulk': {
         const out = await strikerBulk(store, { step: body.step, season: body.season, max: body.max, reserve: body.reserve, dryRun: !!body.dryRun });
         return res.status(200).json(out);
+      }
+      case 'highlightly-probe': {           // 3 requests: matches of one date, events and lineups of the first finished match
+        const date = /^\d{4}-\d{2}-\d{2}$/.test(body.date || '') ? body.date : '2026-10-01';
+        return res.status(200).json(await highlightlyProbe({ key: (process.env.HIGHLIGHTLY_API_KEY || '').trim(), date, league: String(body.league || 'Premier League').slice(0, 60) }));
+      }
+      case 'openliga-probe': {              // free, no key
+        return res.status(200).json(await openLigaProbe({ season: Number(body.season) || 2026, group: Number(body.group) || 1 }));
       }
       case 'missing-csv': {                 // finished matches of the current season that have no full stats yet, as CSV text
         const rows = [];
