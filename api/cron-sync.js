@@ -7,6 +7,7 @@ import { fixturesGetter, detailGetter, teamsGetter, transfersGetter, squadGetter
 import { syncSquads } from '../lib/sync-squads.js';
 import { syncTransfers } from '../lib/sync-transfers.js';
 import { syncDetails } from '../lib/match-detail.js';
+import { hlFetch } from '../lib/highlightly.js';
 import { backfillIds } from '../lib/backfill-ids.js';
 
 
@@ -29,7 +30,10 @@ export default async function handler(req, res) {
       try { q = await syncSquads(store, { getSquad: squadGetter(key), maxRun: 3 }); } catch (e) { q = { summary: 'squads failed: ' + String(e && e.message || e).slice(0, 120), calls: 0 }; }
       let t = { summary: 'skipped' };
       try { t = await syncTransfers(store, { getTeams: teamsGetter(key), getTransfers: transfersGetter(key), maxRun: Math.max(0, 3 - (q.calls || 0)) }); } catch (e) { t = { summary: 'transfers failed: ' + String(e && e.message || e).slice(0, 120) }; }
-      return res.status(200).json({ ok: true, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, kickoffs: k.summary, details: d.summary, squads: q.summary, transfers: t.summary });
+      // older matches from Highlightly (its own free quota): 2 matches per run, at most 45 a day; does nothing until the lists were loaded
+      let hl = { summary: 'skipped' };
+      try { const hk = (process.env.HIGHLIGHTLY_API_KEY || '').trim(); if (hk) hl = await hlFetch(store, { key: hk, max: 2, dailyCap: 45, budgetMs: 8000 }); } catch (e) { hl = { summary: 'highlightly failed: ' + String(e && e.message || e).slice(0, 120) }; }
+      return res.status(200).json({ ok: true, highlightly: hl.summary, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, kickoffs: k.summary, details: d.summary, squads: q.summary, transfers: t.summary });
     } catch (e) { return res.status(500).json({ error: String(e && e.message || e).slice(0, 200) }); }
   }
   const secret = (process.env.CRON_SECRET || '').trim(), admin = (process.env.ADMIN_KEY || '').trim();

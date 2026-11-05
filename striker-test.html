@@ -49,6 +49,9 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,monos
 <div class="card"><b>Put Bundesliga goals into the app (OpenLigaDB)</b>
   <p class="sub" style="margin:6px 0 0">Reads every played Bundesliga matchday and saves the goals (scorer, minute, penalty, own goal) on each match whose goals add up to our score. Stats already saved are kept. Safe to repeat.</p>
   <div class="row"><button class="s" id="og-go">Import Bundesliga goals</button></div><div id="og-st" class="sub" style="white-space:pre-wrap;margin-top:8px"></div></div>
+<div class="card"><b>Older matches from Highlightly (Premier League, La Liga, Serie A, Ligue 1)</b>
+  <p class="sub" style="margin:6px 0 0">1) Load the lists once (about 20 requests). 2) Fetch: 15 matches per press, 2 requests each, with goals, assists, cards, substitutions and line-ups. The server also fetches 2 matches every 20 minutes by itself, up to 45 matches a day, so the old ones fill in over about a week. Highlightly has no ratings.</p>
+  <div class="row"><button class="s" id="hs-list">1 · Load the match lists</button><button class="s" id="hs-fetch">2 · Fetch 15 matches</button></div><div id="hs-st" class="sub" style="white-space:pre-wrap;margin-top:8px"></div></div>
 <div class="card"><b>Matches found</b><div id="list" class="sub" style="margin-top:8px">Run list_games first.</div></div>
 <div class="card"><b>What the answer holds</b><div id="sum" class="sum sub" style="margin-top:8px">Nothing yet.</div></div>
 <div class="card"><b>Raw answer</b><pre id="out">—</pre></div>
@@ -129,6 +132,9 @@ const probe = (btn, body) => async () => { $(btn).disabled = true; try { const j
 $('hl-go').onclick = probe('hl-go', () => ({ action: 'highlightly-probe', date: $('hl-date').value, league: $('hl-league').value, country: $('hl-country').value }));
 $('ol-go').onclick = probe('ol-go', () => ({ action: 'openliga-probe', season: 2026, group: Number($('ol-group').value) || 1 }));
 $('og-go').onclick = async () => { $('og-go').disabled = true; $('og-st').textContent = 'Importing…'; try { const j = await adm({ action: 'openliga-import', season: 2026 }); $('og-st').textContent = j.summary + (j.notPlaced && j.notPlaced.length ? '\nNot placed:\n' + j.notPlaced.slice(0, 10).join('\n') : ''); } catch (e) { $('og-st').textContent = e.message; } finally { $('og-go').disabled = false; } };
+const hs = (btn, body) => async () => { $(btn).disabled = true; $('hs-st').textContent = 'Working…'; try { const j = await adm(body); $('hs-st').textContent = j.summary || j.error || JSON.stringify(j); } catch (e) { $('hs-st').textContent = e.message; } finally { $(btn).disabled = false; } };
+$('hs-list').onclick = hs('hs-list', { action: 'highlightly-sync', step: 'list' });
+$('hs-fetch').onclick = hs('hs-fetch', { action: 'highlightly-sync', step: 'fetch', max: 15 });
 $('go').onclick = run;
 $('copy').onclick = async () => { if (!last) return st('Nothing to copy.'); try { await navigator.clipboard.writeText(JSON.stringify(last, null, 2)); st('Copied.', 'ok'); } catch (e) { st('Copy was blocked.', 'bad'); } };
 </script></body></html>
