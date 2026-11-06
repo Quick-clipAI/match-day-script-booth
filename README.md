@@ -913,3 +913,6 @@ New last tab "Tools" in `admin.html`: a list of the helper pages (`TOOL_PAGES`: 
 
 ### Fingerprint inside the Admin app (admin 1.8.3)
 The Creator Booth Admin Android app (repo `creator-booth-admin-app`, v1.1.0) now carries a native plugin, `CbBiometric`. When the admin page runs inside that app it uses it (key kept in the phone's secure store, released only by a fingerprint); in Chrome it still uses the WebAuthn way. Same button, same behaviour.
+
+### Fix: app did not respond (1.6.9)
+Since v1.6.5 a paragraph of the chat instructions ("ANALYSE WHAT IS HAPPENING NOW...") sat outside its quotes, which is a syntax error: the whole app script failed to load, so no button worked and the app looked signed out. The paragraph is back inside the instructions. Check scripts with `.mjs` (module) syntax checking from now on; a plain `.js` check had missed it. Browser-tested with a stubbed sign-in service: page loads without errors, a message sends, calls carry `x-msg-id`, and a `login_required` answer opens the sign-in screen.
