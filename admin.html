@@ -122,7 +122,7 @@ table.t td:nth-child(2),table.t th:nth-child(2){text-align:left;font-family:var(
 <header class="top"><div class="in">
   <div class="brand">
     <div><h1>Creator <b>Booth</b></h1><small>Data bank · <span id="todayLbl"></span> · <span id="admVer"></span></small><small id="quota" style="display:block;cursor:pointer" title="Tap to refresh">API requests today: …</small></div>
-    <div class="row" style="gap:6px"><button class="btn sm hide" id="installBtn">Install app</button><button class="btn sm hide" id="bioEnroll">Fingerprint</button><button class="btn sm" id="logout">Lock</button></div>
+    <div class="row" style="gap:6px"><button class="btn sm hide" id="installBtn">Install app</button><button class="btn sm" id="bioEnroll">Fingerprint</button><button class="btn sm" id="logout">Lock</button></div>
   </div>
   <nav class="tabs" role="tablist" id="tabs"></nav>
 </div></header>
@@ -903,7 +903,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.8.1';
+const ADMIN_VERSION = '1.8.2';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
@@ -925,6 +925,8 @@ async function bioSecret(credId, salt) {
 }
 async function bioEnroll() {
   if (!KEY) return toast('Sign in first.', 'bad');
+  if (bioRead()) { if (confirm('Fingerprint unlock is on. Turn it off?')) { try { localStorage.removeItem(BIO_KEY); } catch (e) { } bioLabel(); toast('Fingerprint unlock is off.', 'ok'); } return; }
+  if (!(await bioSupported())) return toast('This browser cannot use your fingerprint here. Open the admin page in Chrome on your phone (not inside another app), and make sure a screen lock or fingerprint is set on the phone.', 'bad');
   try {
     const salt = crypto.getRandomValues(new Uint8Array(32));
     const cred = await navigator.credentials.create({ publicKey: { rp: { name: 'Creator Booth admin', id: location.hostname }, user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'admin', displayName: 'Creator Booth admin' }, challenge: crypto.getRandomValues(new Uint8Array(32)), pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }], authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' }, timeout: 60000, extensions: { prf: {} } } });
@@ -932,8 +934,8 @@ async function bioEnroll() {
     const k = await bioSecret(id, salt);
     const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, new TextEncoder().encode(KEY));
     localStorage.setItem(BIO_KEY, JSON.stringify({ id: b64(id), salt: b64(salt), iv: b64(iv), ct: b64(ct) }));
-    $('#bioEnroll').classList.add('hide'); toast('Fingerprint unlock is on. Next time, use the fingerprint button.', 'ok');
-  } catch (e) { toast('Could not turn on fingerprint unlock: ' + (e && e.message || e), 'bad'); }
+    bioLabel(); toast('Fingerprint unlock is on. Next time, use the fingerprint button.', 'ok');
+  } catch (e) { try { localStorage.removeItem(BIO_KEY); } catch (x) { } bioLabel(); toast('Could not turn on fingerprint unlock: ' + (e && e.message || e), 'bad'); }
 }
 async function bioUnlock() {
   const rec = bioRead(); if (!rec) return;
@@ -944,8 +946,8 @@ async function bioUnlock() {
   } catch (e) { $('#loginErr').textContent = 'Fingerprint did not unlock: ' + (e && e.message || e); }
 }
 $('#bioBtn').onclick = bioUnlock; $('#bioEnroll').onclick = bioEnroll;
-(async () => { if (await bioSupported()) { if (bioRead()) $('#bioBtn').classList.remove('hide'); else window.__bioCanEnroll = true; } })();
-const _boot0 = boot; boot = async function () { await _boot0.apply(this, arguments); if (window.__bioCanEnroll && !bioRead()) $('#bioEnroll').classList.remove('hide'); };
+const bioLabel = () => { $('#bioEnroll').textContent = bioRead() ? 'Fingerprint: on' : 'Fingerprint'; if (bioRead()) $('#bioBtn').classList.remove('hide'); else $('#bioBtn').classList.add('hide'); };
+bioLabel();
 // leaving the page for 10 seconds locks the bank (the key is wiped from memory and from this tab)
 let lockTimer = null;
 document.addEventListener('visibilitychange', () => {

@@ -19,22 +19,24 @@ await t('guest: one message id cannot be reused forever', async () => {
   for (let i = 0; i < 12; i++) last = await checkAi(req({ 'x-msg-id': 'same' }), env, { store, now: 5e11 });
   assert.equal(last.ok, false); assert.equal(last.status, 429);
 });
-await t('guest: no message id (old app) counts every call; another phone is separate; a new day resets', async () => {
+await t('old app (no message id, no token): told to update; another phone and a new day are separate', async () => {
   const store = memoryStore(), T = 1e12;
-  for (let i = 0; i < GUEST_FREE_MESSAGES; i++) assert.equal((await checkAi(req(), env, { store, now: T })).ok, true);
-  assert.equal((await checkAi(req(), env, { store, now: T })).ok, false);
-  assert.equal((await checkAi(req({ 'x-forwarded-for': '9.9.9.9' }), env, { store, now: T })).ok, true);
-  assert.equal((await checkAi(req(), env, { store, now: T + 86400e3 })).ok, true);
+  const r = await checkAi(req(), env, { store, now: T }); assert.equal(r.ok, false); assert.equal(r.code, 'update_required'); assert.match(r.message, /out of date/);
+  assert.equal((await checkAi(req({ 'x-msg-id': 'a' }), env, { store, now: T })).ok, true);
+  for (const id of ['b', 'c']) await checkAi(req({ 'x-msg-id': id }), env, { store, now: T });
+  assert.equal((await checkAi(req({ 'x-msg-id': 'd' }), env, { store, now: T })).ok, false);
+  assert.equal((await checkAi(req({ 'x-forwarded-for': '9.9.9.9', 'x-msg-id': 'a' }), env, { store, now: T })).ok, true);
+  assert.equal((await checkAi(req({ 'x-msg-id': 'd' }), env, { store, now: T + 86400e3 })).ok, true);
 });
 await t('signed-in user passes with a valid token; a bad token is treated as a guest', async () => {
   const store = memoryStore(), T = 1e12;
-  for (let i = 0; i < 20; i++) assert.equal((await checkAi(req({ authorization: 'Bearer ' + 'a'.repeat(30) }), env, { store, now: T, fetchImpl: authFetch })).user, 'u1');
-  for (let i = 0; i < 3; i++) await checkAi(req({ authorization: 'Bearer ' + 'b'.repeat(30) }), env, { store, now: T, fetchImpl: authFetch });
-  assert.equal((await checkAi(req({ authorization: 'Bearer ' + 'b'.repeat(30) }), env, { store, now: T, fetchImpl: authFetch })).ok, false);
+  for (let i = 0; i < 20; i++) assert.equal((await checkAi(req({ 'x-msg-id': 'q', authorization: 'Bearer ' + 'a'.repeat(30) }), env, { store, now: T, fetchImpl: authFetch })).user, 'u1');
+  for (let i = 0; i < 3; i++) await checkAi(req({ 'x-msg-id': 'z' + i, authorization: 'Bearer ' + 'b'.repeat(30) }), env, { store, now: T, fetchImpl: authFetch });
+  assert.equal((await checkAi(req({ 'x-msg-id': 'z9', authorization: 'Bearer ' + 'b'.repeat(30) }), env, { store, now: T, fetchImpl: authFetch })).ok, false);
 });
 await t('watch mode (AI_GUARD not enforce) never blocks', async () => {
   const store = memoryStore(); let r;
-  for (let i = 0; i < 6; i++) r = await checkAi(req(), { ...env, AI_GUARD: '' }, { store, now: 1e12 });
+  for (let i = 0; i < 6; i++) r = await checkAi(req({ 'x-msg-id': 'w' + i }), { ...env, AI_GUARD: '' }, { store, now: 1e12 });
   assert.equal(r.ok, true);
 });
 await t('lock ladder', () => {

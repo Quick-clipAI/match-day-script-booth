@@ -906,3 +906,7 @@ New last tab "Tools" in `admin.html`: a list of the helper pages (`TOOL_PAGES`: 
 - **State table:** `security_state(key, data)` in Supabase, RLS on, no policies (server only). If it cannot be reached the guard uses memory inside the running instance and never takes the chat down.
 - **Admin page:** "Keep me signed in" (plain key in the browser) is removed and any old copy is deleted. The key is forgotten 10 s after you leave the page. Fingerprint unlock: after signing in press "Fingerprint" once; the key is then encrypted with a secret that only your fingerprint/screen lock can release (WebAuthn PRF). If the phone or browser does not support PRF, the button does not appear and the key must be typed.
 - Tests: `tests/guard.test.mjs` (11 checks).
+
+### Update: old apps and the fingerprint button (admin 1.8.2)
+- When `AI_GUARD=enforce`, a request with neither a login token nor `x-msg-id` (apps before 1.6.8) is refused with `code: update_required` and the text "This version of Creator Booth is out of date. Please download the latest app...". That is how old apps are discontinued. Do not switch it on before the new APK is installed on your own phone.
+- The admin page is a website page (Chrome / installed from Chrome), not part of the APK, so its fingerprint unlock works in Chrome only. The Fingerprint button in the header is now always visible; if the browser cannot do it, pressing it says why. "Fingerprint: on" appears when it is enabled; press it again to turn it off.
