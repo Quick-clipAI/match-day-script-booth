@@ -24,7 +24,7 @@ await t('buildCompetition: table, fixtures with today focus, stats from saved de
   const v = await buildCompetition(s, 'UCL', null, '2026-11-03');
   assert.equal(v.competition.label, '2026/27'); assert.equal(v.focusRound, 'Matchday 4'); assert.deepEqual(v.rounds, ['Matchday 1', 'Matchday 4']);
   assert.equal(v.tabs.map(x => x.key).join(), 'table,fixtures,stats');
-  assert.deepEqual(v.stats.players.scorers.map(x => [x.name, x.club, x.goals, x.pens]), [['Dembele', 'Paris Saint-Germain', 2, 1]]);
+  assert.deepEqual(v.stats.players.scorers.map(x => [x.name, x.club, x.goals]), [['Dembele', 'Paris Saint-Germain', 2]]);
   assert.equal(v.stats.players.assists[0].name, 'Kvara'); assert.equal(v.stats.players.matchesWithDetails, 1);
   const psg = v.stats.clubs.find(c => c.team === 'Paris Saint-Germain'); assert.equal(psg.GF, 2); assert.equal(psg.CS, 0);
   assert.equal(v.stats.clubs.find(c => c.team === 'Barcelona').CS, 1);

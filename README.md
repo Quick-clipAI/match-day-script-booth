@@ -887,3 +887,12 @@ Admin action `highlightly-status` (`lib/highlightly-status.js`) and the page `/h
 
 ## Admin v1.8.0: Tools tab
 New last tab "Tools" in `admin.html`: a list of the helper pages (`TOOL_PAGES`: Match data progress `/highlightly.html`, Data sources and imports `/striker-test.html`). A page opens inside the admin (iframe) with the key already filled in (the admin writes it to `sessionStorage.stk_ak` for the page), a back button, shortcuts to the other pages and "Open in a new tab". To add a page, add one line to `TOOL_PAGES`.
+
+## Player card and rating leaderboard (app 1.6.7)
+- **Stats tab** of a competition now has three lists: Scorers, Assists and **Rating**. Every player name is tappable.
+- **Creator Booth rating** = the average of the per-match ratings we stored for that player (only matches collected from API-Football carry ratings). It is our own number; other sites rate differently, and the app says so. A player enters the rating list after `MIN_RATED = 2` rated matches (`lib/competition-view.js`).
+- **Player card** (`#pl-sheet` in `index.html`): name, club, position, "this season" label, Creator Booth rating, games, minutes, goals, assists, yellow and red cards, a row per competition, and the list of matches (newest first, with the rating of each). Android back, Escape and the back button close it without closing the competition screen underneath.
+- **API:** `GET /api/competition?player=<key>&today=YYYY-MM-DD` returns the card (`lib/player-card.js`, 5-minute cache, no extra function). Key = club|surname|initial (`playerKey` in `lib/player-season.js`), which merges one player across sources.
+- **Coverage:** every list says "From X of Y finished matches with saved details". Goals and assists exist for older matches from Highlightly/OpenLigaDB/CSV; ratings and minutes exist only for matches collected from API-Football since 4 November. Old matches cannot get ratings on the free plan.
+- Own goals are not counted. The old per-player penalty count was removed from the stats rows (it was never shown).
+- Tests: `tests/player-season.test.mjs` (15 checks), `tests/competition.test.mjs`.

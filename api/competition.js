@@ -3,6 +3,7 @@
 import { storeFromEnv } from '../lib/bank-store.js';
 import { buildCompetition } from '../lib/competition-view.js';
 import { LEAGUES, isIsoDate } from '../lib/bank-core.js';
+import { playerCardFor } from '../lib/player-card.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,6 +13,14 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
   try {
     const q = req.query || {};
+    if (q.player) {                                           // /api/competition?player=<key>&today=: one player's card for the season
+      const { store: ps, error: pe } = storeFromEnv();
+      if (pe) return res.status(200).json({ error: 'bank not configured' });
+      const pt = String(q.today || ''); const card = await playerCardFor(ps, String(q.player).slice(0, 120), isIsoDate(pt) ? pt : new Date().toISOString().slice(0, 10));
+      if (!card) return res.status(404).json({ error: 'No stored matches for this player yet.' });
+      res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
+      return res.status(200).json(card);
+    }
     const key = String(q.league || '').toUpperCase();
     if (!LEAGUES[key]) return res.status(404).json({ error: 'Unknown competition.' });
     const { store, error } = storeFromEnv();
