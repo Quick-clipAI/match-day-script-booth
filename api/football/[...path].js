@@ -18,6 +18,7 @@
 // beyond Host and Connection, so this sends exactly what the documentation asks for.
 import https from 'node:https';
 import http from 'node:http';
+import { rateLimit } from '../../lib/guard.js';
 import zlib from 'node:zlib';
 
 const API_BASE = process.env.API_SPORTS_BASE || 'https://v3.football.api-sports.io';
@@ -81,11 +82,13 @@ export default async function handler(req, res) {
     });
   }
   // Only the endpoints Creator Booth actually uses, so the proxy is not an open door to your whole API quota.
-  const ALLOWED = new Set(['status', 'leagues', 'fixtures', 'fixtures/events', 'fixtures/statistics', 'fixtures/lineups',
-    'standings', 'teams', 'coachs', 'players', 'players/topscorers', 'players/topassists', 'injuries', 'transfers']);
+  const ALLOWED = new Set(['status', 'fixtures', 'fixtures/events', 'fixtures/statistics', 'teams', 'coachs']);
   if (!ALLOWED.has(target.path)) {
     return res.status(400).json({ error: 'That football endpoint is not available on this site.', requestedPath: target.path });
   }
+  // Each phone/network may make 90 football requests an hour: plenty for browsing, too few to drain the daily quota.
+  const lim = await rateLimit(req, process.env, 'football', 90, 3600e3);
+  if (!lim.ok) { res.setHeader('Retry-After', String(lim.retryAfter)); return res.status(429).json({ error: 'Too many football requests from this connection. Try again in a few minutes.' }); }
   const qs = target.params.toString();
   const url = `${API_BASE}/${target.path}${qs ? '?' + qs : ''}`;
 

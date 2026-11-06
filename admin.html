@@ -110,19 +110,19 @@ table.t td:nth-child(2),table.t th:nth-child(2){text-align:left;font-family:var(
     <input id="user" name="username" type="text" autocomplete="username" value="admin" autocapitalize="off" spellcheck="false" style="opacity:.7">
     <label class="f" for="key" style="margin-top:12px">Admin key</label>
     <input id="key" name="password" type="password" autocomplete="current-password" placeholder="the ADMIN_KEY you set in Vercel">
-    <label class="chip" style="cursor:pointer;margin-top:12px;display:inline-flex;gap:8px;align-items:center"><input type="checkbox" id="keep" style="width:auto;min-height:0"> Keep me signed in on this device</label>
     <p id="loginErr" class="mut" style="color:var(--bad);min-height:22px;margin:8px 0"></p>
     <button class="btn pri" id="loginBtn" type="submit" style="width:100%">Open the bank</button>
+    <button class="btn pri hide" id="bioBtn" type="button" style="width:100%;margin-top:10px">Unlock with fingerprint</button>
     <button class="btn hide" id="savedBtn" type="button" style="width:100%;margin-top:10px">Use my saved password</button>
   </form>
-  <p class="mut" style="font-size:13px;margin-top:18px" id="keepNote">Not ticked: the key is forgotten when you close this tab. Ticked: this browser or app keeps it until you press Lock, so anyone who opens this phone can open the bank.</p>
+  <p class="mut" style="font-size:13px;margin-top:18px" id="keepNote">The key is never stored in plain text. It is forgotten about 10 seconds after you leave this page. Turn on fingerprint unlock after you sign in (the Fingerprint button at the top).</p>
 </div>
 
 <div id="appView" class="hide">
 <header class="top"><div class="in">
   <div class="brand">
     <div><h1>Creator <b>Booth</b></h1><small>Data bank · <span id="todayLbl"></span> · <span id="admVer"></span></small><small id="quota" style="display:block;cursor:pointer" title="Tap to refresh">API requests today: …</small></div>
-    <div class="row" style="gap:6px"><button class="btn sm hide" id="installBtn">Install app</button><button class="btn sm" id="logout">Lock</button></div>
+    <div class="row" style="gap:6px"><button class="btn sm hide" id="installBtn">Install app</button><button class="btn sm hide" id="bioEnroll">Fingerprint</button><button class="btn sm" id="logout">Lock</button></div>
   </div>
   <nav class="tabs" role="tablist" id="tabs"></nav>
 </div></header>
@@ -138,7 +138,7 @@ table.t td:nth-child(2),table.t th:nth-child(2){text-align:left;font-family:var(
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 let KEY = '';
-try { KEY = sessionStorage.getItem('cb_admin') || localStorage.getItem('cb_admin_keep') || ''; } catch (e) { /* storage blocked: key lives in memory only */ }
+try { KEY = sessionStorage.getItem('cb_admin') || ''; localStorage.removeItem('cb_admin_keep'); localStorage.removeItem('cb_keep_pref'); /* older versions kept the key in plain text: removed */ } catch (e) { /* storage blocked: key lives in memory only */ }
 const state = { tab: 'overview', ov: null, nav: {}, filters: { league: '', season: '', club: '', mode: 'all', from: '', to: '', order: 'asc' } };
 const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 
@@ -162,7 +162,7 @@ async function apiCall(action, body = {}) {
     res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': KEY }, body: JSON.stringify({ action, today: todayISO(), ...body }) });
   } catch (e) { throw new Error('Could not reach the server. Check your connection.'); }
   let j = null; try { j = await res.json(); } catch (e) { /* not json */ }
-  if (res.status === 401) { const e = new Error('Wrong admin key.'); e.auth = true; throw e; }
+  if (res.status === 401) { const e = new Error((j && j.error) || 'Wrong admin key.'); e.auth = true; throw e; }
   if (!res.ok) { const e = new Error((j && j.error) || ('Server answered ' + res.status)); e.data = j; throw e; }
   return j;
 }
@@ -182,8 +182,8 @@ const leagueOpts = (sel, all = true) => (all ? '<option value="">All leagues</op
 // ---------------------------------------------------------------- login / lock
 function lock() {
   KEY = ''; CACHE.clear();
-  try { sessionStorage.removeItem('cb_admin'); localStorage.removeItem('cb_admin_keep'); } catch (e) { }
-  try { if (navigator.credentials && navigator.credentials.preventSilentAccess) navigator.credentials.preventSilentAccess(); } catch (e) { }
+  try { sessionStorage.removeItem('cb_admin'); sessionStorage.removeItem('stk_ak'); localStorage.removeItem('cb_admin_keep'); } catch (e) { }
+  try { if (navigator.credentials && navigator.credentials.preventSilentAccess) Promise.resolve(navigator.credentials.preventSilentAccess()).catch(() => { }); } catch (e) { }
   $('#appView').classList.add('hide'); $('#loginView').classList.remove('hide'); $('#key').value = '';
 }
 async function tryLogin() {
@@ -192,14 +192,13 @@ async function tryLogin() {
   const b = $('#loginBtn'); busy(b, true, 'Checking…');
   try {
     await api('ping');
-    try { sessionStorage.setItem('cb_admin', KEY); if ($('#keep').checked) { localStorage.setItem('cb_admin_keep', KEY); localStorage.setItem('cb_keep_pref', '1'); } else { localStorage.removeItem('cb_admin_keep'); localStorage.removeItem('cb_keep_pref'); } } catch (e) { }
+    try { sessionStorage.setItem('cb_admin', KEY); } catch (e) { }
     try { if (window.PasswordCredential && navigator.credentials) await navigator.credentials.store(new PasswordCredential({ id: $('#user').value || 'admin', password: KEY, name: 'Creator Booth admin' })); } catch (e) { /* the browser may not support saving */ }
     $('#loginView').classList.add('hide'); $('#appView').classList.remove('hide'); await boot();
-  } catch (e) { KEY = ''; if (e.auth) { try { localStorage.removeItem('cb_admin_keep'); } catch (x) { } } $('#loginErr').textContent = e.message; $('#loginView').classList.remove('hide'); }
+  } catch (e) { KEY = ''; $('#loginErr').textContent = e.message; $('#loginView').classList.remove('hide'); }
   finally { busy(b, false); }
 }
 $('#loginForm').onsubmit = e => { e.preventDefault(); tryLogin(); };
-try { $('#keep').checked = localStorage.getItem('cb_keep_pref') === '1'; } catch (e) { }
 // one tap sign-in from the browser's saved password (Chrome). Not available inside the Android admin app: use "Keep me signed in" there.
 if (window.PasswordCredential && navigator.credentials && navigator.credentials.get) {
   $('#savedBtn').classList.remove('hide');
@@ -904,11 +903,56 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.8.0';
+const ADMIN_VERSION = '1.8.1';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
 window.addEventListener('appinstalled', () => { $('#installBtn').classList.add('hide'); toast('Installed. Open it from your home screen.', 'ok'); });
+
+
+// ---------------------------------------------------------------- fingerprint unlock + auto lock
+// The admin key is wrapped (AES-GCM) with a secret that only this phone's fingerprint/screen lock can release (WebAuthn PRF
+// extension). Nothing readable is stored. If the phone or browser cannot do that, fingerprint unlock is simply not offered.
+const BIO_KEY = 'cb_bio';
+const b64 = u => btoa(String.fromCharCode(...new Uint8Array(u))), unb64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+const bioRead = () => { try { return JSON.parse(localStorage.getItem(BIO_KEY) || 'null'); } catch (e) { return null; } };
+async function bioSupported() { try { return !!(window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch (e) { return false; } }
+async function bioSecret(credId, salt) {
+  const a = await navigator.credentials.get({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), allowCredentials: [{ type: 'public-key', id: credId }], userVerification: 'required', timeout: 60000, extensions: { prf: { eval: { first: salt } } } } });
+  const r = a && a.getClientExtensionResults && a.getClientExtensionResults().prf && a.getClientExtensionResults().prf.results;
+  if (!r || !r.first) throw new Error('This phone or browser cannot lock the key to your fingerprint.');
+  return crypto.subtle.importKey('raw', r.first, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+async function bioEnroll() {
+  if (!KEY) return toast('Sign in first.', 'bad');
+  try {
+    const salt = crypto.getRandomValues(new Uint8Array(32));
+    const cred = await navigator.credentials.create({ publicKey: { rp: { name: 'Creator Booth admin', id: location.hostname }, user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'admin', displayName: 'Creator Booth admin' }, challenge: crypto.getRandomValues(new Uint8Array(32)), pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }], authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' }, timeout: 60000, extensions: { prf: {} } } });
+    const id = new Uint8Array(cred.rawId), iv = crypto.getRandomValues(new Uint8Array(12));
+    const k = await bioSecret(id, salt);
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, new TextEncoder().encode(KEY));
+    localStorage.setItem(BIO_KEY, JSON.stringify({ id: b64(id), salt: b64(salt), iv: b64(iv), ct: b64(ct) }));
+    $('#bioEnroll').classList.add('hide'); toast('Fingerprint unlock is on. Next time, use the fingerprint button.', 'ok');
+  } catch (e) { toast('Could not turn on fingerprint unlock: ' + (e && e.message || e), 'bad'); }
+}
+async function bioUnlock() {
+  const rec = bioRead(); if (!rec) return;
+  try {
+    const k = await bioSecret(unb64(rec.id), unb64(rec.salt));
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(rec.iv) }, k, unb64(rec.ct));
+    $('#key').value = new TextDecoder().decode(pt); await tryLogin(); $('#key').value = '';
+  } catch (e) { $('#loginErr').textContent = 'Fingerprint did not unlock: ' + (e && e.message || e); }
+}
+$('#bioBtn').onclick = bioUnlock; $('#bioEnroll').onclick = bioEnroll;
+(async () => { if (await bioSupported()) { if (bioRead()) $('#bioBtn').classList.remove('hide'); else window.__bioCanEnroll = true; } })();
+const _boot0 = boot; boot = async function () { await _boot0.apply(this, arguments); if (window.__bioCanEnroll && !bioRead()) $('#bioEnroll').classList.remove('hide'); };
+// leaving the page for 10 seconds locks the bank (the key is wiped from memory and from this tab)
+let lockTimer = null;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { if (KEY) lockTimer = setTimeout(() => { if (document.hidden) lock(); }, 10000); }
+  else { clearTimeout(lockTimer); lockTimer = null; if (!KEY && bioRead()) $('#bioBtn').classList.remove('hide'); }
+});
+window.addEventListener('pagehide', () => { try { sessionStorage.removeItem('cb_admin'); sessionStorage.removeItem('stk_ak'); } catch (e) { } });
 
 // ---------------------------------------------------------------- start
 if (KEY) { $('#loginView').classList.add('hide'); tryLogin(); } else $('#loginView').classList.remove('hide');

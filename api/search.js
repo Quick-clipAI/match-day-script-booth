@@ -4,6 +4,8 @@
 //
 // Set TAVILY_API_KEY in Vercel (Settings -> Environment Variables), then redeploy.
 
+import { checkAdminKey } from '../lib/guard.js';
+
 const TRUSTED_SITES = [
   'bbc.com', 'bbc.co.uk', 'soccernet.ng', 'skysports.com', 'theguardian.com', 'espn.com', 'uefa.com', 'fifa.com',
   'premierleague.com', 'transfermarkt.com', 'goal.com', 'reuters.com', 'apnews.com', 'theathletic.com'
@@ -13,7 +15,11 @@ const RANGE_DAYS = { day: 1, week: 7, month: 30, year: 365 };
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'x-admin-key');
   if (req.method === 'OPTIONS') return res.status(204).end();
+  // Nothing in the app calls this address (its quota is 1,000 searches a month), so it is closed to the public.
+  const gate = await checkAdminKey(req, process.env);
+  if (!gate.ok) return res.status(gate.status).json({ error: gate.error });
 
   const key = String(process.env.TAVILY_API_KEY || '').trim().replace(/^["'`]+|["'`]+$/g, '').trim();
   if (!key) {

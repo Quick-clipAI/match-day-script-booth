@@ -2,6 +2,7 @@
 // Auth: Vercel sends  Authorization: Bearer <CRON_SECRET>  when that env var exists.
 import { storeFromEnv } from '../lib/bank-store.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
+import { checkAdminKey, guardStore } from '../lib/guard.js';
 import { syncDue, stampKickoffs } from '../lib/sync-due.js';
 import { fixturesGetter, detailGetter, teamsGetter, transfersGetter, squadGetter, seasonFixturesGetter } from '../lib/apisports.js';
 import { syncSquads } from '../lib/sync-squads.js';
@@ -18,6 +19,14 @@ export default async function handler(req, res) {
   if (req.query && req.query.mode === 'due') {
     const { store, error } = storeFromEnv();
     if (error) return res.status(500).json({ error });
+    // Open to everyone, so it is throttled for the whole site: once per 5 minutes, otherwise anybody repeating the
+    // address could spend the daily API-Football and Highlightly requests. Calls with the cron secret skip the throttle.
+    const dueSecret = (process.env.CRON_SECRET || '').trim(), dueBearer = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    if (!(dueSecret && dueBearer && safeEq(dueBearer, dueSecret))) {
+      const gs = guardStore(process.env), last = await gs.get('due:last'), nowMs = Date.now();
+      if (last && nowMs - Number(last.t || 0) < 5 * 60 * 1000) return res.status(200).json({ ok: true, skipped: 'ran less than 5 minutes ago' });
+      await gs.set('due:last', { t: nowMs });
+    }
     try {
       const key = (process.env.API_SPORTS_KEY || '').trim();
       const r = await syncDue(store, { getFixtures: fixturesGetter(key) });
@@ -36,10 +45,14 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, highlightly: hl.summary, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, kickoffs: k.summary, details: d.summary, squads: q.summary, transfers: t.summary });
     } catch (e) { return res.status(500).json({ error: String(e && e.message || e).slice(0, 200) }); }
   }
-  const secret = (process.env.CRON_SECRET || '').trim(), admin = (process.env.ADMIN_KEY || '').trim();
+  const secret = (process.env.CRON_SECRET || '').trim();
   const bearer = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  const adminKey = String(req.headers['x-admin-key'] || '');
-  const ok = (secret && bearer && safeEq(bearer, secret)) || (admin && adminKey && safeEq(adminKey, admin));
+  let ok = !!(secret && bearer && safeEq(bearer, secret));
+  if (!ok && req.headers['x-admin-key']) {       // the admin key goes through the same wrong-key time-outs as /api/admin
+    const gate = await checkAdminKey(req, process.env);
+    if (!gate.ok) { if (gate.retryAfter) res.setHeader('Retry-After', String(gate.retryAfter)); return res.status(gate.status === 500 ? 500 : gate.status).json({ error: gate.error }); }
+    ok = true;
+  }
   if (!ok) return res.status(401).json({ error: 'Not allowed' });
   const { store, error } = storeFromEnv();
   if (error) return res.status(500).json({ error });

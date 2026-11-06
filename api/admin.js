@@ -1,6 +1,7 @@
 // POST /api/admin   header: x-admin-key = ADMIN_KEY   body: { action, ... }
 // Everything the admin page does goes through here. Nothing is public: no key, no access.
 import { storeFromEnv } from '../lib/bank-store.js';
+import { checkAdminKey } from '../lib/guard.js';
 import { LEAGUES, LEAGUE_KEYS, norm, makeRow, matchId, isIsoDate, currentSeason, coverageOf, computeTable } from '../lib/bank-core.js';
 import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } from '../lib/bank-sync.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
@@ -34,10 +35,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return fail(res, 405, 'POST only');
 
-  const admin = (process.env.ADMIN_KEY || '').trim();
-  if (!admin) return fail(res, 500, 'ADMIN_KEY is not set on the server. Add it in Vercel → Settings → Environment Variables and redeploy.');
-  const given = String(req.headers['x-admin-key'] || '');
-  if (!given || !safeEq(given, admin)) return fail(res, 401, 'Wrong admin key.');
+  const gate = await checkAdminKey(req, process.env);
+  if (!gate.ok) { if (gate.retryAfter) res.setHeader('Retry-After', String(gate.retryAfter)); return res.status(gate.status).json({ error: gate.error, retryAfter: gate.retryAfter || 0 }); }
 
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { return fail(res, 400, 'Body is not JSON'); } }
