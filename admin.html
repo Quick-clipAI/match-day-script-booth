@@ -903,7 +903,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.8.2';
+const ADMIN_VERSION = '1.8.3';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
@@ -911,12 +911,21 @@ window.addEventListener('appinstalled', () => { $('#installBtn').classList.add('
 
 
 // ---------------------------------------------------------------- fingerprint unlock + auto lock
-// The admin key is wrapped (AES-GCM) with a secret that only this phone's fingerprint/screen lock can release (WebAuthn PRF
-// extension). Nothing readable is stored. If the phone or browser cannot do that, fingerprint unlock is simply not offered.
+// Two ways, nothing readable is ever stored:
+//  1. Inside the Creator Booth Admin Android app (v1.1.0+): the app's own plugin keeps the key in the phone's secure
+//     hardware store, and only a fingerprint can release it (Android BiometricPrompt).
+//  2. In Chrome: the key is wrapped (AES-GCM) with a secret that only the phone's fingerprint/screen lock can release
+//     (WebAuthn PRF extension).
+// If neither works on this phone, fingerprint unlock is simply not offered and the key has to be typed.
 const BIO_KEY = 'cb_bio';
 const b64 = u => btoa(String.fromCharCode(...new Uint8Array(u))), unb64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
 const bioRead = () => { try { return JSON.parse(localStorage.getItem(BIO_KEY) || 'null'); } catch (e) { return null; } };
-async function bioSupported() { try { return !!(window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch (e) { return false; } }
+const NB = () => { try { const C = window.Capacitor; if (!C || !(C.isNativePlatform ? C.isNativePlatform() : C.getPlatform && C.getPlatform() !== 'web')) return null; if (C.Plugins && C.Plugins.CbBiometric) return C.Plugins.CbBiometric; if (C.nativePromise) return { isAvailable: o => C.nativePromise('CbBiometric', 'isAvailable', o || {}), isEnrolled: o => C.nativePromise('CbBiometric', 'isEnrolled', o || {}), enroll: o => C.nativePromise('CbBiometric', 'enroll', o || {}), unlock: o => C.nativePromise('CbBiometric', 'unlock', o || {}), clear: o => C.nativePromise('CbBiometric', 'clear', o || {}) }; } catch (e) { } return null; };
+let bioOn = !!bioRead();
+async function bioSupported() {
+  const n = NB(); if (n) { try { return !!(await n.isAvailable()).available; } catch (e) { return false; } }
+  try { return !!(window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch (e) { return false; }
+}
 async function bioSecret(credId, salt) {
   const a = await navigator.credentials.get({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), allowCredentials: [{ type: 'public-key', id: credId }], userVerification: 'required', timeout: 60000, extensions: { prf: { eval: { first: salt } } } } });
   const r = a && a.getClientExtensionResults && a.getClientExtensionResults().prf && a.getClientExtensionResults().prf.results;
@@ -925,34 +934,46 @@ async function bioSecret(credId, salt) {
 }
 async function bioEnroll() {
   if (!KEY) return toast('Sign in first.', 'bad');
-  if (bioRead()) { if (confirm('Fingerprint unlock is on. Turn it off?')) { try { localStorage.removeItem(BIO_KEY); } catch (e) { } bioLabel(); toast('Fingerprint unlock is off.', 'ok'); } return; }
-  if (!(await bioSupported())) return toast('This browser cannot use your fingerprint here. Open the admin page in Chrome on your phone (not inside another app), and make sure a screen lock or fingerprint is set on the phone.', 'bad');
+  const n = NB();
+  if (bioOn) { if (confirm('Fingerprint unlock is on. Turn it off?')) { try { if (n) await n.clear(); localStorage.removeItem(BIO_KEY); } catch (e) { } bioOn = false; bioLabel(); toast('Fingerprint unlock is off.', 'ok'); } return; }
+  if (!(await bioSupported())) return toast(n ? 'This phone has no fingerprint set up (or it needs a stronger one). Add a fingerprint in the phone settings and try again.' : 'This browser cannot use your fingerprint here. Open the admin page in Chrome on your phone, and make sure a screen lock or fingerprint is set on the phone.', 'bad');
   try {
-    const salt = crypto.getRandomValues(new Uint8Array(32));
-    const cred = await navigator.credentials.create({ publicKey: { rp: { name: 'Creator Booth admin', id: location.hostname }, user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'admin', displayName: 'Creator Booth admin' }, challenge: crypto.getRandomValues(new Uint8Array(32)), pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }], authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' }, timeout: 60000, extensions: { prf: {} } } });
-    const id = new Uint8Array(cred.rawId), iv = crypto.getRandomValues(new Uint8Array(12));
-    const k = await bioSecret(id, salt);
-    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, new TextEncoder().encode(KEY));
-    localStorage.setItem(BIO_KEY, JSON.stringify({ id: b64(id), salt: b64(salt), iv: b64(iv), ct: b64(ct) }));
-    bioLabel(); toast('Fingerprint unlock is on. Next time, use the fingerprint button.', 'ok');
-  } catch (e) { try { localStorage.removeItem(BIO_KEY); } catch (x) { } bioLabel(); toast('Could not turn on fingerprint unlock: ' + (e && e.message || e), 'bad'); }
+    if (n) await n.enroll({ secret: KEY });
+    else {
+      const salt = crypto.getRandomValues(new Uint8Array(32));
+      const cred = await navigator.credentials.create({ publicKey: { rp: { name: 'Creator Booth admin', id: location.hostname }, user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'admin', displayName: 'Creator Booth admin' }, challenge: crypto.getRandomValues(new Uint8Array(32)), pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }], authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' }, timeout: 60000, extensions: { prf: {} } } });
+      const id = new Uint8Array(cred.rawId), iv = crypto.getRandomValues(new Uint8Array(12));
+      const k = await bioSecret(id, salt);
+      const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, new TextEncoder().encode(KEY));
+      localStorage.setItem(BIO_KEY, JSON.stringify({ id: b64(id), salt: b64(salt), iv: b64(iv), ct: b64(ct) }));
+    }
+    bioOn = true; bioLabel(); toast('Fingerprint unlock is on. Next time, use the fingerprint button.', 'ok');
+  } catch (e) { try { localStorage.removeItem(BIO_KEY); } catch (x) { } bioOn = false; bioLabel(); toast('Could not turn on fingerprint unlock: ' + (e && e.message || e), 'bad'); }
 }
 async function bioUnlock() {
-  const rec = bioRead(); if (!rec) return;
+  if (!bioOn) return;
   try {
-    const k = await bioSecret(unb64(rec.id), unb64(rec.salt));
-    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(rec.iv) }, k, unb64(rec.ct));
-    $('#key').value = new TextDecoder().decode(pt); await tryLogin(); $('#key').value = '';
-  } catch (e) { $('#loginErr').textContent = 'Fingerprint did not unlock: ' + (e && e.message || e); }
+    const n = NB(); let secret;
+    if (n) secret = (await n.unlock()).secret;
+    else {
+      const rec = bioRead(); if (!rec) return;
+      const k = await bioSecret(unb64(rec.id), unb64(rec.salt));
+      secret = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(rec.iv) }, k, unb64(rec.ct)));
+    }
+    if (!secret) throw new Error('nothing came back');
+    $('#key').value = secret; await tryLogin(); $('#key').value = '';
+  } catch (e) { const m = String(e && e.message || e); if (/invalidat|changed/i.test(m)) { bioOn = false; bioLabel(); } $('#loginErr').textContent = 'Fingerprint did not unlock: ' + m; }
 }
 $('#bioBtn').onclick = bioUnlock; $('#bioEnroll').onclick = bioEnroll;
-const bioLabel = () => { $('#bioEnroll').textContent = bioRead() ? 'Fingerprint: on' : 'Fingerprint'; if (bioRead()) $('#bioBtn').classList.remove('hide'); else $('#bioBtn').classList.add('hide'); };
+const bioLabel = () => { $('#bioEnroll').textContent = bioOn ? 'Fingerprint: on' : 'Fingerprint'; if (bioOn) $('#bioBtn').classList.remove('hide'); else $('#bioBtn').classList.add('hide'); };
 bioLabel();
+// inside the app the plugin answers a moment after the page starts: ask it whether the key was saved, then offer the unlock
+(async () => { const n = NB(); if (!n) return; try { bioOn = !!(await n.isEnrolled()).enrolled; bioLabel(); if (bioOn && !KEY) bioUnlock(); } catch (e) { } })();
 // leaving the page for 10 seconds locks the bank (the key is wiped from memory and from this tab)
 let lockTimer = null;
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { if (KEY) lockTimer = setTimeout(() => { if (document.hidden) lock(); }, 10000); }
-  else { clearTimeout(lockTimer); lockTimer = null; if (!KEY && bioRead()) $('#bioBtn').classList.remove('hide'); }
+  else { clearTimeout(lockTimer); lockTimer = null; if (!KEY && bioOn) $('#bioBtn').classList.remove('hide'); }
 });
 window.addEventListener('pagehide', () => { try { sessionStorage.removeItem('cb_admin'); sessionStorage.removeItem('stk_ak'); } catch (e) { } });
 

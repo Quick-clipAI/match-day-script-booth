@@ -910,3 +910,6 @@ New last tab "Tools" in `admin.html`: a list of the helper pages (`TOOL_PAGES`: 
 ### Update: old apps and the fingerprint button (admin 1.8.2)
 - When `AI_GUARD=enforce`, a request with neither a login token nor `x-msg-id` (apps before 1.6.8) is refused with `code: update_required` and the text "This version of Creator Booth is out of date. Please download the latest app...". That is how old apps are discontinued. Do not switch it on before the new APK is installed on your own phone.
 - The admin page is a website page (Chrome / installed from Chrome), not part of the APK, so its fingerprint unlock works in Chrome only. The Fingerprint button in the header is now always visible; if the browser cannot do it, pressing it says why. "Fingerprint: on" appears when it is enabled; press it again to turn it off.
+
+### Fingerprint inside the Admin app (admin 1.8.3)
+The Creator Booth Admin Android app (repo `creator-booth-admin-app`, v1.1.0) now carries a native plugin, `CbBiometric`. When the admin page runs inside that app it uses it (key kept in the phone's secure store, released only by a fingerprint); in Chrome it still uses the WebAuthn way. Same button, same behaviour.
