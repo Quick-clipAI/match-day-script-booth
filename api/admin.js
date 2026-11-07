@@ -11,6 +11,7 @@ import { parseCsv, importOpenMatchday } from '../lib/openmatchday-import.js';
 import { backfillIds, backfillByDates } from '../lib/backfill-ids.js';
 import { detailLeagues } from '../lib/match-detail.js';
 import { highlightlyProbe, openLigaProbe, footballDataProbe } from '../lib/probes.js';
+import { fdRefresh, FD_CODES, fdLatest } from '../lib/fd-scorers.js';
 import { importOpenLiga, OPENLIGA_URL } from '../lib/openliga-import.js';
 import { hlList, hlFetch, HL_LEAGUES } from '../lib/highlightly.js';
 import { hlStatus } from '../lib/highlightly-status.js';
@@ -419,6 +420,12 @@ export default async function handler(req, res) {
           raw.push(...list); if (!list.some(x => x.matchIsFinished)) break;
         }
         return res.status(200).json(await importOpenLiga(store, raw, { league: 'BUNDESLIGA', season }));
+      }
+      case 'fd-sync': {                     // fetch the season top scorers now (one request per league; 6.5 s apart)
+        const only = FD_CODES[String(body.league || '').toUpperCase()] ? [String(body.league).toUpperCase()] : Object.keys(FD_CODES);
+        const out = await fdRefresh(store, { key: (process.env.FOOTBALL_DATA_API_KEY || '').trim(), force: true, leagues: only, pauseMs: 6200 });
+        out.saved = {}; for (const l of Object.keys(FD_CODES)) { const d = await fdLatest(store, l, null); out.saved[l] = d ? { season: d.season, count: d.scorers.length, fetchedAt: d.fetchedAt, top: d.scorers[0] && (d.scorers[0].name + ' ' + d.scorers[0].goals) } : null; }
+        return res.status(200).json(out);
       }
       case 'fd-probe': {                    // football-data.org: season top scorers of one league (2 requests, nothing saved)
         const code = ['PL', 'PD', 'SA', 'FL1', 'BL1', 'CL'].includes(String(body.code || '').toUpperCase()) ? String(body.code).toUpperCase() : 'PD';

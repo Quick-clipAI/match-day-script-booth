@@ -924,3 +924,10 @@ Since v1.6.5 a paragraph of the chat instructions ("ANALYSE WHAT IS HAPPENING NO
 
 ### football-data.org test (admin 1.8.5)
 `FOOTBALL_DATA_API_KEY` was already set in Vercel (July) but no code used it. Tools → Data sources and imports has a new box **Test: football-data.org**: pick a league and it asks for the season's top scorers (2 requests, nothing saved, key never shown). It tells us whether the free plan returns goals and assists for the whole season. Only if it does will it replace the "from N matches" scorer lists.
+
+## Season top scorers from football-data.org (app 1.6.11, admin 1.8.6)
+- **Why:** our own scorer count only covered matches with saved details (16 of 110 in La Liga), so goals were far too low (Raphinha 3 instead of 15). football-data.org's free plan returns the whole season in one request per league (tested: goals, penalties, games; assists only for some players).
+- **How:** `lib/fd-scorers.js`. `fdFetchLeague` asks `/competitions/<PL|PD|SA|FL1|BL1|CL>/scorers?limit=100`, saves the raw list in `striker_results` (tool `fd_scorers`) only when it changed. The automatic sync (`cron-sync?mode=due`, at most once per 5 min) refreshes the stalest league that is older than 6 hours, one request per run. Admin action `fd-sync` (Tools → "Fetch season top scorers now") fetches all leagues or one now (about 6 s apart: the plan allows 10 requests a minute).
+- **App:** the Top scorers list uses these totals ("Season totals from football-data.org ... Updated <date>"), with games and penalties under each name, and our club names (same matching as the other imports; scorers whose club cannot be placed are left out). A player is tappable only when we also have him in our own matches under the same name (the source says "Raphinha", ours says "Raphael Dias Belloli", so some cards do not link). **Assists and Rating** still come from our own saved matches and keep the "Incomplete" note.
+- **Copy button:** the Raw answer box on the test page has a Copy button, and a tap inside the box selects only the box.
+- Tests: `tests/fd-scorers.test.mjs` (3), `tests/probes.test.mjs` (6).

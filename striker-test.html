@@ -49,6 +49,9 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,monos
   <div class="card"><b>Test: football-data.org (season top scorers)</b>
   <p class="sub" style="margin:6px 0 0">2 requests, nothing saved. Shows whether the free plan gives goals and assists for the whole season of one league.</p>
   <div class="row"><select id="fd-code"><option value="PD">La Liga</option><option value="PL">Premier League</option><option value="SA">Serie A</option><option value="FL1">Ligue 1</option><option value="BL1">Bundesliga</option><option value="CL">Champions League</option></select><button class="s" id="fd-go">Test football-data.org</button></div></div>
+<div class="card"><b>Fetch season top scorers now (football-data.org)</b>
+  <p class="sub" style="margin:6px 0 0">Saves the full-season scorers list that the app shows on the Stats tab. One request per league, about 6 seconds apart, so "All leagues" takes about 35 seconds. The server also refreshes them by itself every 6 hours.</p>
+  <div class="row"><select id="fds-league"><option value="">All leagues</option><option value="LALIGA">La Liga</option><option value="EPL">Premier League</option><option value="SERIEA">Serie A</option><option value="LIGUE1">Ligue 1</option><option value="BUNDESLIGA">Bundesliga</option><option value="UCL">Champions League</option></select><button class="s" id="fds-go">Fetch scorers now</button></div></div>
 <div class="card"><b>Put Bundesliga goals into the app (OpenLigaDB)</b>
   <p class="sub" style="margin:6px 0 0">Reads every played Bundesliga matchday and saves the goals (scorer, minute, penalty, own goal) on each match whose goals add up to our score. Stats already saved are kept. Safe to repeat.</p>
   <div class="row"><button class="s" id="og-go">Import Bundesliga goals</button></div><div id="og-st" class="sub" style="white-space:pre-wrap;margin-top:8px"></div></div>
@@ -58,7 +61,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,monos
   <div class="row"><button class="s" id="hs-list">1 · Load the match lists</button><button class="s" id="hs-fetch">2 · Fetch 15 matches</button></div><div id="hs-st" class="sub" style="white-space:pre-wrap;margin-top:8px"></div></div>
 <div class="card"><b>Matches found</b><div id="list" class="sub" style="margin-top:8px">Run list_games first.</div></div>
 <div class="card"><b>What the answer holds</b><div id="sum" class="sum sub" style="margin-top:8px">Nothing yet.</div></div>
-<div class="card"><b>Raw answer</b><pre id="out">—</pre></div>
+<div class="card"><div class="row" style="justify-content:space-between;align-items:center"><b>Raw answer</b><button class="s" id="copy-out" type="button">Copy</button></div><pre id="out" style="user-select:all;-webkit-user-select:all">—</pre></div>
 </main>
 <script>
 const $ = id => document.getElementById(id); let last = null;
@@ -134,6 +137,8 @@ $('ms-go').onclick = async () => { $('ms-go').disabled = true; $('ms-st').textCo
 $('om-go').onclick = async () => { const f = $('om-file').files[0]; if (!f) { $('om-st').textContent = 'Choose the CSV file first.'; return; } $('om-go').disabled = true; $('om-st').textContent = 'Importing…'; try { const j = await adm({ action: 'openmatchday-import', csv: await f.text() }); $('om-st').textContent = j.summary || JSON.stringify(j); } catch (e) { $('om-st').textContent = e.message; } finally { $('om-go').disabled = false; } };
 const probe = (btn, body) => async () => { $(btn).disabled = true; try { const j = await adm(body()); last = j; $('out').textContent = JSON.stringify(j, null, 2); st(j.ok === false ? (j.error || 'Failed: see Raw answer') : 'Done: scroll to "Raw answer" and copy it to Claude.', j.ok === false ? '' : 'ok'); } catch (e) { st(e.message); } finally { $(btn).disabled = false; } };
 $('hl-go').onclick = probe('hl-go', () => ({ action: 'highlightly-probe', date: $('hl-date').value, league: $('hl-league').value, country: $('hl-country').value }));
+$('copy-out').onclick = async () => { const t = $('out').textContent; try { await navigator.clipboard.writeText(t); } catch (e) { const r = document.createRange(); r.selectNodeContents($('out')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); try { document.execCommand('copy'); } catch (x) { } } $('copy-out').textContent = 'Copied'; setTimeout(() => { $('copy-out').textContent = 'Copy'; }, 1500); };
+$('fds-go').onclick = probe('fds-go', () => ({ action: 'fd-sync', league: $('fds-league').value }));
 $('fd-go').onclick = probe('fd-go', () => ({ action: 'fd-probe', code: $('fd-code').value }));
 $('ol-go').onclick = probe('ol-go', () => ({ action: 'openliga-probe', season: 2026, group: Number($('ol-group').value) || 1 }));
 $('og-go').onclick = async () => { $('og-go').disabled = true; $('og-st').textContent = 'Importing…'; try { const j = await adm({ action: 'openliga-import', season: 2026 }); $('og-st').textContent = j.summary + (j.notPlaced && j.notPlaced.length ? '\nNot placed:\n' + j.notPlaced.slice(0, 10).join('\n') : ''); } catch (e) { $('og-st').textContent = e.message; } finally { $('og-go').disabled = false; } };

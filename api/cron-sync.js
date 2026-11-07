@@ -9,6 +9,7 @@ import { syncSquads } from '../lib/sync-squads.js';
 import { syncTransfers } from '../lib/sync-transfers.js';
 import { syncDetails } from '../lib/match-detail.js';
 import { hlFetch } from '../lib/highlightly.js';
+import { fdRefresh } from '../lib/fd-scorers.js';
 import { backfillIds } from '../lib/backfill-ids.js';
 
 
@@ -42,7 +43,9 @@ export default async function handler(req, res) {
       // older matches from Highlightly (its own free quota): 2 matches per run, at most 45 a day; does nothing until the lists were loaded
       let hl = { summary: 'skipped' };
       try { const hk = (process.env.HIGHLIGHTLY_API_KEY || '').trim(); if (hk) hl = await hlFetch(store, { key: hk, max: 2, dailyCap: 45, budgetMs: 8000 }); } catch (e) { hl = { summary: 'highlightly failed: ' + String(e && e.message || e).slice(0, 120) }; }
-      return res.status(200).json({ ok: true, highlightly: hl.summary, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, kickoffs: k.summary, details: d.summary, squads: q.summary, transfers: t.summary });
+      let fd = { summary: 'off' };
+      try { const fk = (process.env.FOOTBALL_DATA_API_KEY || '').trim(); if (fk) fd = await fdRefresh(store, { key: fk, max: 1, pauseMs: 0 }); } catch (e) { fd = { summary: 'football-data failed: ' + String(e && e.message || e).slice(0, 120) }; }
+      return res.status(200).json({ ok: true, scorers: fd.summary, highlightly: hl.summary, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, kickoffs: k.summary, details: d.summary, squads: q.summary, transfers: t.summary });
     } catch (e) { return res.status(500).json({ error: String(e && e.message || e).slice(0, 200) }); }
   }
   const secret = (process.env.CRON_SECRET || '').trim();
