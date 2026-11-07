@@ -10,7 +10,7 @@ import { importStriker } from '../lib/striker-import.js';
 import { parseCsv, importOpenMatchday } from '../lib/openmatchday-import.js';
 import { backfillIds, backfillByDates } from '../lib/backfill-ids.js';
 import { detailLeagues } from '../lib/match-detail.js';
-import { highlightlyProbe, openLigaProbe } from '../lib/probes.js';
+import { highlightlyProbe, openLigaProbe, footballDataProbe } from '../lib/probes.js';
 import { importOpenLiga, OPENLIGA_URL } from '../lib/openliga-import.js';
 import { hlList, hlFetch, HL_LEAGUES } from '../lib/highlightly.js';
 import { hlStatus } from '../lib/highlightly-status.js';
@@ -419,6 +419,10 @@ export default async function handler(req, res) {
           raw.push(...list); if (!list.some(x => x.matchIsFinished)) break;
         }
         return res.status(200).json(await importOpenLiga(store, raw, { league: 'BUNDESLIGA', season }));
+      }
+      case 'fd-probe': {                    // football-data.org: season top scorers of one league (2 requests, nothing saved)
+        const code = ['PL', 'PD', 'SA', 'FL1', 'BL1', 'CL'].includes(String(body.code || '').toUpperCase()) ? String(body.code).toUpperCase() : 'PD';
+        return res.status(200).json(await footballDataProbe({ key: (process.env.FOOTBALL_DATA_API_KEY || '').trim(), code }));
       }
       case 'openliga-probe': {              // free, no key
         return res.status(200).json(await openLigaProbe({ season: Number(body.season) || 2026, group: Number(body.group) || 1 }));
