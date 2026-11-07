@@ -931,3 +931,6 @@ Since v1.6.5 a paragraph of the chat instructions ("ANALYSE WHAT IS HAPPENING NO
 - **App:** the Top scorers list uses these totals ("Season totals from football-data.org ... Updated <date>"), with games and penalties under each name, and our club names (same matching as the other imports; scorers whose club cannot be placed are left out). A player is tappable only when we also have him in our own matches under the same name (the source says "Raphinha", ours says "Raphael Dias Belloli", so some cards do not link). **Assists and Rating** still come from our own saved matches and keep the "Incomplete" note.
 - **Copy button:** the Raw answer box on the test page has a Copy button, and a tap inside the box selects only the box.
 - Tests: `tests/fd-scorers.test.mjs` (3), `tests/probes.test.mjs` (6).
+
+### Test page feedback (admin 1.8.7)
+Every button on `/striker-test.html` now shows a busy bar at the bottom ("Fetching scorers 12s. Please wait, do not press again."), disables all buttons until the answer arrives (so one press cannot become many), animates when pressed, and after a test scrolls to the Raw answer box and flashes it.

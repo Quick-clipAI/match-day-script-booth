@@ -12,7 +12,11 @@ textarea{min-height:90px}button{border:0;border-radius:10px;padding:12px 14px;fo
 .m{border-top:1px solid var(--line);padding:10px 0}.m:first-child{border-top:0}.m small{color:var(--dim);display:block;margin-top:2px}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,monospace;max-height:420px;overflow:auto;background:#050505;border:1px solid var(--line);border-radius:10px;padding:12px}
 .sum{font-size:13px;line-height:1.6}
-</style></head><body><main>
+button{transition:transform .08s,filter .08s}button:active:not(:disabled){transform:scale(.96);filter:brightness(1.25)}button:disabled{opacity:.55}
+#busy{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:50;display:none;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;background:#1f1d1a;border:1px solid var(--brand);color:#fff;box-shadow:0 8px 28px #000a}
+#busy.on{display:flex}#busy i{width:18px;height:18px;border-radius:50%;border:3px solid #ffffff44;border-top-color:var(--brand);animation:sp .8s linear infinite;flex:none}@keyframes sp{to{transform:rotate(360deg)}}
+@keyframes flash{from{box-shadow:0 0 0 3px var(--brand)}to{box-shadow:0 0 0 0 transparent}}.flash{animation:flash 1.4s ease-out}
+</style></head><body><div id="busy" role="status" aria-live="polite"><i></i><span id="busy-t">Working…</span></div><main>
 <h1>StrikerAPI test</h1>
 <p class="sub">Champions League match data, called through our own server. The StrikerAPI key never reaches this page; it stays in Vercel. Free plan: 500 credits a month, so each button shows its cost.</p>
 <div class="card">
@@ -109,11 +113,23 @@ async function run() {
   } catch (e) { st('Could not reach our server: ' + e.message, 'bad'); } finally { $('go').disabled = false; }
 }
 
+let busyTimer = null, busyN = 0;
+function busy(on, label) {
+  const el = $('busy'); clearInterval(busyTimer);
+  document.querySelectorAll('button').forEach(b => { if (on) { b.dataset.was = b.disabled ? '1' : ''; b.disabled = true; } else if (b.dataset.was !== undefined) { b.disabled = b.dataset.was === '1'; delete b.dataset.was; } });
+  if (!on) { el.classList.remove('on'); return; }
+  const t0 = Date.now(); el.classList.add('on');
+  const tick = () => { $('busy-t').textContent = label + ' ' + Math.round((Date.now() - t0) / 1000) + 's. Please wait, do not press again.'; }; tick(); busyTimer = setInterval(tick, 500);
+}
+const LABELS = { 'fd-sync': 'Fetching scorers', 'fd-probe': 'Testing football-data.org', 'highlightly-probe': 'Testing Highlightly', 'openliga-probe': 'Testing OpenLigaDB', 'openliga-import': 'Importing Bundesliga goals', 'highlightly-sync': 'Fetching matches', 'injuries-probe': 'Testing injuries', 'backfill-dates': 'Looking up old days', 'missing-csv': 'Building the list', 'openmatchday-import': 'Importing the CSV' };
 async function adm(body) {
   const ak = $('ak').value.trim(); if (!ak) throw new Error('Enter the admin key first.');
   try { sessionStorage.setItem('stk_ak', ak); } catch (e) {}
-  const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': ak }, body: JSON.stringify(body) });
-  const j = await r.json(); if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j;
+  const nested = busyN++ > 0; if (!nested) busy(true, LABELS[body.action] || 'Working');
+  try {
+    const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': ak }, body: JSON.stringify(body) });
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j;
+  } finally { if (--busyN === 0) busy(false); }
 }
 function bst(t) { $('bst').textContent = t; }
 $('b1').onclick = async () => { $('b1').disabled = true; bst('Listing the season…'); try { const j = await adm({ action: 'striker-bulk', step: 'list', season: 2026 }); bst(j.ok ? ('Found ' + j.matches + ' finished matches. Saved: ' + (j.saved ? 'yes' : 'no') + '\nCredits left: ' + j.creditsLeft) : ('Failed: ' + (j.error || 'see the raw answer'))); } catch (e) { bst(e.message); } finally { $('b1').disabled = false; } };
@@ -135,7 +151,8 @@ $('ij-go').onclick = async () => { $('ij-go').disabled = true; try { const j = a
 $('bd-go').onclick = async () => { $('bd-go').disabled = true; $('bd-st').textContent = 'Working…'; try { const j = await adm({ action: 'backfill-dates', max: 10 }); $('bd-st').textContent = j.summary + (j.left != null ? '\nRequests left today: ' + j.left : ''); } catch (e) { $('bd-st').textContent = e.message; } finally { $('bd-go').disabled = false; } };
 $('ms-go').onclick = async () => { $('ms-go').disabled = true; $('ms-st').textContent = 'Working…'; try { const j = await adm({ action: 'missing-csv' }); const b = new Blob([j.csv], { type: 'text/csv' }), u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = 'matches-without-stats.csv'; document.body.appendChild(a); a.click(); a.remove(); $('ms-st').textContent = j.count + ' matches in the file.'; } catch (e) { $('ms-st').textContent = e.message; } finally { $('ms-go').disabled = false; } };
 $('om-go').onclick = async () => { const f = $('om-file').files[0]; if (!f) { $('om-st').textContent = 'Choose the CSV file first.'; return; } $('om-go').disabled = true; $('om-st').textContent = 'Importing…'; try { const j = await adm({ action: 'openmatchday-import', csv: await f.text() }); $('om-st').textContent = j.summary || JSON.stringify(j); } catch (e) { $('om-st').textContent = e.message; } finally { $('om-go').disabled = false; } };
-const probe = (btn, body) => async () => { $(btn).disabled = true; try { const j = await adm(body()); last = j; $('out').textContent = JSON.stringify(j, null, 2); st(j.ok === false ? (j.error || 'Failed: see Raw answer') : 'Done: scroll to "Raw answer" and copy it to Claude.', j.ok === false ? '' : 'ok'); } catch (e) { st(e.message); } finally { $(btn).disabled = false; } };
+function showOut() { const c = $('out').closest('.card'); c.scrollIntoView({ behavior: 'smooth', block: 'start' }); c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); }
+const probe = (btn, body) => async () => { $(btn).disabled = true; try { const j = await adm(body()); last = j; $('out').textContent = JSON.stringify(j, null, 2); st(j.ok === false ? (j.error || 'Failed: see Raw answer') : 'Done. The answer is in the Raw answer box: press Copy.', j.ok === false ? '' : 'ok'); showOut(); } catch (e) { st(e.message); } finally { $(btn).disabled = false; } };
 $('hl-go').onclick = probe('hl-go', () => ({ action: 'highlightly-probe', date: $('hl-date').value, league: $('hl-league').value, country: $('hl-country').value }));
 $('copy-out').onclick = async () => { const t = $('out').textContent; try { await navigator.clipboard.writeText(t); } catch (e) { const r = document.createRange(); r.selectNodeContents($('out')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); try { document.execCommand('copy'); } catch (x) { } } $('copy-out').textContent = 'Copied'; setTimeout(() => { $('copy-out').textContent = 'Copy'; }, 1500); };
 $('fds-go').onclick = probe('fds-go', () => ({ action: 'fd-sync', league: $('fds-league').value }));
