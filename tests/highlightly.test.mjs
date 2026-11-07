@@ -25,6 +25,7 @@ const mb = d.lineups.home.xi.find(p => p.name === 'B. Mbeumo'); assert.equal(mb.
 const zirk = d.lineups.home.xi.find(p => p.name === 'Zirkzee'); assert.equal(zirk.min, 59);              // went off at 59, whichever name order the source used
 assert.equal(d.lineups.home.subs[0].min, 31); assert.equal(d.lineups.away.xi.find(p => p.name === 'Gallagher').yc, 1);
 // fetch: man utd v spurs fetched and merged with stats; chelsea v bournemouth: events 404 -> not saved
+const other = await hlFetch(s, { key: 'k', max: 5, dailyCap: 45, league: 'LALIGA' }); assert.equal(other.fetched, 0, 'a league with no list fetches nothing, and never touches another league');
 const r = await hlFetch(s, { key: 'k', max: 5, dailyCap: 45 });
 assert.equal(r.fetched, 2); assert.equal(r.saved, 1);
 const sd = (await s.getDetail('EPL|2026|man utd|spurs')).data;

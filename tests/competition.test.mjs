@@ -21,7 +21,9 @@ await t('buildCompetition: table, fixtures with today focus, stats from saved de
     M({ id: 'UCL|2026|arsenal|inter', round: 'Matchday 4', date: '2026-11-03', home: 'Arsenal', away: 'Inter', status: 'scheduled', hg: null, ag: null })
   ]);
   await s.saveManualDetail('UCL|2026|psg|arsenal', { v: 1, events: [{ m: 10, side: 'home', type: 'goal', detail: 'Normal Goal', player: 'Dembele', other: 'Kvara' }, { m: 50, side: 'home', type: 'goal', detail: 'Penalty', player: 'Dembele', other: '' }, { m: 70, side: 'away', type: 'goal', detail: 'Own Goal', player: 'Marquinhos', other: '' }], lineups: {}, stats: [] });
+  await s.upsertTeamIds([{ api_team_id: 85, league: 'UCL', club: 'Paris Saint-Germain', api_name: 'Paris Saint Germain', source: 'fixture' }, { api_team_id: 999, league: 'EPL', club: 'Nobody FC', api_name: 'Nobody', source: 'fixture' }]);
   const v = await buildCompetition(s, 'UCL', null, '2026-11-03');
+  assert.equal(v.crests['Paris Saint-Germain'], 85, 'crest id for a club in this competition'); assert.equal(v.crests['Nobody FC'], undefined, 'no crest for clubs outside it');
   assert.equal(v.competition.label, '2026/27'); assert.equal(v.focusRound, 'Matchday 4'); assert.deepEqual(v.rounds, ['Matchday 1', 'Matchday 4']);
   assert.equal(v.tabs.map(x => x.key).join(), 'table,fixtures,stats');
   assert.deepEqual(v.stats.players.scorers.map(x => [x.name, x.club, x.goals]), [['Dembele', 'Paris Saint-Germain', 2]]);

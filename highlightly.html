@@ -48,7 +48,7 @@ function render() {
     <div class="k"><b>${d.gaps}</b><span>gaps: not fetched yet, not available or goals differ</span></div></div>
     <p class="sub" style="margin:10px 0 0">${esc(rem)}. Loading the lists and the test boxes also use requests; those are not counted here. The server fetches 2 matches every 20 minutes by itself.</p></div>`;
   h += `<div class="card"><h2>Progress</h2>` + d.leagues.map(l => { const p = x => l.finished ? (x / l.finished * 100).toFixed(1) : 0;
-    return `<div class="lg"><b>${esc(l.name)}</b><span>${l.done + l.kept} of ${l.finished}</span></div><div class="bar"><i style="width:${p(l.done)}%;background:var(--ok)"></i><i style="width:${p(l.kept)}%;background:#8fb4e8"></i><i style="width:${p(l.failed + l.goalsDiffer)}%;background:var(--bad)"></i></div><div class="lg"><small>fetched ${l.done} · better data kept ${l.kept}</small><small>waiting ${l.waiting}${l.failed ? ' · not available ' + l.failed : ''}${l.goalsDiffer ? ' · goals differ ' + l.goalsDiffer : ''}</small></div><br>`; }).join('') +
+    return `<div class="lg"><b>${esc(l.name)}</b><span>${l.done + l.kept} of ${l.finished}${l.waiting ? ` <button class="s fl" data-fl="${esc(l.league)}" style="min-height:34px;padding:6px 10px;margin-left:8px">Fetch ${esc(l.name)} now</button>` : ''}</span></div><div class="bar"><i style="width:${p(l.done)}%;background:var(--ok)"></i><i style="width:${p(l.kept)}%;background:#8fb4e8"></i><i style="width:${p(l.failed + l.goalsDiffer)}%;background:var(--bad)"></i></div><div class="lg"><small>fetched ${l.done} · better data kept ${l.kept}</small><small>waiting ${l.waiting}${l.failed ? ' · not available ' + l.failed : ''}${l.goalsDiffer ? ' · goals differ ' + l.goalsDiffer : ''}</small></div><br>`; }).join('') +
     `<p class="sub" style="margin:0">Bundesliga goals come from OpenLigaDB and are not counted here.</p></div>`;
   const chips = [['all', 'All'], ['done', 'Fetched'], ['waiting', 'Waiting'], ['kept', 'Kept'], ['failed', 'Not available'], ['goals-differ', 'Goals differ']];
   h += `<div class="card"><h2>Matches</h2><div class="row" style="margin:0 0 8px">${[['all', 'All leagues'], ...d.leagues.map(l => [l.league, l.name])].map(([k, t]) => `<button class="chip ${LEAGUE === k ? 'on' : ''}" data-lg="${k}">${esc(t)}</button>`).join('')}</div>
@@ -66,5 +66,13 @@ function render() {
 async function load() { $('msg').textContent = 'Loading…'; try { DATA = await adm({ action: 'highlightly-status' }); $('msg').textContent = ''; render(); } catch (e) { $('msg').textContent = e.message; } }
 $('refresh').onclick = load;
 $('fetch').onclick = async () => { $('fetch').disabled = true; $('msg').textContent = 'Fetching 15 matches (about 30 seconds)…'; try { const j = await adm({ action: 'highlightly-sync', step: 'fetch', max: 15 }); $('msg').textContent = j.summary || j.error || ''; await load(); $('msg').textContent = j.summary || ''; } catch (e) { $('msg').textContent = e.message; } finally { $('fetch').disabled = false; } };
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-fl]'); if (!b) return;
+  const lg = b.dataset.fl; document.querySelectorAll('[data-fl],#fetch').forEach(x => x.disabled = true);
+  $('msg').textContent = 'Fetching up to 20 ' + lg + ' matches (about 40 seconds)…';
+  try { const j = await adm({ action: 'highlightly-sync', step: 'fetch', max: 20, league: lg }); $('msg').textContent = j.summary || j.error || JSON.stringify(j); await load(); }
+  catch (er) { $('msg').textContent = String(er.message || er); }
+  document.querySelectorAll('[data-fl],#fetch').forEach(x => x.disabled = false);
+});
 if ($('ak').value) load();
 </script></main></body></html>
