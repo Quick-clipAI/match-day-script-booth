@@ -934,3 +934,7 @@ Since v1.6.5 a paragraph of the chat instructions ("ANALYSE WHAT IS HAPPENING NO
 
 ### Test page feedback (admin 1.8.7)
 Every button on `/striker-test.html` now shows a busy bar at the bottom ("Fetching scorers 12s. Please wait, do not press again."), disables all buttons until the answer arrives (so one press cannot become many), animates when pressed, and after a test scrolls to the Raw answer box and flashes it.
+
+### Quiet fingerprint sign-in and the logo loader (admin 1.8.8)
+- After the fingerprint (or "Use my saved password") the key goes straight to the check as a value; it is never written into the visible Admin key box, so nothing appears on screen.
+- While the key is checked and the data loads, the admin shows the same rolling Creator Booth logo as the main app (`#splash`), instead of the "Checking…" text. It fades out when the page is ready.

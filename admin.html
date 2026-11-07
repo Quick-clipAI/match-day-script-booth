@@ -98,9 +98,23 @@ table.t td:nth-child(2),table.t th:nth-child(2){text-align:left;font-family:var(
 .pre{font:12px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word;color:var(--mut)}
 .hide{display:none!important}
 @media (prefers-reduced-motion:no-preference){.card,.banner{animation:in .25s ease both}@keyframes in{from{opacity:0;transform:translateY(4px)}}}
+.eq-star{transform-origin:577px 602px;animation:eqRoll 2.8s cubic-bezier(.5,.05,.25,1) infinite}
+.eq-ball{transform-origin:893px 638px;animation:eqBall 2.8s ease-in-out infinite}
+@keyframes eqRoll{0%{transform:rotate(0)}58%,100%{transform:rotate(360deg)}}
+@keyframes eqBall{
+  0%,28%{transform:translate(-316px,-36px) scale(0);opacity:0}
+  62%{transform:translate(0,0) scale(1);opacity:1}
+  90%{transform:translate(0,0) scale(1);opacity:1}
+  100%{transform:translate(0,0) scale(1);opacity:0}
+}
+@media (prefers-reduced-motion:reduce){.eq-star,.eq-ball{animation:none}}
+#splash{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s ease}
+#splash.on{opacity:1;pointer-events:auto}#splash svg{color:#FF6A1A}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><symbol id="cb-logo" viewBox="236 262 782 681"><g fill="currentColor" fill-rule="evenodd"><path d="M 559,267 L 562,524 L 559,525 L 527,493 L 527,490 L 521,484 L 517,483 L 515,478 L 512,477 L 509,472 L 507,472 L 474,439 L 474,436 L 468,433 L 410,374 L 410,372 L 402,366 L 386,349 L 380,346 L 299,427 L 299,430 L 301,430 L 304,435 L 307,435 L 314,442 L 314,444 L 317,444 L 417,529 L 466,573 L 485,588 L 483,596 L 475,598 L 243,598 L 243,672 L 241,673 L 241,681 L 243,682 L 243,713 L 493,679 L 494,682 L 454,721 L 450,722 L 436,738 L 332,832 L 324,837 L 320,844 L 406,927 L 408,927 L 482,842 L 507,811 L 511,811 L 511,806 L 517,800 L 521,793 L 525,791 L 525,788 L 530,784 L 553,753 L 558,750 L 558,747 L 570,733 L 574,732 L 583,744 L 583,749 L 588,750 L 590,756 L 593,757 L 602,769 L 602,772 L 604,772 L 613,784 L 613,787 L 618,790 L 618,794 L 624,798 L 626,804 L 628,804 L 634,812 L 634,817 L 637,817 L 638,820 L 642,822 L 644,827 L 648,830 L 712,916 L 730,938 L 732,938 L 882,841 L 882,839 L 847,837 L 836,838 L 835,836 L 829,837 L 806,832 L 771,819 L 742,803 L 720,786 L 710,776 L 710,774 L 708,774 L 694,760 L 658,712 L 657,707 L 654,706 L 648,697 L 648,694 L 642,688 L 641,683 L 713,682 L 787,722 L 791,722 L 857,688 L 857,652 L 860,650 L 857,588 L 792,557 L 713,603 L 640,603 L 639,600 L 645,593 L 645,590 L 651,580 L 655,578 L 656,573 L 663,563 L 667,560 L 679,543 L 690,533 L 690,531 L 719,504 L 757,477 L 794,457 L 827,444 L 859,436 L 883,433 L 911,433 L 911,431 L 897,424 L 893,420 L 889,420 L 855,408 L 826,403 L 788,403 L 763,407 L 742,413 L 710,426 L 692,438 L 689,438 L 684,434 L 684,422 L 682,421 L 684,418 L 684,415 L 682,414 L 682,331 L 683,324 L 685,323 L 685,316 L 683,315 L 683,267 Z"/><path d="M 940,725 L 862,699 L 796,734 L 773,790 L 771,800 L 797,811 L 817,816 L 831,817 L 832,819 L 852,819 L 853,817 L 867,816 L 893,808 L 911,799 L 938,778 Z"/><path d="M 780,480 L 800,547 L 862,578 L 872,575 L 942,543 L 942,527 L 938,495 L 916,477 L 889,464 L 863,458 L 833,459 L 805,467 Z"/><path d="M 1011,648 L 996,644 L 953,719 L 953,732 L 951,734 L 947,734 L 947,739 L 953,743 L 953,754 L 950,755 L 950,759 L 952,760 L 952,775 L 964,767 L 965,763 L 978,749 L 997,714 L 1009,675 Z"/><path d="M 953,502 L 956,550 L 981,595 L 992,623 L 999,631 L 1011,635 L 1013,630 L 1011,629 L 1011,614 L 1008,596 L 997,561 L 974,521 L 963,510 L 961,505 Z"/></g></symbol><defs><g id="cb-star-g" fill="currentColor" fill-rule="evenodd"><path d="M 559,267 L 562,524 L 559,525 L 527,493 L 527,490 L 521,484 L 517,483 L 515,478 L 512,477 L 509,472 L 507,472 L 474,439 L 474,436 L 468,433 L 410,374 L 410,372 L 402,366 L 386,349 L 380,346 L 299,427 L 299,430 L 301,430 L 304,435 L 307,435 L 314,442 L 314,444 L 317,444 L 417,529 L 466,573 L 485,588 L 483,596 L 475,598 L 243,598 L 243,672 L 241,673 L 241,681 L 243,682 L 243,713 L 493,679 L 494,682 L 454,721 L 450,722 L 436,738 L 332,832 L 324,837 L 320,844 L 406,927 L 408,927 L 482,842 L 507,811 L 511,811 L 511,806 L 517,800 L 521,793 L 525,791 L 525,788 L 530,784 L 553,753 L 558,750 L 558,747 L 570,733 L 574,732 L 583,744 L 583,749 L 588,750 L 590,756 L 593,757 L 602,769 L 602,772 L 604,772 L 613,784 L 613,787 L 618,790 L 618,794 L 624,798 L 626,804 L 628,804 L 634,812 L 634,817 L 637,817 L 638,820 L 642,822 L 644,827 L 648,830 L 712,916 L 730,938 L 732,938 L 882,841 L 882,839 L 847,837 L 836,838 L 835,836 L 829,837 L 806,832 L 771,819 L 742,803 L 720,786 L 710,776 L 710,774 L 708,774 L 694,760 L 658,712 L 657,707 L 654,706 L 648,697 L 648,694 L 642,688 L 641,683 L 713,682 L 787,722 L 791,722 L 857,688 L 857,652 L 860,650 L 857,588 L 792,557 L 713,603 L 640,603 L 639,600 L 645,593 L 645,590 L 651,580 L 655,578 L 656,573 L 663,563 L 667,560 L 679,543 L 690,533 L 690,531 L 719,504 L 757,477 L 794,457 L 827,444 L 859,436 L 883,433 L 911,433 L 911,431 L 897,424 L 893,420 L 889,420 L 855,408 L 826,403 L 788,403 L 763,407 L 742,413 L 710,426 L 692,438 L 689,438 L 684,434 L 684,422 L 682,421 L 684,418 L 684,415 L 682,414 L 682,331 L 683,324 L 685,323 L 685,316 L 683,315 L 683,267 Z"/></g><g id="cb-ball-g" fill="currentColor" fill-rule="evenodd"><path d="M 940,725 L 862,699 L 796,734 L 773,790 L 771,800 L 797,811 L 817,816 L 831,817 L 832,819 L 852,819 L 853,817 L 867,816 L 893,808 L 911,799 L 938,778 Z"/><path d="M 780,480 L 800,547 L 862,578 L 872,575 L 942,543 L 942,527 L 938,495 L 916,477 L 889,464 L 863,458 L 833,459 L 805,467 Z"/><path d="M 1011,648 L 996,644 L 953,719 L 953,732 L 951,734 L 947,734 L 947,739 L 953,743 L 953,754 L 950,755 L 950,759 L 952,760 L 952,775 L 964,767 L 965,763 L 978,749 L 997,714 L 1009,675 Z"/><path d="M 953,502 L 956,550 L 981,595 L 992,623 L 999,631 L 1011,635 L 1013,630 L 1011,629 L 1011,614 L 1008,596 L 997,561 L 974,521 L 963,510 L 961,505 Z"/></g></defs></svg>
+<div id="splash" role="status" aria-label="Loading"><svg width="92" height="80" viewBox="236 262 782 681" aria-hidden="true"><g class="eq-star"><use href="#cb-star-g"/></g><g class="eq-ball"><use href="#cb-ball-g"/></g></svg></div>
 
 <div id="loginView" class="login hide">
   <h1>Creator <b>Booth</b></h1>
@@ -186,23 +200,24 @@ function lock() {
   try { if (navigator.credentials && navigator.credentials.preventSilentAccess) Promise.resolve(navigator.credentials.preventSilentAccess()).catch(() => { }); } catch (e) { }
   $('#appView').classList.add('hide'); $('#loginView').classList.remove('hide'); $('#key').value = '';
 }
-async function tryLogin() {
-  const k = $('#key').value.trim() || KEY; if (!k) return;
+const splash = on => $('#splash').classList.toggle('on', !!on);
+async function tryLogin(given) {
+  const k = (typeof given === 'string' && given) || $('#key').value.trim() || KEY; if (!k) return;
   KEY = k; $('#loginErr').textContent = '';
-  const b = $('#loginBtn'); busy(b, true, 'Checking…');
+  const b = $('#loginBtn'); busy(b, true, 'Checking…'); splash(true);
   try {
     await api('ping');
     try { sessionStorage.setItem('cb_admin', KEY); } catch (e) { }
-    try { if (window.PasswordCredential && navigator.credentials) await navigator.credentials.store(new PasswordCredential({ id: $('#user').value || 'admin', password: KEY, name: 'Creator Booth admin' })); } catch (e) { /* the browser may not support saving */ }
+    try { if (window.PasswordCredential && navigator.credentials) await navigator.credentials.store(new PasswordCredential({ id: $('#user').value || 'admin', password: KEY, name: 'Creator Booth admin' })); } catch (e) { }
     $('#loginView').classList.add('hide'); $('#appView').classList.remove('hide'); await boot();
   } catch (e) { KEY = ''; $('#loginErr').textContent = e.message; $('#loginView').classList.remove('hide'); }
-  finally { busy(b, false); }
+  finally { busy(b, false); splash(false); }
 }
 $('#loginForm').onsubmit = e => { e.preventDefault(); tryLogin(); };
 // one tap sign-in from the browser's saved password (Chrome). Not available inside the Android admin app: use "Keep me signed in" there.
 if (window.PasswordCredential && navigator.credentials && navigator.credentials.get) {
   $('#savedBtn').classList.remove('hide');
-  $('#savedBtn').onclick = async () => { try { const c = await navigator.credentials.get({ password: true, mediation: 'optional' }); if (c && c.password) { $('#key').value = c.password; tryLogin(); } else toast('No saved password found. Type it once and the browser will offer to save it.'); } catch (e) { toast('Could not read the saved password.', 'bad'); } };
+  $('#savedBtn').onclick = async () => { try { const c = await navigator.credentials.get({ password: true, mediation: 'optional' }); if (c && c.password) { tryLogin(c.password); } else toast('No saved password found. Type it once and the browser will offer to save it.'); } catch (e) { toast('Could not read the saved password.', 'bad'); } };
 }
 $('#logout').onclick = lock;
 
@@ -903,7 +918,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.8.7';
+const ADMIN_VERSION = '1.8.8';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
@@ -961,7 +976,7 @@ async function bioUnlock() {
       secret = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(rec.iv) }, k, unb64(rec.ct)));
     }
     if (!secret) throw new Error('nothing came back');
-    $('#key').value = secret; await tryLogin(); $('#key').value = '';
+    await tryLogin(secret); secret = '';
   } catch (e) { const m = String(e && e.message || e); if (/invalidat|changed/i.test(m)) { bioOn = false; bioLabel(); } $('#loginErr').textContent = 'Fingerprint did not unlock: ' + m; }
 }
 $('#bioBtn').onclick = bioUnlock; $('#bioEnroll').onclick = bioEnroll;
