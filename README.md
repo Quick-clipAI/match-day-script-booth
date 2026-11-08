@@ -943,3 +943,7 @@ Every button on `/striker-test.html` now shows a busy bar at the bottom ("Fetchi
 - The rolling logo now sits on top of the login screen with no black background; the login form is only dimmed and slightly blurred.
 - The plain solid background shows only in the short moment after the key is confirmed and before the page finishes loading.
 - The logo is smaller (58px) and sits in a round 104px badge, so its full shape shows with room to spare and nothing is clipped.
+
+### Invisible loader badge (admin 1.9.0)
+- The round badge behind the rolling logo is gone (no fill, border or shadow). Only the logo shows over the dimmed login, and over the solid background right after sign-in.
+- A sparkler/lightning/glow effect was previewed and shelved. Seasonal effects (winter, Christmas) are planned for the main page only, not the admin.

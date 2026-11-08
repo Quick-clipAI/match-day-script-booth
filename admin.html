@@ -111,7 +111,7 @@ table.t td:nth-child(2),table.t th:nth-child(2){text-align:left;font-family:var(
 #splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s ease,background-color .25s ease;background:transparent}
 #splash.on{opacity:1;pointer-events:auto;background:rgba(0,0,0,.42);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
 #splash.solid{background:var(--bg);-webkit-backdrop-filter:none;backdrop-filter:none}
-#splash .orb{width:104px;height:104px;border-radius:50%;background:var(--s1);border:1px solid var(--line);box-shadow:0 10px 36px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+#splash .orb{width:104px;height:104px;display:flex;align-items:center;justify-content:center}
 #splash svg{width:58px;height:auto;overflow:visible;color:#FF6A1A}
 </style>
 </head>
@@ -922,7 +922,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.8.9';
+const ADMIN_VERSION = '1.9.0';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
