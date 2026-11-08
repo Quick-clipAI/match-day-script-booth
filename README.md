@@ -953,3 +953,6 @@ Every button on `/striker-test.html` now shows a busy bar at the bottom ("Fetchi
 - **"Incomplete" banner removed.** The small footnote under the Assists and Rating lists still says how many matches they cover.
 - **Season total on the card:** tapping a top scorer shows e.g. "13 La Liga goals in 15 games this season (football-data.org, every match)" above the card's own figures, which only cover matches with saved details and can be lower.
 - **No double counting:** match details have one row per match (match id is the primary key) and a new fetch replaces it. The player aggregation now also ignores a repeated row, covered by a test.
+
+### Quick update switched back on (site 1.7.3)
+`OTA_ENABLED` is `true` again, so "Update now" downloads only the changed web files (`bundle.zip`) instead of the whole APK. The earlier failure ("Failed to download") was never traced, so if it fails again the sheet falls back to "Download update" and Settings -> App updates shows the error and a connection test. The first test needs this build installed once (older installs have the quick update switched off inside them); the update after it is the real test.
