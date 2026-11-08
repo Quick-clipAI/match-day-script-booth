@@ -4,7 +4,7 @@ import { createMemoryStore } from '../lib/bank-store.js';
 import { fdRefresh, fdFetchLeague, fdLatest } from '../lib/fd-scorers.js';
 import { buildStats } from '../lib/competition-view.js';
 import { placeScorers } from '../lib/fd-scorers.js';
-import { aggregatePlayers } from '../lib/player-season.js';
+import { aggregatePlayers, playerCard } from '../lib/player-season.js';
 let n = 0; const t = async (name, fn) => { try { await fn(); n++; } catch (e) { console.log('FAIL', name, e.stack); process.exitCode = 1; } };
 let calls = [];
 const SC = { season: { startDate: '2026-08-16' }, scorers: [
@@ -48,5 +48,11 @@ await t('a repeated detail row for one match does not count its goals twice', as
   const d = { match_id: 1, data: { lineups: { home: { xi: [{ name: 'Jo Smith', min: 90 }], subs: [] }, away: { xi: [], subs: [] } }, events: [{ type: 'goal', detail: 'Normal Goal', side: 'home', player: 'Jo Smith', min: 10 }] } };
   const goals = det => [...aggregatePlayers([mt], det).values()][0].goals;
   assert.equal(goals([d]), 1); assert.equal(goals([d, d]), 1);
+});
+await t('the player card carries the API player id (for the photo) and the shirt number', async () => {
+  const mt = { id: 1, date: '2026-11-01', league: 'LALIGA', home: 'A FC', away: 'B FC', hg: 1, ag: 0, status: 'finished' };
+  const d = { match_id: 1, data: { lineups: { home: { xi: [{ id: 284, n: 11, name: 'Jo Smith', min: 90 }], subs: [] }, away: { xi: [], subs: [] } }, events: [] } };
+  const c = playerCard([...aggregatePlayers([mt], [d]).values()][0]);
+  assert.equal(c.pid, 284); assert.equal(c.num, 11);
 });
 console.log('fd-scorers tests:', n, 'passed');

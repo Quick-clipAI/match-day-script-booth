@@ -1,7 +1,7 @@
 // node tests/syncdue.test.mjs
 import assert from 'node:assert/strict';
 import { createMemoryStore } from '../lib/bank-store.js';
-import { syncDue, isDue } from '../lib/sync-due.js';
+import { syncDue, isDue, queueMissingStubs } from '../lib/sync-due.js';
 const NOW = Date.parse('2026-10-22T23:00:00Z');
 let n = 0; const t = async (name, fn) => { try { await fn(); n++; } catch (e) { console.log('FAIL', name, e.stack); process.exitCode = 1; } };
 const m = (o) => ({ id: `${o.league || 'UCL'}|2026|${o.date}|${o.home.toLowerCase()}|${o.away.toLowerCase()}`, league: 'UCL', comp_name: 'x', season: 2026, round: null, time: null, kickoff: null, hg: null, ag: null, ht_h: null, ht_a: null, status: 'scheduled', note: null, source: 'paste', verified: false, conflict: null, ...o });
@@ -74,3 +74,15 @@ console.log(n + ' sync-due tests passed');
   assert.equal((await store.getDetail(m.id)).api_fixture_id, 1635700);
   console.log('youth look-alike test passed');
 }
+
+await t('queueMissingStubs: finished matches that never got a details row are queued from the day list, once, inside the date window', async () => {
+  const N = Date.parse('2026-11-08T07:00:00Z');
+  const fin = (o) => m({ ...o, status: 'finished', hg: 1, ag: 0, kickoff: o.date + 'T19:00:00Z' });
+  const w = await world([fin({ date: '2026-11-07', home: 'Valencia', away: 'Real Madrid' }), fin({ date: '2026-11-07', home: 'Arsenal', away: 'Hull City' }), fin({ date: '2026-11-04', home: 'Old', away: 'Match' })],
+    d => [fx('Valencia CF', 'Real Madrid', 'FT', 0, 3, '2026-11-07T19:00:00+00:00'), { ...fx('Arsenal', 'Hull City', 'FT', 1, 0, '2026-11-07T19:00:00+00:00'), fixture: { id: 902, date: '2026-11-07T19:00:00+00:00', status: { short: 'FT' } } }].map((x, i) => ({ ...x, fixture: { ...x.fixture, id: 900 + i } })));
+  const calls = []; const getFixtures = async (d) => { calls.push(d); return { response: (await w.s.listMatches({})) && [fx('Valencia CF', 'Real Madrid', 'FT', 0, 3, '2026-11-07T19:00:00+00:00'), fx('Arsenal', 'Hull City', 'FT', 1, 0, '2026-11-07T19:00:00+00:00')].map((x, i) => ({ ...x, fixture: { ...x.fixture, id: 900 + i } })) }; };
+  const r = await queueMissingStubs(w.s, { getFixtures, now: N });
+  assert.equal(r.queued, 2); assert.deepEqual(calls, ['2026-11-07'], 'one request for the one day inside the window; the 4 Nov match is outside it');
+  assert.equal((await w.s.getDetail(w.s ? (await w.s.listMatches({})).find(x => x.home === 'Valencia').id : '')).api_fixture_id, 900);
+  const again = await queueMissingStubs(w.s, { getFixtures, now: N + 60000 }); assert.equal(again.calls, 0, 'nothing more to ask for (or asked recently)');
+});

@@ -3,7 +3,7 @@
 import { storeFromEnv } from '../lib/bank-store.js';
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { checkAdminKey, guardStore } from '../lib/guard.js';
-import { syncDue, stampKickoffs } from '../lib/sync-due.js';
+import { syncDue, stampKickoffs, queueMissingStubs } from '../lib/sync-due.js';
 import { fixturesGetter, detailGetter, teamsGetter, transfersGetter, squadGetter, seasonFixturesGetter } from '../lib/apisports.js';
 import { syncSquads } from '../lib/sync-squads.js';
 import { syncTransfers } from '../lib/sync-transfers.js';
@@ -33,8 +33,10 @@ export default async function handler(req, res) {
       const r = await syncDue(store, { getFixtures: fixturesGetter(key) });
       let k = { summary: 'skipped' };
       try { k = await stampKickoffs(store, { getFixtures: fixturesGetter(key) }); } catch (e) { k = { summary: 'kick-off stamping failed: ' + String(e && e.message || e).slice(0, 120) }; }
+      let qd = { summary: 'skipped' };
+      try { qd = await queueMissingStubs(store, { getFixtures: fixturesGetter(key) }); } catch (e) { qd = { summary: 'queueing failed: ' + String(e && e.message || e).slice(0, 120) }; }
       let d = { summary: 'skipped' };
-      try { d = await syncDetails(store, { getDetail: detailGetter(key) }); } catch (e) { d = { summary: 'details failed: ' + String(e && e.message || e).slice(0, 120) }; }
+      try { d = await syncDetails(store, { getDetail: detailGetter(key), max: 5 }); } catch (e) { d = { summary: 'details failed: ' + String(e && e.message || e).slice(0, 120) }; }
       // squads first (they feed the player cards), then transfers with whatever is left of this run's 3 requests
       let q = { summary: 'skipped', calls: 0 };
       try { q = await syncSquads(store, { getSquad: squadGetter(key), maxRun: 3 }); } catch (e) { q = { summary: 'squads failed: ' + String(e && e.message || e).slice(0, 120), calls: 0 }; }
@@ -45,7 +47,7 @@ export default async function handler(req, res) {
       try { const hk = (process.env.HIGHLIGHTLY_API_KEY || '').trim(); if (hk) hl = await hlFetch(store, { key: hk, max: 2, dailyCap: 45, budgetMs: 8000 }); } catch (e) { hl = { summary: 'highlightly failed: ' + String(e && e.message || e).slice(0, 120) }; }
       let fd = { summary: 'off' };
       try { const fk = (process.env.FOOTBALL_DATA_API_KEY || '').trim(); if (fk) fd = await fdRefresh(store, { key: fk, max: 1, pauseMs: 0 }); } catch (e) { fd = { summary: 'football-data failed: ' + String(e && e.message || e).slice(0, 120) }; }
-      return res.status(200).json({ ok: true, scorers: fd.summary, highlightly: hl.summary, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, kickoffs: k.summary, details: d.summary, squads: q.summary, transfers: t.summary });
+      return res.status(200).json({ ok: true, scorers: fd.summary, highlightly: hl.summary, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, kickoffs: k.summary, queued: qd.summary, details: d.summary, squads: q.summary, transfers: t.summary });
     } catch (e) { return res.status(500).json({ error: String(e && e.message || e).slice(0, 200) }); }
   }
   const secret = (process.env.CRON_SECRET || '').trim();
