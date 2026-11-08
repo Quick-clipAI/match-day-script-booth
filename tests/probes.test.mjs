@@ -14,10 +14,10 @@ assert.equal((await highlightlyProbe({ key: '', date: 'x' })).ok, false);
 const o = await openLigaProbe({}); assert.equal(o.withGoalList, 1); assert.equal(o.sample[0].goals[0].scorer, 'Kane');
 { const seen = []; const keep = globalThis.fetch;
   globalThis.fetch = async (url, init) => { seen.push([String(url), init.headers['X-Auth-Token']]); const j = x => ({ status: 200, text: async () => JSON.stringify(x) });
-    return String(url).includes('/scorers') ? j({ season: { startDate: '2026-08-15' }, scorers: [{ player: { name: 'Kylian Mbappé' }, team: { name: 'Real Madrid CF' }, playedMatches: 11, goals: 12, assists: 3, penalties: 4 }] }) : j({ name: 'Primera Division', currentSeason: { startDate: '2026-08-15', endDate: '2027-05-30', currentMatchday: 12 } }); };
+    return String(url).includes('/teams') ? j({ teams: [{ name: 'Real Madrid CF', squad: [{ name: 'K', dateOfBirth: '1998-12-20', nationality: 'France', position: 'Offence', shirtNumber: 10 }, { name: 'L' }] }] }) : String(url).includes('/scorers') ? j({ season: { startDate: '2026-08-15' }, scorers: [{ player: { name: 'Kylian Mbappé' }, team: { name: 'Real Madrid CF' }, playedMatches: 11, goals: 12, assists: 3, penalties: 4 }] }) : j({ name: 'Primera Division', currentSeason: { startDate: '2026-08-15', endDate: '2027-05-30', currentMatchday: 12 } }); };
   const f = await footballDataProbe({ key: 'secret', code: 'PD' }); globalThis.fetch = keep;
-  assert.equal(f.requests, 2); assert.equal(f.scorers.hasAssists, true); assert.equal(f.scorers.sample[0].goals, 12); assert.equal(f.competition.season.matchday, 12);
-  assert.ok(seen.every(x => x[1] === 'secret') && seen[1][0].includes('/competitions/PD/scorers'));
+  assert.equal(f.requests, 3); assert.equal(f.squads.teams, 1); assert.equal(f.squads.players, 2); assert.equal(f.squads.have.dateOfBirth, 1); assert.equal(f.squads.sample[0].first[0].nationality, 'France'); assert.equal(f.scorers.hasAssists, true); assert.equal(f.scorers.sample[0].goals, 12); assert.equal(f.competition.season.matchday, 12);
+  assert.ok(seen.every(x => x[1] === 'secret') && seen[1][0].includes('/competitions/PD/scorers') && seen[2][0].includes('/competitions/PD/teams'));
   assert.ok(!JSON.stringify(f).includes('secret'), 'the key is never returned');
   assert.equal((await footballDataProbe({ key: '' })).ok, false); }
 console.log('probes tests: 6 passed');

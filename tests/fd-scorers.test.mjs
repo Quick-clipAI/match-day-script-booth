@@ -5,6 +5,7 @@ import { fdRefresh, fdFetchLeague, fdLatest } from '../lib/fd-scorers.js';
 import { buildStats } from '../lib/competition-view.js';
 import { placeScorers } from '../lib/fd-scorers.js';
 import { aggregatePlayers, playerCard } from '../lib/player-season.js';
+import { enrichFromRoster } from '../lib/player-card.js';
 let n = 0; const t = async (name, fn) => { try { await fn(); n++; } catch (e) { console.log('FAIL', name, e.stack); process.exitCode = 1; } };
 let calls = [];
 const SC = { season: { startDate: '2026-08-16' }, scorers: [
@@ -54,5 +55,12 @@ await t('the player card carries the API player id (for the photo) and the shirt
   const d = { match_id: 1, data: { lineups: { home: { xi: [{ id: 284, n: 11, name: 'Jo Smith', min: 90 }], subs: [] }, away: { xi: [], subs: [] } }, events: [] } };
   const c = playerCard([...aggregatePlayers([mt], [d]).values()][0]);
   assert.equal(c.pid, 284); assert.equal(c.num, 11);
+});
+await t('card gets age, nationality and birth date from the stored squad (club + name, one clear match only)', async () => {
+  const roster = [{ name: 'Raphael Dias Belloli', dob: '1996-12-14', nationality: 'Brazil', shirt: 11, position: 'Attacker' }, { name: 'Other Player', dob: '2000-01-01', nationality: 'Spain', shirt: 9 }];
+  const c = enrichFromRoster({ name: 'R. Dias', club: 'Barcelona', pos: 'F' }, roster, '2026-11-08');
+  assert.equal(c.nationality, 'Brazil'); assert.equal(c.age, 29); assert.equal(c.dob, '1996-12-14'); assert.equal(c.num, 11);
+  const two = enrichFromRoster({ name: 'J. Silva', club: 'X' }, [{ name: 'Joao Silva', dob: '1990-01-01', nationality: 'A' }, { name: 'Jose Silva', dob: '1991-01-01', nationality: 'B' }], '2026-11-08');
+  assert.equal(two.nationality, undefined, 'two candidates: nothing is guessed');
 });
 console.log('fd-scorers tests:', n, 'passed');
