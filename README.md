@@ -980,3 +980,6 @@ The first preview over the five leagues matched ~2,400 players, would fill 485 e
 
 ### Full conflict list (site 1.7.9)
 The player-details preview now lists up to 80 conflicts per league (was 30) so every conflict can be reviewed. Tip: run the preview one league at a time so the result is small enough to copy whole.
+
+### Preview saved to Supabase (site 1.7.10)
+Every "Preview conflicts only" run now saves its full, uncapped conflict list (and the unmatched sample) to `striker_results`, tool `fd_squads_preview`, one row per league, so it can be reviewed without copying the result from the screen.
