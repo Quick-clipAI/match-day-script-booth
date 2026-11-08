@@ -938,3 +938,8 @@ Every button on `/striker-test.html` now shows a busy bar at the bottom ("Fetchi
 ### Quiet fingerprint sign-in and the logo loader (admin 1.8.8)
 - After the fingerprint (or "Use my saved password") the key goes straight to the check as a value; it is never written into the visible Admin key box, so nothing appears on screen.
 - While the key is checked and the data loads, the admin shows the same rolling Creator Booth logo as the main app (`#splash`), instead of the "Checking…" text. It fades out when the page is ready.
+
+### Loader adjustment (admin 1.8.9)
+- The rolling logo now sits on top of the login screen with no black background; the login form is only dimmed and slightly blurred.
+- The plain solid background shows only in the short moment after the key is confirmed and before the page finishes loading.
+- The logo is smaller (58px) and sits in a round 104px badge, so its full shape shows with room to spare and nothing is clipped.
