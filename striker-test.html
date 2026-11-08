@@ -51,11 +51,14 @@ button{transition:transform .08s,filter .08s}button:active:not(:disabled){transf
   <p class="sub" style="margin:6px 0 0">Reads one Bundesliga matchday and shows whether each match lists its goals with scorer and minute.</p>
   <div class="row"><input id="ol-group" value="1" style="width:70px"><button class="s" id="ol-go">Test OpenLigaDB</button></div></div>
   <div class="card"><b>Test: football-data.org (season top scorers)</b>
-  <p class="sub" style="margin:6px 0 0">2 requests, nothing saved. Shows whether the free plan gives goals and assists for the whole season of one league.</p>
+  <p class="sub" style="margin:6px 0 0">3 requests, nothing saved. Shows whether the free plan gives goals, assists and squads (birth date, nationality) for one league.</p>
   <div class="row"><select id="fd-code"><option value="PD">La Liga</option><option value="PL">Premier League</option><option value="SA">Serie A</option><option value="FL1">Ligue 1</option><option value="BL1">Bundesliga</option><option value="CL">Champions League</option></select><button class="s" id="fd-go">Test football-data.org</button></div></div>
 <div class="card"><b>Fetch season top scorers now (football-data.org)</b>
   <p class="sub" style="margin:6px 0 0">Saves the full-season scorers list that the app shows on the Stats tab. One request per league, about 6 seconds apart, so "All leagues" takes about 35 seconds. The server also refreshes them by itself every 6 hours.</p>
   <div class="row"><select id="fds-league"><option value="">All leagues</option><option value="LALIGA">La Liga</option><option value="EPL">Premier League</option><option value="SERIEA">Serie A</option><option value="LIGUE1">Ligue 1</option><option value="BUNDESLIGA">Bundesliga</option><option value="UCL">Champions League</option></select><button class="s" id="fds-go">Fetch scorers now</button></div></div>
+<div class="card"><b>Fill missing birth dates and nationality (football-data.org)</b>
+  <p class="sub" style="margin:6px 0 0">Reads every club's squad (one request per league, about 6 seconds apart, so "All leagues" takes about 30 seconds) and fills only the EMPTY birth date, nationality and position of players we already have. Existing values are never changed and no new players are added. Safe to repeat.</p>
+  <div class="row"><select id="fdq-league"><option value="">All leagues</option><option value="LALIGA">La Liga</option><option value="EPL">Premier League</option><option value="SERIEA">Serie A</option><option value="LIGUE1">Ligue 1</option><option value="BUNDESLIGA">Bundesliga</option></select><button class="s" id="fdq-go">Fill gaps now</button></div></div>
 <div class="card"><b>Put Bundesliga goals into the app (OpenLigaDB)</b>
   <p class="sub" style="margin:6px 0 0">Reads every played Bundesliga matchday and saves the goals (scorer, minute, penalty, own goal) on each match whose goals add up to our score. Stats already saved are kept. Safe to repeat.</p>
   <div class="row"><button class="s" id="og-go">Import Bundesliga goals</button></div><div id="og-st" class="sub" style="white-space:pre-wrap;margin-top:8px"></div></div>
@@ -121,7 +124,7 @@ function busy(on, label) {
   const t0 = Date.now(); el.classList.add('on');
   const tick = () => { $('busy-t').textContent = label + ' ' + Math.round((Date.now() - t0) / 1000) + 's. Please wait, do not press again.'; }; tick(); busyTimer = setInterval(tick, 500);
 }
-const LABELS = { 'fd-sync': 'Fetching scorers', 'fd-probe': 'Testing football-data.org', 'highlightly-probe': 'Testing Highlightly', 'openliga-probe': 'Testing OpenLigaDB', 'openliga-import': 'Importing Bundesliga goals', 'highlightly-sync': 'Fetching matches', 'injuries-probe': 'Testing injuries', 'backfill-dates': 'Looking up old days', 'missing-csv': 'Building the list', 'openmatchday-import': 'Importing the CSV' };
+const LABELS = { 'fd-squads': 'Filling player details', 'fd-sync': 'Fetching scorers', 'fd-probe': 'Testing football-data.org', 'highlightly-probe': 'Testing Highlightly', 'openliga-probe': 'Testing OpenLigaDB', 'openliga-import': 'Importing Bundesliga goals', 'highlightly-sync': 'Fetching matches', 'injuries-probe': 'Testing injuries', 'backfill-dates': 'Looking up old days', 'missing-csv': 'Building the list', 'openmatchday-import': 'Importing the CSV' };
 async function adm(body) {
   const ak = $('ak').value.trim(); if (!ak) throw new Error('Enter the admin key first.');
   try { sessionStorage.setItem('stk_ak', ak); } catch (e) {}
@@ -156,6 +159,7 @@ const probe = (btn, body) => async () => { $(btn).disabled = true; try { const j
 $('hl-go').onclick = probe('hl-go', () => ({ action: 'highlightly-probe', date: $('hl-date').value, league: $('hl-league').value, country: $('hl-country').value }));
 $('copy-out').onclick = async () => { const t = $('out').textContent; try { await navigator.clipboard.writeText(t); } catch (e) { const r = document.createRange(); r.selectNodeContents($('out')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); try { document.execCommand('copy'); } catch (x) { } } $('copy-out').textContent = 'Copied'; setTimeout(() => { $('copy-out').textContent = 'Copy'; }, 1500); };
 $('fds-go').onclick = probe('fds-go', () => ({ action: 'fd-sync', league: $('fds-league').value }));
+$('fdq-go').onclick = probe('fdq-go', () => ({ action: 'fd-squads', league: $('fdq-league').value }));
 $('fd-go').onclick = probe('fd-go', () => ({ action: 'fd-probe', code: $('fd-code').value }));
 $('ol-go').onclick = probe('ol-go', () => ({ action: 'openliga-probe', season: 2026, group: Number($('ol-group').value) || 1 }));
 $('og-go').onclick = async () => { $('og-go').disabled = true; $('og-st').textContent = 'Importing…'; try { const j = await adm({ action: 'openliga-import', season: 2026 }); $('og-st').textContent = j.summary + (j.notPlaced && j.notPlaced.length ? '\nNot placed:\n' + j.notPlaced.slice(0, 10).join('\n') : ''); } catch (e) { $('og-st').textContent = e.message; } finally { $('og-go').disabled = false; } };
