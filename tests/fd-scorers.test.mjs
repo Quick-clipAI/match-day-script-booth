@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { createMemoryStore } from '../lib/bank-store.js';
 import { fdRefresh, fdFetchLeague, fdLatest } from '../lib/fd-scorers.js';
 import { buildStats } from '../lib/competition-view.js';
+import { placeScorers } from '../lib/fd-scorers.js';
+import { aggregatePlayers } from '../lib/player-season.js';
 let n = 0; const t = async (name, fn) => { try { await fn(); n++; } catch (e) { console.log('FAIL', name, e.stack); process.exitCode = 1; } };
 let calls = [];
 const SC = { season: { startDate: '2026-08-16' }, scorers: [
@@ -33,5 +35,18 @@ await t('stats use football-data scorers, our club names, and keep assists/ratin
   assert.equal(st.players.scorersSource, 'football-data.org');
   assert.deepEqual(st.players.scorers.map(x => [x.name, x.club, x.goals, x.played]), [['Raphinha', 'Barcelona', 15, 10], ['Kylian Mbappé', 'Real Madrid', 12, 11]], 'a club we do not know is left out');
   const own = buildStats(all, [], null); assert.equal(own.players.scorersSource, 'ours');
+});
+await t('exact club name beats a loose one: FC Barcelona is never RCD Espanyol de Barcelona', async () => {
+  const clubs = ['RCD Espanyol de Barcelona', 'Barcelona', 'Atletico Madrid'];
+  const r = placeScorers([{ name: 'a', team: 'Barça', teamFull: 'FC Barcelona' }, { name: 'b', team: 'Espanyol', teamFull: 'RCD Espanyol de Barcelona' }, { name: 'c', team: 'Atleti', teamFull: 'Club Atlético de Madrid' }], clubs);
+  assert.deepEqual(r.map(x => x.club), ['Barcelona', 'RCD Espanyol de Barcelona', 'Atletico Madrid']);
+  const al = placeScorers([{ name: 'x', team: 'PSV', teamFull: 'PSV' }], ['PSV Eindhoven'], new Map([['psv', 'PSV Eindhoven']]));
+  assert.equal(al[0].club, 'PSV Eindhoven');
+});
+await t('a repeated detail row for one match does not count its goals twice', async () => {
+  const mt = { id: 1, date: '2026-11-01', league: 'LALIGA', home: 'A FC', away: 'B FC', hg: 1, ag: 0, status: 'finished' };
+  const d = { match_id: 1, data: { lineups: { home: { xi: [{ name: 'Jo Smith', min: 90 }], subs: [] }, away: { xi: [], subs: [] } }, events: [{ type: 'goal', detail: 'Normal Goal', side: 'home', player: 'Jo Smith', min: 10 }] } };
+  const goals = det => [...aggregatePlayers([mt], det).values()][0].goals;
+  assert.equal(goals([d]), 1); assert.equal(goals([d, d]), 1);
 });
 console.log('fd-scorers tests:', n, 'passed');

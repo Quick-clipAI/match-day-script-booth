@@ -947,3 +947,9 @@ Every button on `/striker-test.html` now shows a busy bar at the bottom ("Fetchi
 ### Invisible loader badge (admin 1.9.0)
 - The round badge behind the rolling logo is gone (no fill, border or shadow). Only the logo shows over the dimmed login, and over the solid background right after sign-in.
 - A sparkler/lightning/glow effect was previewed and shelved. Seasonal effects (winter, Christmas) are planned for the main page only, not the admin.
+
+### Scorer club fix, no banner, season total on cards (site 1.6.12)
+- **Wrong club fixed:** the top-scorer import used the first loosely matching club, so "FC Barcelona" landed on "RCD Espanyol de Barcelona" and those players had no card link. `placeScorers` now prefers an exact (or alias) name and only then the closest loose match. All six saved lists were checked; PAE AEK and PSV were added as aliases (AEK Athens, PSV Eindhoven).
+- **"Incomplete" banner removed.** The small footnote under the Assists and Rating lists still says how many matches they cover.
+- **Season total on the card:** tapping a top scorer shows e.g. "13 La Liga goals in 15 games this season (football-data.org, every match)" above the card's own figures, which only cover matches with saved details and can be lower.
+- **No double counting:** match details have one row per match (match id is the primary key) and a new fetch replaces it. The player aggregation now also ignores a repeated row, covered by a test.
