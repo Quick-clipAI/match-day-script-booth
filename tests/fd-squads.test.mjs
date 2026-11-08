@@ -32,6 +32,11 @@ await t('fills only empty fields, never overwrites, never guesses, never mixes B
   assert.deepEqual(report.unmatchedClubs, ['Mystery FC']);
   assert.equal(report.unmatchedPlayers, 2, 'Gabi Martinez, Somebody New and nothing else');
 });
+await t('"Korea, South" and "South Korea" are the same country, not a conflict', () => {
+  const r = [P(1, 'Jens Castrop', 'B', { dob: '2003-06-27', nationality: 'Korea, South', position: 'Midfielder', age: 23 })];
+  const x = planSquadFill({ teams: [{ name: 'B', squad: [{ name: 'Jens Castrop', dateOfBirth: '2003-06-27', nationality: 'South Korea', position: 'Midfield' }] }], roster: r, today: '2026-11-08', mode: 'preview' });
+  assert.equal(x.report.conflicts.nationality, 0);
+});
 await t('pickPlayer: exact, initial + surname, mononym, and ambiguity', () => {
   const r = [P(1, 'Raphael Dias Belloli', 'B'), P(2, 'Joao Silva', 'B'), P(3, 'Jose Silva', 'B')];
   assert.equal(pickPlayer('R. Dias', r).id, 1); assert.equal(pickPlayer('J. Silva', r), null); assert.equal(pickPlayer('Joao Silva', r).id, 2);
