@@ -36,4 +36,16 @@ await t('pickPlayer: exact, initial + surname, mononym, and ambiguity', () => {
   const r = [P(1, 'Raphael Dias Belloli', 'B'), P(2, 'Joao Silva', 'B'), P(3, 'Jose Silva', 'B')];
   assert.equal(pickPlayer('R. Dias', r).id, 1); assert.equal(pickPlayer('J. Silva', r), null); assert.equal(pickPlayer('Joao Silva', r).id, 2);
 });
+await t('overwrite: football-data.org wins on conflicts, spelling variants are not conflicts, old values are kept for undo; preview changes nothing', () => {
+  const r = [P(1, 'Ruben Dias', 'Barcelona', { dob: '1997-05-14', nationality: 'Ivory Coast', position: 'Defender', age: 29 }), P(2, 'Gavi', 'Barcelona', { dob: '2004-08-05', nationality: 'Brazil', position: 'Midfielder', age: 22 })];
+  const tm = [{ name: 'FC Barcelona', squad: [{ name: 'Ruben Dias', dateOfBirth: '1997-05-14', nationality: "Côte d'Ivoire", position: 'Defence' }, { name: 'Gavi', dateOfBirth: '2004-08-05', nationality: 'Spain', position: 'Midfield' }] }];
+  const o = planSquadFill({ teams: tm, roster: r, today: '2026-11-08', mode: 'overwrite' });
+  assert.equal(o.report.conflicts.nationality, 1, 'only Gavi: Ivory Coast = Cote d\'Ivoire'); assert.equal(o.rows.length, 1); assert.equal(o.rows[0].nationality, 'Spain');
+  assert.deepEqual(o.report.backup, [{ id: 2, dob: '2004-08-05', nationality: 'Brazil', age: 22, age_as_of: null }]);
+  assert.deepEqual(o.report.conflictSample[0], { player: 'Gavi', club: 'Barcelona', field: 'nationality', was: 'Brazil', now: 'Spain' });
+  const p = planSquadFill({ teams: tm, roster: r, today: '2026-11-08', mode: 'preview' });
+  assert.equal(p.rows.length, 0); assert.equal(p.report.conflicts.nationality, 1);
+  const f = planSquadFill({ teams: tm, roster: r, today: '2026-11-08', mode: 'fill' });
+  assert.equal(f.rows.length, 0, 'fill mode never touches an existing value');
+});
 console.log('fd-squads tests: ' + n + ' passed');

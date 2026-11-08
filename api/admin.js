@@ -431,7 +431,7 @@ export default async function handler(req, res) {
       case 'fd-squads': {                   // fill empty birth date / nationality / position from football-data.org squads (1 request per league)
         const pick = String(body.league || '').toUpperCase();
         const only = SQUAD_LEAGUES.includes(pick) ? [pick] : SQUAD_LEAGUES;
-        return res.status(200).json(await fdSquadsFill(store, { key: (process.env.FOOTBALL_DATA_API_KEY || '').trim(), leagues: only }));
+        return res.status(200).json(await fdSquadsFill(store, { key: (process.env.FOOTBALL_DATA_API_KEY || '').trim(), leagues: only, mode: ['fill', 'overwrite', 'preview'].includes(body.mode) ? body.mode : 'fill' }));
       }
       case 'fd-probe': {                    // football-data.org: season top scorers of one league (2 requests, nothing saved)
         const code = ['PL', 'PD', 'SA', 'FL1', 'BL1', 'CL'].includes(String(body.code || '').toUpperCase()) ? String(body.code).toUpperCase() : 'PD';
