@@ -977,3 +977,6 @@ The admin box "Update birth dates and nationality (football-data.org)" has three
 
 ### Player-details preview findings (site 1.7.8)
 The first preview over the five leagues matched ~2,400 players, would fill 485 empty entries and found 103 conflicts. Nationality conflicts are mostly a difference of definition: football-data.org gives citizenship/birth country, ours is largely the national team the player represents (e.g. Lookman Nigeria vs England, Le Normand Spain vs France, Cairney Scotland vs England). Birth-date conflicts are a mix of day/month slips and a few whole-year differences where either source can be the wrong one. So "Fill gaps only" is now the default mode and "Overwrite" is for deliberate use. "Korea, South" is treated as "South Korea".
+
+### Full conflict list (site 1.7.9)
+The player-details preview now lists up to 80 conflicts per league (was 30) so every conflict can be reviewed. Tip: run the preview one league at a time so the result is small enough to copy whole.
