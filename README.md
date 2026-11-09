@@ -991,3 +991,9 @@ Every "Preview conflicts only" run now saves its full, uncapped conflict list (a
 
 ### Unmatched squad players saved (site 1.7.11)
 Every fill/preview run of the football-data.org player tool now also saves the players it could not match to ours (club, name, birth date, nationality, position) to `striker_results`, tool `fd_squads_unmatched`, one row per league, so they can be matched by hand.
+
+## MLS and Saudi birth-date fill (2026-11-09, data only)
+- MLS: 602 players got a birth date from the Transfermarkt export (no dob before: 820, now: 218). Nationality was filled only where blank.
+- SPL: 8 players matched (no dob now: 223). Most Saudi squad names are not in the dataset or are spelled differently, so they stay blank.
+- Transfermarkt nationality is citizenship, not always the national team we show.
+- Before-values saved in `striker_results` (tool `fd_squads_backup`, source `transfermarkt_mls` / `transfermarkt_spl`).
