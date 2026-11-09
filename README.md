@@ -983,3 +983,8 @@ The player-details preview now lists up to 80 conflicts per league (was 30) so e
 
 ### Preview saved to Supabase (site 1.7.10)
 Every "Preview conflicts only" run now saves its full, uncapped conflict list (and the unmatched sample) to `striker_results`, tool `fd_squads_preview`, one row per league, so it can be reviewed without copying the result from the screen.
+
+### Player data clean-up (2026-11-09, data only, no code change)
+- Conflict review of the 102 football-data.org vs our-data differences, checked against FotMob profile screenshots. Changed: Remi Matthews, Joel Latibeaudiere, Mahdi Nicoll-Jazuli, George Hemmings, Modou Kéba Cissé, Jules Ahoka, Jocelin Ta Bi, Rafa Rodríguez (dob); Konan N'Dri, Daniel Jebbison (nationality). The Troyes #34 row was renamed from "Issa Traoré" to "Ibrahim Traoré" (dob 2006-03-12, France). Everything else kept as ours (Faye, Lefort, Sagnan, Pablo García confirmed correct).
+- Duplicate club names merged in `bank_players` (AFC Bournemouth, Ipswich Town, Leeds United, Newcastle United, Brighton & Hove Albion, Leipzig) with aliases added. Backups are in `striker_results` (`player_merge_backup`, `fd_squads_backup`).
+- "Fill gaps only" run: 466 players saved. Complete birth date + nationality: EPL 93%, Serie A 89%, Bundesliga 88%, Ligue 1 87%, La Liga 86%, SPL 59%, MLS 10%.
