@@ -997,3 +997,9 @@ Every fill/preview run of the football-data.org player tool now also saves the p
 - SPL: 8 players matched (no dob now: 223). Most Saudi squad names are not in the dataset or are spelled differently, so they stay blank.
 - Transfermarkt nationality is citizenship, not always the national team we show.
 - Before-values saved in `striker_results` (tool `fd_squads_backup`, source `transfermarkt_mls` / `transfermarkt_spl`).
+
+### Star-player fill from FotMob screenshots (2026-11-09, data only)
+- Inter Miami: 6 players filled (Caicedo, Sumalla, Berterame, Delinois, Galarza, Riquelme). Rey, Urkidi and Zeltzer-Zubida (reserve team) stay blank.
+- Saudi: 10 foreign players filled (Sangaré, Moura, Lázaro, Mboge, Pedro Henrique, Lopy, Samú Costa, Spertsyan, Trincão, Meïté). Mboge's Transfermarkt date was wrong and was corrected from FotMob.
+- Benzema is not in our Saudi squad data. Left as is.
+- Coverage (players with a birth date): Bundesliga 90%, EPL 93%, La Liga 88%, Ligue 1 89%, Serie A 90%, MLS 77%, SPL 62%.
