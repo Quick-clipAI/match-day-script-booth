@@ -1003,3 +1003,9 @@ Every fill/preview run of the football-data.org player tool now also saves the p
 - Saudi: 10 foreign players filled (Sangaré, Moura, Lázaro, Mboge, Pedro Henrique, Lopy, Samú Costa, Spertsyan, Trincão, Meïté). Mboge's Transfermarkt date was wrong and was corrected from FotMob.
 - Benzema is not in our Saudi squad data. Left as is.
 - Coverage (players with a birth date): Bundesliga 90%, EPL 93%, La Liga 88%, Ligue 1 89%, Serie A 90%, MLS 77%, SPL 62%.
+
+## Match details catch-up (admin 1.9.1)
+- Why details were slow: the 20-minute job (`.github/workflows/due-sync.yml`, GitHub schedule) really ran only every 4 to 9 hours (GitHub delays scheduled runs; see `sync-details` entries in `bank_log`). Each run did 5 API-Football details and 2 Highlightly matches, so about 20 and 8 a day. On 7 Nov the API-Football key also failed twice (account suspended, then missing key), so that day's results came a day late.
+- Now each run does up to 8 API-Football details (the 15-request reserve for results is unchanged) and up to 6 Highlightly matches (20 s budget).
+- Highlightly daily cap raised from 45 to 48 matches = 96 of its 100 requests; the last 4 stay free for loading lists and the test boxes.
+- API-Football still only serves today +/- 1 day on the free plan; matches older than that stay with Highlightly.
