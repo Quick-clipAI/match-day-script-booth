@@ -4,6 +4,7 @@ import { storeFromEnv } from '../lib/bank-store.js';
 import { buildCompetition } from '../lib/competition-view.js';
 import { LEAGUES, isIsoDate } from '../lib/bank-core.js';
 import { playerCardFor } from '../lib/player-card.js';
+import { buildTeam } from '../lib/team-view.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,6 +21,14 @@ export default async function handler(req, res) {
       if (!card) return res.status(404).json({ error: 'No stored matches for this player yet.' });
       res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
       return res.status(200).json(card);
+    }
+    if (q.team) {                                             // /api/competition?team=<club>&today=: the team screen
+      const { store: ts, error: te } = storeFromEnv();
+      if (te) return res.status(200).json({ error: 'bank not configured' });
+      const tt = String(q.today || ''); const view = await buildTeam(ts, String(q.team).slice(0, 80), isIsoDate(tt) ? tt : new Date().toISOString().slice(0, 10));
+      if (!view) return res.status(404).json({ error: 'No stored matches or squad for this club yet.' });
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+      return res.status(200).json(view);
     }
     const key = String(q.league || '').toUpperCase();
     if (!LEAGUES[key]) return res.status(404).json({ error: 'Unknown competition.' });
