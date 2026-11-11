@@ -97,8 +97,9 @@ export default async function handler(req, res) {
       const retry = [404, 500, 502, 503, 429].includes(r.status);
       if (!retry) break;
     }
-    if (r.status === 404) {
-      for (const m of (await discover(tried)).slice(0, 3)) {
+    // every listed model refused (gone, over its own free quota, or busy): other Flash models have their own quota
+    if ([404, 429, 500, 502, 503].includes(r.status)) {
+      for (const m of (await discover(tried)).slice(0, 4)) {
         r = await call(m); tried.push(m);
         if (r.status === 404) GONE.set(m, Date.now() + HOUR);
         if (r.status === 200) LEARNED = { model: m, at: Date.now() };
