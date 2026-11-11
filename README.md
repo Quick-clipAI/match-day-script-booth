@@ -1025,6 +1025,10 @@ Every fill/preview run of the football-data.org player tool now also saves the p
 - Server side was checked on 2026-11-10: the release has `bundle.zip` (valid zip, `index.html` at the top) and `version.json`; the download works.
 - To see the new lines: install the APK of this version once, then press the update button and open Settings > App updates.
 
+## Backup / Gemini model retirement (api/gemini.js)
+
+The chat showed "Backup AI used (Gemini model unavailable)": every model in `GEMINI_MODEL` answered 404 ("no longer available"), so the weaker backup (Groq, from memory) answered and made mistakes (e.g. Raphinha's foot). Google has been retiring Gemini 2.5 models early (reported from 9 July 2026). Now, when every listed model answers 404, the server asks Google for the Flash models the key can use, tries the newest stable ones, remembers the one that works for an hour and skips 404 models for an hour. `GEMINI_MODEL` still wins when its models work. Test: `tests/gemini-discover.test.mjs`.
+
 ## External scheduler (cron-job.org) — optional, free
 
 The GitHub "Check finished matches" schedule is meant to run every 20 minutes but really runs every 4–9 hours. To make it reliable, add a free cron-job.org job that opens `https://creator-boot.vercel.app/api/cron-sync?mode=due` every 5 minutes (GET, no key or header needed). The site throttles it to one real run per 5 minutes, so it cannot waste API requests. Keep the GitHub schedule as a backup.

@@ -5,6 +5,10 @@
 
 import { checkAi } from '../lib/guard.js';
 
+const HOUR = 3600 * 1000;
+const GONE = new Map();          // model name -> time until which it is skipped (it answered 404)
+let LEARNED = { model: '', at: 0 };   // last model that answered
+
 export default async function handler(req, res) {
   // CORS: needed now that the Android app (bundled locally, different origin) calls this same
   // endpoint via its absolute URL instead of a same-origin relative path. The website itself is
@@ -57,15 +61,49 @@ export default async function handler(req, res) {
     return { status: upstream.status, data, model };
   };
 
+  // A model that answered recently is tried first, and one that returned 404 is skipped for an hour (module memory).
+  const now = Date.now();
+  if (LEARNED.model && now - LEARNED.at < HOUR && chain.indexOf(LEARNED.model) === -1) chain.unshift(LEARNED.model);
+  else if (LEARNED.model && now - LEARNED.at < HOUR) { chain.splice(chain.indexOf(LEARNED.model), 1); chain.unshift(LEARNED.model); }
+  for (const m of [...chain]) if (GONE.get(m) > now && chain.length > 1) chain.splice(chain.indexOf(m), 1);
+
+  // When every listed model is gone (Google retires models without much notice), ask Google which Flash models this key
+  // can use now and try the newest stable ones. Plain stable names only: no preview, image, audio or live variants.
+  const discover = async (tried) => {
+    const out = [];
+    try {
+      const lr = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=${encodeURIComponent(key)}`);
+      const ld = await lr.json().catch(() => ({}));
+      for (const m of (ld.models || [])) {
+        const name = String(m.name || '').replace(/^models\//, '');
+        const mm = /^gemini-(\d+(?:\.\d+)?)-flash(-lite)?$/.exec(name);
+        if (!mm || tried.includes(name) || GONE.get(name) > Date.now()) continue;
+        if (!(m.supportedGenerationMethods || []).includes('generateContent')) continue;
+        out.push({ name, v: parseFloat(mm[1]), lite: !!mm[2] });
+      }
+    } catch (e) { /* no list, nothing more to try */ }
+    return out.sort((x, y) => (y.v - x.v) || (Number(x.lite) - Number(y.lite))).map(x => x.name);
+  };
+
   try {
-    let r = null;
+    let r = null; const tried = [];
     for (let i = 0; i < chain.length && i < 4; i++) {
-      r = await call(chain[i]);
+      r = await call(chain[i]); tried.push(chain[i]);
+      if (r.status === 404) GONE.set(chain[i], Date.now() + HOUR);
+      else if (r.status === 200) LEARNED = { model: chain[i], at: Date.now() };
       // 404 = model gone, 5xx = Google busy, 429 = this model's own free quota is used up. In each case the next
       // model in the list (which has its own quota) may still answer. If every model refuses a request that carries
       // the search tool, the app retries without it and says live search was not used.
       const retry = [404, 500, 502, 503, 429].includes(r.status);
       if (!retry) break;
+    }
+    if (r.status === 404) {
+      for (const m of (await discover(tried)).slice(0, 3)) {
+        r = await call(m); tried.push(m);
+        if (r.status === 404) GONE.set(m, Date.now() + HOUR);
+        if (r.status === 200) LEARNED = { model: m, at: Date.now() };
+        if (![404, 429, 500, 502, 503].includes(r.status)) break;   // answered, or a real error: stop here
+      }
     }
     res.setHeader('x-gemini-model', r.model);
     return res.status(r.status).json(r.data);
