@@ -1025,6 +1025,10 @@ Every fill/preview run of the football-data.org player tool now also saves the p
 - Server side was checked on 2026-11-10: the release has `bundle.zip` (valid zip, `index.html` at the top) and `version.json`; the download works.
 - To see the new lines: install the APK of this version once, then press the update button and open Settings > App updates.
 
+## External scheduler (cron-job.org) — optional, free
+
+The GitHub "Check finished matches" schedule is meant to run every 20 minutes but really runs every 4–9 hours. To make it reliable, add a free cron-job.org job that opens `https://creator-boot.vercel.app/api/cron-sync?mode=due` every 5 minutes (GET, no key or header needed). The site throttles it to one real run per 5 minutes, so it cannot waste API requests. Keep the GitHub schedule as a backup.
+
 ## 1.7.15 — why the app update failed, and the fix
 
 **Cause:** the update plugin (Capgo 7.51.23) refuses any bundle download that has no SHA-256 checksum. It throws "Checksum required" before touching the network, and the app only showed the generic "Failed to download from…". That is why the connection test showed bundle.zip reachable (200, 287 KB) while the update still failed.
