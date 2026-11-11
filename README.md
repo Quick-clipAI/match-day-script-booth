@@ -1025,6 +1025,10 @@ Every fill/preview run of the football-data.org player tool now also saves the p
 - Server side was checked on 2026-11-10: the release has `bundle.zip` (valid zip, `index.html` at the top) and `version.json`; the download works.
 - To see the new lines: install the APK of this version once, then press the update button and open Settings > App updates.
 
+## 1.7.19 — team screen fix
+
+The team screen failed with "Cannot read properties of undefined (reading 'toUpperCase')": a squad player with no stored position broke the position check in `lib/team-view.js`. A missing position is now handled, and such players are listed under "Other". Test added to `tests/team-view.test.mjs`. Server-only fix: it works without a new APK (version number bumped for the record).
+
 ## 1.7.18 — team screen
 
 Tap a club (the crest or name at the top of a match, a row in any table, or a club in a competition) to open its team screen. Back returns to where you were.

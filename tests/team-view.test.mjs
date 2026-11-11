@@ -12,7 +12,7 @@ const xi = [pl('Raya', 'G', 7.0, 0, 1), pl('Saliba', 'D', 7.4, 0, 2), pl('Gabrie
 const dets = [detail('EPL|2026|arsenal|chelsea', 'Arsenal', 'Chelsea', xi), detail('EPL|2026|chelsea|arsenal', 'Chelsea', 'Arsenal', xi, 'away')];
 const store = {
   listMatches: async ({ league }) => matches[league] || [], listDetailsLike: async p => dets.filter(d => d.match_id.startsWith(p)),
-  listPlayers: async () => [{ club: 'Arsenal', league: 'EPL', season: 2026, name: 'Bukayo Saka', position: 'Forward', shirt: 7, dob: '2001-09-05', nationality: 'England' }, { club: 'Arsenal', league: 'EPL', season: 2026, name: 'David Raya', position: 'Goalkeeper', shirt: 22, dob: '1995-09-15', nationality: 'Spain' }, { club: 'Chelsea', league: 'EPL', season: 2026, name: 'X Y', position: 'Defender' }],
+  listPlayers: async () => [{ club: 'Arsenal', league: 'EPL', season: 2026, name: 'Bukayo Saka', position: 'Forward', shirt: 7, dob: '2001-09-05', nationality: 'England' }, { club: 'Arsenal', league: 'EPL', season: 2026, name: 'David Raya', position: 'Goalkeeper', shirt: 22, dob: '1995-09-15', nationality: 'Spain' }, { club: 'Chelsea', league: 'EPL', season: 2026, name: 'X Y', position: 'Defender' }, { club: 'Arsenal', league: 'EPL', season: 2026, name: 'No Position', position: null }],
   listCoaches: async () => [{ club: 'Arsenal', league: 'EPL', season: 2026, name: 'Mikel Arteta', nationality: 'Spain' }],
   listTeamIds: async () => [{ club: 'Arsenal', api_name: 'Arsenal', api_team_id: 42 }], listAliases: async () => [] };
 clearPlayerCache();
@@ -24,7 +24,7 @@ assert.deepEqual(v.overview.form, ['W', 'D', 'L'], 'oldest first across competit
 const t = v.tables.find(x => x.key === 'EPL').table; assert.equal(t.rows.filter(r => r.me).length, 1); assert.equal(t.rows.find(r => r.me).team, 'Arsenal');
 assert.equal(v.stats.competitions[0].W, 1); assert.equal(v.stats.competitions[0].cleanSheets, 1);
 assert.equal(v.overview.xi.lines[0][0].name, 'B. Saka'); assert.equal(v.overview.xi.lines[3][0].name, 'Raya');
-assert.equal(v.squad.length, 2); assert.equal(v.squad.find(g => g.group === 'Forwards').players[0].pid, 5, 'photo id from the line-up');
+assert.equal(v.squad.length, 3, 'a player with no position does not break the screen'); assert.equal(v.squad.find(g => g.group === 'Forwards').players[0].pid, 5, 'photo id from the line-up');
 assert.equal(v.overview.coach.name, 'Mikel Arteta');
 assert.equal(await buildTeam(store, 'Nobody FC', '2026-11-11'), null);
 console.log('ok');
