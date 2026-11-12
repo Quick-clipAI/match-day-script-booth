@@ -399,7 +399,7 @@ export default async function handler(req, res) {
         return res.status(200).json(await importOpenMatchday(store, rows));
       }
       case 'striker-bulk': {
-        const out = await strikerBulk(store, { step: body.step, season: body.season, max: body.max, reserve: body.reserve, dryRun: !!body.dryRun });
+        const out = await strikerBulk(store, { step: body.step, season: body.season, max: body.max, reserve: body.reserve, dryRun: !!body.dryRun, status: body.status });
         return res.status(200).json(out);
       }
       case 'highlightly-probe': {           // 3 requests: matches of one date, events and lineups of the first finished match
