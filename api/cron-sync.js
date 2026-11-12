@@ -44,7 +44,8 @@ export default async function handler(req, res) {
       let co = { summary: 'skipped', calls: 0 };      // coach photo ids: its own daily cap (half the clubs a day), never below 15 requests left
       try { co = await syncCoaches(store, { getCoach: coachGetter(key), maxRun: Math.max(0, 3 - (q.calls || 0)), dailyCap: Number(process.env.COACH_DAILY_CAP) || 72, reserve: 15 }); } catch (e) { co = { summary: 'coaches failed: ' + String(e && e.message || e).slice(0, 120), calls: 0 }; }
       let t = { summary: 'skipped' };
-      try { t = await syncTransfers(store, { getTeams: teamsGetter(key), getTransfers: transfersGetter(key), maxRun: Math.max(0, 3 - (q.calls || 0) - (co.calls || 0)) }); } catch (e) { t = { summary: 'transfers failed: ' + String(e && e.message || e).slice(0, 120) }; }
+      if (process.env.SYNC_TRANSFERS !== 'on') t = { summary: 'transfers paused (set SYNC_TRANSFERS=on to resume)' };
+      else try { t = await syncTransfers(store, { getTeams: teamsGetter(key), getTransfers: transfersGetter(key), maxRun: Math.max(0, 3 - (q.calls || 0) - (co.calls || 0)) }); } catch (e) { t = { summary: 'transfers failed: ' + String(e && e.message || e).slice(0, 120) }; }
       // older matches from Highlightly (its own free quota): 2 matches per run, at most 48 a day (96 of its 100 requests); does nothing until the lists were loaded
       let hl = { summary: 'skipped' };
       try { const hk = (process.env.HIGHLIGHTLY_API_KEY || '').trim(); if (hk) hl = await hlFetch(store, { key: hk, max: 6, dailyCap: 48, budgetMs: 20000 }); } catch (e) { hl = { summary: 'highlightly failed: ' + String(e && e.message || e).slice(0, 120) }; }
