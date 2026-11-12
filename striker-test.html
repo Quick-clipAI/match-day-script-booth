@@ -31,6 +31,7 @@ button{transition:transform .08s,filter .08s}button:active:not(:disabled){transf
   <p class="sub" style="margin:6px 0 0">Every answer is saved in our database, so you never need to copy JSON. StrikerAPI takes one match per request, so the server loops for you. Matches already saved are never fetched twice.</p>
   <div class="row"><button class="s" id="b1">1 · List the season (2 credits)</button><button id="b2">2 · Fetch all matches (5 each)</button></div>
   <div class="row"><button class="s" id="b3">3 · Put the saved matches into the app</button></div>
+  <div class="row"><button class="s" id="b5">Save the upcoming matches (2 credits)</button></div>
   <div class="row"><button class="s" id="b4">Test: does it give upcoming matches? (2 credits)</button></div>
   <div id="bst" class="sub" style="white-space:pre-wrap;margin-top:10px"></div></div>
 <div class="card"><b>Injuries test (API-Football, 1 request)</b>
@@ -137,6 +138,7 @@ async function adm(body) {
   } finally { if (--busyN === 0) busy(false); }
 }
 function bst(t) { $('bst').textContent = t; }
+$('b5').onclick = async () => { $('b5').disabled = true; bst('Saving upcoming matches…'); try { const j = await adm({ action: 'striker-bulk', step: 'upcoming', season: 2026, save: true }); const i = j.imported; bst(i ? (i.summary + (i.unknownClubs.length ? '\nNot placed (unknown club): ' + i.unknownClubs.join(', ') : '') + (i.rows.length ? '\n' + i.rows.join('\n') : '') + (j.creditsLeft != null ? '\nCredits left: ' + j.creditsLeft : '')) : ('Nothing saved. ' + (j.error || j.matches + ' matches'))); } catch (e) { bst('Failed: ' + (e && e.message || e)); } $('b5').disabled = false; };
 $('b4').onclick = async () => { $('b4').disabled = true; bst('Asking for upcoming matches…'); try { const j = await adm({ action: 'striker-bulk', step: 'upcoming', season: 2026 }); bst(j.ok ? ('Asked for "' + j.asked + '": ' + j.matches + ' matches' + (j.matches ? (' (' + j.from + ' to ' + j.to + ', status ' + j.statuses.join('/') + ')\n' + j.sample.join('\n')) : '. The list has none, so it cannot give upcoming matches with this status.') + (j.creditsLeft != null ? '\nCredits left: ' + j.creditsLeft : '')) : ('Not accepted (HTTP ' + j.http + '): ' + (j.error || '') + '\nNothing was saved.')); } catch (e) { bst('Failed: ' + (e && e.message || e)); } $('b4').disabled = false; };
 $('b1').onclick = async () => { $('b1').disabled = true; bst('Listing the season…'); try { const j = await adm({ action: 'striker-bulk', step: 'list', season: 2026 }); bst(j.ok ? ('Found ' + j.matches + ' finished matches. Saved: ' + (j.saved ? 'yes' : 'no') + '\nCredits left: ' + j.creditsLeft) : ('Failed: ' + (j.error || 'see the raw answer'))); } catch (e) { bst(e.message); } finally { $('b1').disabled = false; } };
 $('b2').onclick = async () => {
