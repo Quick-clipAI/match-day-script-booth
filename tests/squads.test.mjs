@@ -25,15 +25,15 @@ async function world() {
   await s.upsertProfiles(prof); await s.upsertTeamIds([{ api_team_id: 63, league: 'EPL', club: 'Leeds', api_name: 'Leeds', source: 'teams' }, { api_team_id: 42, league: 'EPL', club: 'Arsenal', api_name: 'Arsenal', source: 'teams' }]);
   const calls = []; return { s, calls, run: (o = {}) => syncSquads(s, { getSquad: async id => { calls.push(id); return id === 63 ? api : { response: [{ players: [{ id: 3, name: 'Jon Smith', age: 31, number: 5, position: 'Defender' }] }] }; }, now: Q, ...o }) };
 }
-await t('fills a club with no squad, keeps a club that already has one, refreshes weekly, respects quiet hours', async () => {
+await t('fills a club with no squad, keeps a club that already has one, refreshes only after 60 days, respects quiet hours', async () => {
   const w = await world();
   await w.s.upsertPlayers([{ id: 'EPL|2026|arsenal|x', league: 'EPL', season: 2026, club: 'Arsenal', name: 'X' }]);
   const r = await w.run(); assert.equal(r.calls, 2); assert.equal(r.applied, 1); assert.equal(r.kept, 1);
   assert.equal((await w.s.listPlayers({ league: 'EPL', season: 2026, club: 'Leeds' })).length, 4);
   assert.equal((await w.s.listPlayers({ league: 'EPL', season: 2026, club: 'Arsenal' })).length, 1);     // untouched
-  assert.equal((await w.run({ now: Q + 864e5 })).calls, 0);                                                // fetched < 7 days ago
-  assert.equal((await w.run({ now: Q + 8 * 864e5 })).calls, 2);
-  assert.equal((await w.run({ now: Date.parse('2026-10-30T14:00:00Z') + 20 * 864e5 })).calls, 0);        // daytime
+  assert.equal((await w.run({ now: Q + 864e5 })).calls, 0);                                                // fetched < 60 days ago
+  assert.equal((await w.run({ now: Q + 61 * 864e5 })).calls, 2);
+  assert.equal((await w.run({ now: Date.parse('2026-10-30T14:00:00Z') + 62 * 864e5 })).calls, 0);        // daytime
 });
 await t('forced run works on a busy day; emptyOnly spends nothing on clubs that have a squad; reserve stops it', async () => {
   const w = await world();
