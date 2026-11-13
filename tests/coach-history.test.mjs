@@ -18,3 +18,4 @@ assert.equal(v.left.date, '2026-11-12'); assert.equal(v.left.reason, 'Sacked'); 
 const w = coachView([{ id: 'a', name: 'Carrick', ended_on: '2026-11-12' }, { id: 'c', name: 'Poch', ended_on: null }], { name: 'Poch' });
 assert.equal(w.left, null); assert.deepEqual(w.previous.map(p => p.name), ['Carrick']);
 console.log('ok');
+{ const v = coachView([{ id: 'a', name: 'Xabi', started_on: '2026-11-18', ended_on: null, prev_team: 'Chelsea', origin: 'club' }], { name: 'Xabi' }); assert.deepEqual(v.joined, { date: '2026-11-18', from: 'Chelsea', origin: 'club' }); console.log('ok joined'); }
