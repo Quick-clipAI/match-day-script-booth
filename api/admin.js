@@ -7,6 +7,7 @@ import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } fro
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { strikerSaved, strikerBulk } from '../lib/striker.js';
 import { importStriker } from '../lib/striker-import.js';
+import { spellId } from '../lib/coach-history.js';
 import { parseCsv, importOpenMatchday } from '../lib/openmatchday-import.js';
 import { backfillIds, backfillByDates } from '../lib/backfill-ids.js';
 import { detailLeagues } from '../lib/match-detail.js';
@@ -388,6 +389,19 @@ export default async function handler(req, res) {
       case 'striker': {
         const r = await strikerSaved(store, String(body.tool || ''), body.args);
         return res.status(r.status).json(r.body);
+      }
+      case 'coach-spell': {                 // record when a coach started / left and why (club, name, league required; dates YYYY-MM-DD or empty)
+        const club = String(body.club || '').trim().slice(0, 80), name = String(body.name || '').trim().slice(0, 120), league = String(body.league || '').toUpperCase().slice(0, 12);
+        const day = v => (v == null || v === '') ? null : (/^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? String(v) : undefined);
+        const sd = day(body.started_on), ed = day(body.ended_on);
+        if (!club || !name || !league) return fail(res, 400, 'club, name and league are needed');
+        if (sd === undefined || ed === undefined) return fail(res, 400, 'dates must look like 2026-11-12');
+        const id = spellId(league, club, name);
+        const prev = (await store.listCoachSpells({ club })).find(x => x.id === id) || {};
+        await store.upsertCoachSpells([{ ...prev, id, league, club, name, nationality: body.nationality ? String(body.nationality).slice(0, 80) : (prev.nationality || null), role: prev.role || 'head',
+          started_on: body.started_on === undefined ? (prev.started_on || null) : sd, ended_on: body.ended_on === undefined ? (prev.ended_on || null) : ed,
+          end_reason: body.end_reason === undefined ? (prev.end_reason || null) : String(body.end_reason || '').slice(0, 200) || null, source: 'admin' }]);
+        return res.status(200).json({ ok: true, id });
       }
       case 'striker-import': {
         const out = await importStriker(store, { league: String(body.league || 'UCL').toUpperCase(), season: Number(body.season) || 2026 });
