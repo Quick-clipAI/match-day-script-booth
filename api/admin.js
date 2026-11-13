@@ -390,6 +390,12 @@ export default async function handler(req, res) {
         const r = await strikerSaved(store, String(body.tool || ''), body.args);
         return res.status(r.status).json(r.body);
       }
+      case 'trophies-seed': {               // loads the domestic league winners (lib/data/domestic-trophies.js) into bank_club_trophies; safe to repeat
+        const { ROWS, SOURCES } = await import('../lib/data/domestic-trophies.js');
+        const rows = ROWS.map(([competition, season, club, runner_up]) => ({ id: `${competition}|${season}|${club}`, competition, season, club, runner_up: runner_up || null, source: SOURCES[competition] }));
+        await store.upsertClubTrophies(rows);
+        return res.status(200).json({ ok: true, loaded: rows.length });
+      }
       case 'coach-spell': {                 // record when a coach started / left and why (club, name, league required; dates YYYY-MM-DD or empty)
         const club = String(body.club || '').trim().slice(0, 80), name = String(body.name || '').trim().slice(0, 120), league = String(body.league || '').toUpperCase().slice(0, 12);
         const day = v => (v == null || v === '') ? null : (/^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? String(v) : undefined);
