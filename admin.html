@@ -407,8 +407,8 @@ VIEWS.import = async m => {
     <textarea id="dTx" spellcheck="false" placeholder='Paste the match JSON…'></textarea>
     <div class="row" style="margin-top:10px"><label class="chip" style="cursor:pointer"><input type="checkbox" id="dOver" style="width:auto;min-height:0"> replace API details if the match has them</label></div>
     <div class="row" style="margin-top:10px"><button class="btn pri" id="dPrev">Check</button><button class="btn" id="dSave" disabled>Save</button><button class="btn" id="dFmt">Copy format for ChatGPT / Gemini</button></div>
-    <div class="row" style="margin-top:10px"><button class="btn" id="dFilesBtn">Choose JSON files (many at once)…</button><button class="btn" id="dFilesSave" disabled>Save all checked files</button><input type="file" id="dFiles" accept=".json,application/json" multiple class="hide"></div>
-    <div class="mut" id="dFilesInfo" style="font-size:13px;margin-top:6px">Pick several files: every match in them is checked first, then “Save all checked files” saves them in groups of 30.</div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="dFilesBtn">Choose a ZIP or JSON files…</button><button class="btn" id="dFilesSave" disabled>Save all checked files</button><input type="file" id="dFiles" accept=".json,.zip,application/json,application/zip" multiple class="hide"></div>
+    <div class="mut" id="dFilesInfo" style="font-size:13px;margin-top:6px">Pick one ZIP (or several JSON files): every match in it is checked first, then “Save all checked files” saves them in groups of 30.</div>
     <div id="dOut" style="margin-top:10px;font-size:13px"></div>
   </div>
   <h2 style="margin-top:34px">Load from openfootball</h2>
@@ -446,9 +446,16 @@ VIEWS.import = async m => {
   $('#dFiles').onchange = ev => run(ev.target, async () => {
     const files = [...ev.target.files]; ev.target.value = ''; if (!files.length) return;
     const all = [];
+    const addText = (name, t) => { try { const j = JSON.parse(t.replace(/^\uFEFF/, '')); (Array.isArray(j.matches) ? j.matches : [j]).forEach(m => all.push(m)); return true; } catch (e) { toast(name + ' is not valid JSON.', 'bad'); return false; } };
     for (const f of files) {
-      try { const j = JSON.parse((await f.text()).replace(/^\uFEFF/, '')); (Array.isArray(j.matches) ? j.matches : [j]).forEach(m => all.push(m)); }
-      catch (e) { return toast(f.name + ' is not valid JSON.', 'bad'); }
+      if (/\.zip$/i.test(f.name)) {
+        try {
+          if (!window.JSZip) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; sc.onload = ok; sc.onerror = () => no(new Error('Could not load the ZIP reader. Check your connection.')); document.head.appendChild(sc); });
+          const z = await window.JSZip.loadAsync(f); const names = Object.keys(z.files).filter(n => /\.json$/i.test(n) && !/__MACOSX|\/\./.test(n) && !z.files[n].dir).sort();
+          if (!names.length) return toast(f.name + ' has no .json files inside.', 'bad');
+          for (const n of names) if (!addText(n, await z.files[n].async('string'))) return;
+        } catch (e) { return toast('Could not open ' + f.name + ': ' + e.message, 'bad'); }
+      } else if (!addText(f.name, await f.text())) return;
     }
     dChunks = []; for (let i = 0; i < all.length; i += 30) dChunks.push(all.slice(i, i + 30));
     let ready = 0, kept = 0, bad = 0; const lines = [];
