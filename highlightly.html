@@ -65,7 +65,7 @@ function render() {
 }
 async function load() { $('msg').textContent = 'Loading…'; try { DATA = await adm({ action: 'highlightly-status' }); $('msg').textContent = ''; render(); } catch (e) { $('msg').textContent = e.message; } }
 $('refresh').onclick = load;
-$('lu').onclick = async () => { $('lu').disabled = true; $('msg').textContent = 'Asking Highlightly for the missing line-ups…'; try { const j = await adm({ action: 'highlightly-sync', step: 'lineups', max: 12 }); $('msg').textContent = j.summary || j.error || JSON.stringify(j); await load(); } catch (e) { $('msg').textContent = String(e.message || e); } finally { $('lu').disabled = false; } };
+$('lu').onclick = async () => { $('lu').disabled = true; $('msg').textContent = 'Asking Highlightly for the missing line-ups…'; try { const j = await adm({ action: 'highlightly-sync', step: 'lineups', max: 12 }); const txt = j.summary || j.error || JSON.stringify(j); await load(); $('msg').textContent = txt; } catch (e) { $('msg').textContent = String(e.message || e); } finally { $('lu').disabled = false; } };
 $('fetch').onclick = async () => { $('fetch').disabled = true; $('msg').textContent = 'Fetching 15 matches (about 30 seconds)…'; try { const j = await adm({ action: 'highlightly-sync', step: 'fetch', reapply: true, max: 15 }); $('msg').textContent = j.summary || j.error || ''; await load(); $('msg').textContent = j.summary || ''; } catch (e) { $('msg').textContent = e.message; } finally { $('fetch').disabled = false; } };
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-fl]'); if (!b) return;
