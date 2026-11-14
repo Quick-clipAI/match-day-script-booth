@@ -13,6 +13,7 @@ import { syncDetails } from '../lib/match-detail.js';
 import { hlFetch } from '../lib/highlightly.js';
 import { fdRefresh } from '../lib/fd-scorers.js';
 import { backfillIds } from '../lib/backfill-ids.js';
+import { coverageWatch, logWatch } from '../lib/coverage-watch.js';
 
 
 export default async function handler(req, res) {
@@ -52,9 +53,11 @@ export default async function handler(req, res) {
       // older matches from Highlightly (its own free quota): 2 matches per run, at most 48 a day (96 of its 100 requests); does nothing until the lists were loaded
       let hl = { summary: 'skipped' };
       try { const hk = (process.env.HIGHLIGHTLY_API_KEY || '').trim(); if (hk) hl = await hlFetch(store, { key: hk, max: 6, dailyCap: 48, budgetMs: 20000 }); } catch (e) { hl = { summary: 'highlightly failed: ' + String(e && e.message || e).slice(0, 120) }; }
+      let cv = { summary: 'skipped' };      // the safeguard: no API requests, only reads what is stored and logs matches about to leave the API window
+      try { const rep = await coverageWatch(store); await logWatch(store, rep); cv = { summary: `${rep.closing} closing, ${rep.missed} past the window, ${rep.open} open` }; } catch (e) { cv = { summary: 'coverage watch failed: ' + String(e && e.message || e).slice(0, 120) }; }
       let fd = { summary: 'off' };
       try { const fk = (process.env.FOOTBALL_DATA_API_KEY || '').trim(); if (fk) fd = await fdRefresh(store, { key: fk, max: 1, pauseMs: 0 }); } catch (e) { fd = { summary: 'football-data failed: ' + String(e && e.message || e).slice(0, 120) }; }
-      return res.status(200).json({ ok: true, scorers: fd.summary, highlightly: hl.summary, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, kickoffs: k.summary, queued: qd.summary, details: d.summary, squads: q.summary, coaches: co.summary, coachWatch: cw.summary, transfers: t.summary });
+      return res.status(200).json({ ok: true, scorers: fd.summary, coverage: cv.summary, highlightly: hl.summary, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, kickoffs: k.summary, queued: qd.summary, details: d.summary, squads: q.summary, coaches: co.summary, coachWatch: cw.summary, transfers: t.summary });
     } catch (e) { return res.status(500).json({ error: String(e && e.message || e).slice(0, 200) }); }
   }
   const secret = (process.env.CRON_SECRET || '').trim();

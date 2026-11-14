@@ -1,5 +1,6 @@
 // POST /api/admin   header: x-admin-key = ADMIN_KEY   body: { action, ... }
 // Everything the admin page does goes through here. Nothing is public: no key, no access.
+import { coverageWatch } from '../lib/coverage-watch.js';
 import { storeFromEnv } from '../lib/bank-store.js';
 import { checkAdminKey } from '../lib/guard.js';
 import { LEAGUES, LEAGUE_KEYS, norm, makeRow, matchId, isIsoDate, currentSeason, coverageOf, computeTable } from '../lib/bank-core.js';
@@ -63,7 +64,8 @@ export default async function handler(req, res) {
       case 'overview': {
         const [summary, logs, inbox] = await Promise.all([store.summary(now), store.recentLogs(15), store.inboxList()]);
         const lastSync = (await store.recentLogs(60)).find(l => l.kind === 'sync-api');
-        return res.status(200).json({ today: now, summary, logs, inboxCount: inbox.length, lastSync: lastSync || null, leagues: LEAGUE_KEYS.map(k => ({ key: k, name: LEAGUES[k].name, short: LEAGUES[k].short, type: LEAGUES[k].type, teams: LEAGUES[k].teams || null, hasOf: !!LEAGUES[k].of, currentSeason: currentSeason(null, now) })) });
+        let watch = null; try { watch = await coverageWatch(store); } catch (e) { watch = { error: String(e && e.message || e).slice(0, 120) }; }
+        return res.status(200).json({ today: now, summary, logs, inboxCount: inbox.length, lastSync: lastSync || null, watch, leagues: LEAGUE_KEYS.map(k => ({ key: k, name: LEAGUES[k].name, short: LEAGUES[k].short, type: LEAGUES[k].type, teams: LEAGUES[k].teams || null, hasOf: !!LEAGUES[k].of, currentSeason: currentSeason(null, now) })) });
       }
       case 'players': {
         const f = { league: body.league || undefined, season: body.season !== undefined && body.season !== '' ? Number(body.season) : undefined, club: body.club || undefined };

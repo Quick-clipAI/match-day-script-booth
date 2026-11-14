@@ -297,6 +297,16 @@ VIEWS.overview = async m => {
     const miss = Object.entries(ping.env).filter(([k, v]) => !v && k !== 'CRON_SECRET').map(([k]) => k);
     if (miss.length) env = `<div class="banner warn"><div><b>Missing in Vercel:</b> <span class="mono">${miss.join(', ')}</span><br><span class="mut">Add them in Settings → Environment Variables, then redeploy.</span></div></div>`;
   }
+  // Coverage watch: matches that still lack a result or details, and how long API-Football's free window stays open for them
+  let watch = '';
+  const wc = ov.watch;
+  if (wc && !wc.error) {
+    const left = i => i.state === 'missed' ? 'window closed' : (i.hoursLeft == null ? '' : i.hoursLeft <= 0 ? 'closes now' : 'closes in ' + i.hoursLeft + ' h');
+    const kindLbl = k => k === 'no-result' ? 'no result' : k === 'details-pending' ? 'details queued' : 'no details';
+    const rows = wc.items.slice(0, 12).map(i => `<div class="row" style="margin-top:6px"><div class="grow"><b>${esc(i.home)}</b> <span class="mut">v</span> <b>${esc(i.away)}</b><div class="mut" style="font-size:12px">${leagueName(i.league)} · ${fmt(i.date)} · ${kindLbl(i.kind)}</div></div><span class="chip ${i.state === 'closing' ? 'warn' : i.state === 'missed' ? 'bad' : ''}">${left(i)}</span></div>`).join('');
+    const cls = wc.missed ? 'bad' : wc.closing ? 'warn' : 'ok';
+    watch = `<div class="banner ${cls}"><div><b>Coverage watch:</b> ${wc.total ? `${wc.closing} closing soon · ${wc.open} open · ${wc.missed} past the API window` : 'every recent match has its result and details'}.<br><span class="mut">Free plan: API-Football answers only ${wc.windowDays} day(s) around today. Closing = it can still be fetched; past the window = needs another source (Highlightly, StrikerAPI or a match file). Costs no requests.</span>${rows}${wc.total > 12 ? `<div class="mut" style="font-size:12px;margin-top:6px">…and ${wc.total - 12} more</div>` : ''}</div></div>`;
+  } else if (wc && wc.error) watch = `<div class="banner warn"><div><b>Coverage watch could not run:</b> <span class="mut">${esc(wc.error)}</span></div></div>`;
   const by = {}; ov.summary.forEach(s => (by[s.league] = by[s.league] || []).push(s));
   const cards = ov.leagues.map(l => {
     const seasons = (by[l.key] || []).sort((a, b) => b.season - a.season);
@@ -312,7 +322,7 @@ VIEWS.overview = async m => {
     }).join('') : `<p class="mut" style="margin:8px 0 0;font-size:14px">Nothing stored yet.</p>`;
     return `<div class="lg"><div class="row"><h3 class="grow">${esc(l.name)}</h3>${l.hasOf && !seasons.length ? `<button class="btn sm" data-of="${l.key}">Load</button>` : ''}</div>${body}</div>`;
   }).join('');
-  m.innerHTML = head('Bank at a glance', 'Tap a season to see its matches.') + banner + env + `<div class="card flat">${cards}</div>`;
+  m.innerHTML = head('Bank at a glance', 'Tap a season to see its matches.') + banner + watch + env + `<div class="card flat">${cards}</div>`;
   m.querySelectorAll('.seas').forEach(e => e.onclick = () => { state.filters = { league: e.dataset.l, season: e.dataset.s, club: '', mode: 'all', from: '', to: '', order: 'asc' }; go('matches'); });
   m.querySelectorAll('[data-of]').forEach(b => b.onclick = () => go('import', { openfootball: b.dataset.of }));
 };
@@ -965,7 +975,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.9.1';
+const ADMIN_VERSION = '1.9.2';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
