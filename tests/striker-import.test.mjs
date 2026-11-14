@@ -48,3 +48,10 @@ t('key_events become events', () => {
   assert.deepEqual(convertGame(bad).events, []);                                          // no goals listed but the score is 1-0: nothing is guessed
 });
 console.log('striker key_events ok');
+t('full get_events list is preferred and needs goals to add up', () => {
+  const full = [{ type: 'kickoff', minute: null }, { type: 'foul', team_id: '110', minute: 3 }, { type: 'goal', is_goal: true, minute: 12, added_minute: null, player: 'Carlos Augusto', player2: null, team_id: '110', shootout: false, own_goal: false },
+    { type: 'yellow-card', minute: 30, player: 'Riznyk', player_id: '9', team_id: '493' }, { type: 'var---referee-decision-cancelled', minute: 31, team_id: '493' }];
+  const e = convertGame(game, undefined, full).events; assert.equal(e.length, 2); assert.equal(e[0].type, 'goal');
+  const og = convertGame(game, undefined, [{ type: 'goal', is_goal: true, own_goal: true, team_id: '110', minute: 5 }]).events; assert.deepEqual(og, []);
+});
+console.log('striker full events ok');
