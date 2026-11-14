@@ -407,6 +407,8 @@ VIEWS.import = async m => {
     <textarea id="dTx" spellcheck="false" placeholder='Paste the match JSON…'></textarea>
     <div class="row" style="margin-top:10px"><label class="chip" style="cursor:pointer"><input type="checkbox" id="dOver" style="width:auto;min-height:0"> replace API details if the match has them</label></div>
     <div class="row" style="margin-top:10px"><button class="btn pri" id="dPrev">Check</button><button class="btn" id="dSave" disabled>Save</button><button class="btn" id="dFmt">Copy format for ChatGPT / Gemini</button></div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="dFilesBtn">Choose JSON files (many at once)…</button><button class="btn" id="dFilesSave" disabled>Save all checked files</button><input type="file" id="dFiles" accept=".json,application/json" multiple class="hide"></div>
+    <div class="mut" id="dFilesInfo" style="font-size:13px;margin-top:6px">Pick several files: every match in them is checked first, then “Save all checked files” saves them in groups of 30.</div>
     <div id="dOut" style="margin-top:10px;font-size:13px"></div>
   </div>
   <h2 style="margin-top:34px">Load from openfootball</h2>
@@ -438,6 +440,40 @@ VIEWS.import = async m => {
     $('#dSave').disabled = dry ? !(good && !bad) : true;
     if (!dry) { toast('Saved', 'ok'); await refreshOv(); }
   }, dry ? 'Checking…' : 'Saving…');
+  let dChunks = [];
+  const dCall = async (chunk, dry) => api('importDetails', { text: JSON.stringify({ matches: chunk }), dryRun: dry, overwrite: $('#dOver').checked });
+  $('#dFilesBtn').onclick = () => $('#dFiles').click();
+  $('#dFiles').onchange = ev => run(ev.target, async () => {
+    const files = [...ev.target.files]; ev.target.value = ''; if (!files.length) return;
+    const all = [];
+    for (const f of files) {
+      try { const j = JSON.parse((await f.text()).replace(/^\uFEFF/, '')); (Array.isArray(j.matches) ? j.matches : [j]).forEach(m => all.push(m)); }
+      catch (e) { return toast(f.name + ' is not valid JSON.', 'bad'); }
+    }
+    dChunks = []; for (let i = 0; i < all.length; i += 30) dChunks.push(all.slice(i, i + 30));
+    let ready = 0, kept = 0, bad = 0; const lines = [];
+    for (let i = 0; i < dChunks.length; i++) {
+      $('#dFilesInfo').textContent = 'Checking group ' + (i + 1) + ' of ' + dChunks.length + '…';
+      const r = await dCall(dChunks[i], true);
+      for (const x of r.results) {
+        if (x.problems.length) { bad++; lines.push(`<div style="color:var(--bad,#ff6b6b)">✗ ${esc(x.label)}: ${esc(x.problems[0])}</div>`); }
+        else if (x.skip) { kept++; }
+        else if (x.ok) ready++;
+        const w = (x.warnings || []).filter(z => !/already has API-Football details/.test(z));
+        if (w.length) lines.push(`<div style="color:var(--warn)">⚠ ${esc(x.label)}: ${esc(w[0])}</div>`);
+      }
+    }
+    $('#dFilesInfo').innerHTML = `<b>${all.length} matches in ${files.length} file(s):</b> ready ${ready} · kept as is ${kept} · problems ${bad}` + (kept ? ' <span class="mut">(kept = already has other data; tick “replace API details” to overwrite)</span>' : '') + lines.slice(0, 40).join('');
+    $('#dFilesSave').disabled = !(ready && !bad);
+  }, 'Checking…');
+  $('#dFilesSave').onclick = ev => run(ev.target, async () => {
+    let saved = 0;
+    for (let i = 0; i < dChunks.length; i++) {
+      $('#dFilesInfo').textContent = 'Saving group ' + (i + 1) + ' of ' + dChunks.length + '…';
+      const r = await dCall(dChunks[i], false); saved += r.results.filter(x => x.saved).length;
+    }
+    $('#dFilesInfo').textContent = 'Saved ' + saved + ' matches.'; $('#dFilesSave').disabled = true; dChunks = []; toast('Saved ' + saved, 'ok'); await refreshOv();
+  }, 'Saving…');
   $('#dPrev').onclick = ev => dRun(ev.target, true);
   $('#dSave').onclick = ev => dRun(ev.target, false);
   $('#dTx').oninput = () => { $('#dSave').disabled = true; };
