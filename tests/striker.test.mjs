@@ -18,3 +18,13 @@ assert.equal(new Set(calls.slice(before)).size, calls.length - before, 'no match
 assert.equal((await s.strikerDoneIds('get_game')).length, 4);
 const bad = await strikerSaved(s, 'drop_table', {}, env, poster); assert.equal(bad.status, 400);
 console.log('striker tests: 6 passed');
+{ // step 'events': only games whose key_events do not add up are asked (10 credits), once each
+  const { createMemoryStore } = await import('../lib/bank-store.js'); const { strikerBulk } = await import('../lib/striker.js');
+  const st = createMemoryStore(); const game = (id, hs, as, goals) => ({ data: { game: { game_id: id, home: { team_id: '1', score: hs }, away: { team_id: '2', score: as } }, key_events: Array.from({ length: goals }, () => ({ type: 'goal', team_id: '1' })) } });
+  await st.saveStriker({ tool: 'get_game', ok: true, game_id: 'a', data: game('a', 2, 1, 3) }); await st.saveStriker({ tool: 'get_game', ok: true, game_id: 'b', data: game('b', 2, 1, 2) });
+  const calls = []; const poster = async (path, key, args) => { calls.push(args.game_id); return { status: 200, headers: { 'x-credits-remaining': '300' }, json: { data: { events: [] } }, raw: '{}' }; };
+  const dry = await strikerBulk(st, { step: 'events', dryRun: true }, { STRIKERAPI_KEY: 'k' }, poster); assert.equal(dry.need, 1); assert.equal(dry.cost, 10);
+  const r = await strikerBulk(st, { step: 'events', max: 3 }, { STRIKERAPI_KEY: 'k' }, poster); assert.equal(r.fetched, 1); assert.deepEqual(calls, ['b']);
+  const r2 = await strikerBulk(st, { step: 'events', max: 3 }, { STRIKERAPI_KEY: 'k' }, poster); assert.equal(r2.need, 0); assert.equal(calls.length, 1);
+}
+console.log('striker events step ok');
