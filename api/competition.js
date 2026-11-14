@@ -5,6 +5,8 @@ import { buildCompetition } from '../lib/competition-view.js';
 import { LEAGUES, isIsoDate } from '../lib/bank-core.js';
 import { playerCardFor } from '../lib/player-card.js';
 import { buildTeam } from '../lib/team-view.js';
+import { playerTrophyStatus } from '../lib/player-career.js';
+import { playerTransfersGetter } from '../lib/apisports.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,6 +16,14 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
   try {
     const q = req.query || {};
+    if (q.trophiesof) {                                       // /api/competition?trophiesof=<api player id>&name=: his club trophies, fetched only when somebody opens him
+      const { store: cs, error: ce } = storeFromEnv();
+      if (ce) return res.status(200).json({ status: 'off' });
+      const apiKey = (process.env.API_SPORTS_KEY || '').trim();
+      const out = await playerTrophyStatus(cs, q.trophiesof, { getTransfers: apiKey ? playerTransfersGetter(apiKey) : null, name: String(q.name || '').slice(0, 80), dailyCap: Number(process.env.PLAYER_CAREER_DAILY_CAP) || 25, reserve: 15 });
+      res.setHeader('Cache-Control', out.status === 'ready' || out.status === 'none' ? 'public, s-maxage=300, stale-while-revalidate=600' : 'no-store');
+      return res.status(200).json({ status: out.status, data: out.data || null });
+    }
     if (q.player) {                                           // /api/competition?player=<key>&today=: one player's card for the season
       const { store: ps, error: pe } = storeFromEnv();
       if (pe) return res.status(200).json({ error: 'bank not configured' });
