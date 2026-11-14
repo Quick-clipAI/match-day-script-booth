@@ -36,3 +36,15 @@ t('scorers and assists from player lines', () => {
   assert.equal(st.players.scorers[0].name, 'Carlos Augusto'); assert.equal(st.players.scorers[0].club, 'Internazionale Milano'); assert.equal(st.players.assists[0].name, 'Mkhitaryan'); assert.equal(st.players.matchesWithDetails, 1);
 });
 console.log('striker-import tests done');
+t('key_events become events', () => {
+  const g2 = { data: { ...game.data, key_events: [
+    { type: 'goal', minute: 12, added_minute: null, player: 'Carlos Augusto', player_id: '2', player2: 'Dimarco', team_id: '110', penalty: false, own_goal: false, shootout: false },
+    { type: 'yellow-card', minute: 30, player: 'Riznyk', player_id: '9', team_id: '493', shootout: false },
+    { type: 'substitution', minute: 59, player: 'Mkhitaryan', player_id: '4', player2: 'Dimarco', team_id: '110', shootout: false }] } };
+  const e = convertGame(g2).events;
+  assert.equal(e.length, 3); assert.equal(e[0].other, 'Dimarco'); assert.equal(e[1].detail, 'Yellow Card');
+  assert.equal(e[2].player, 'Dimarco'); assert.equal(e[2].other, 'Mkhitaryan');         // the starter goes off
+  const bad = { data: { ...game.data, key_events: [{ type: 'yellow-card', minute: 3, player: 'X', team_id: '110' }] } };
+  assert.deepEqual(convertGame(bad).events, []);                                          // no goals listed but the score is 1-0: nothing is guessed
+});
+console.log('striker key_events ok');
