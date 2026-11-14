@@ -22,7 +22,7 @@ button{border:0;border-radius:10px;padding:11px 14px;font-weight:700;background:
 <h1>Match data progress</h1>
 <p class="sub">Highlightly fill-in for older Premier League, La Liga, Serie A and Ligue 1 matches: what has been fetched, what each match holds, when it last ran and where the gaps are.</p>
 <div class="card"><input id="ak" type="password" autocomplete="off" placeholder="Admin key">
-<div class="row"><button id="refresh">Refresh</button><button class="s" id="fetch">Fetch 15 matches now</button></div><div id="msg"></div></div>
+<div class="row"><button id="refresh">Refresh</button><button class="s" id="fetch">Fetch 15 matches now</button><button class="s" id="lu">Retry missing line-ups</button></div><div id="msg"></div></div>
 <div id="app"></div>
 <script>
 const $ = id => document.getElementById(id); let DATA = null, FILTER = 'all', LEAGUE = 'all';
@@ -65,6 +65,7 @@ function render() {
 }
 async function load() { $('msg').textContent = 'Loading…'; try { DATA = await adm({ action: 'highlightly-status' }); $('msg').textContent = ''; render(); } catch (e) { $('msg').textContent = e.message; } }
 $('refresh').onclick = load;
+$('lu').onclick = async () => { $('lu').disabled = true; $('msg').textContent = 'Asking Highlightly for the missing line-ups…'; try { const j = await adm({ action: 'highlightly-sync', step: 'lineups', max: 12 }); $('msg').textContent = j.summary || j.error || JSON.stringify(j); await load(); } catch (e) { $('msg').textContent = String(e.message || e); } finally { $('lu').disabled = false; } };
 $('fetch').onclick = async () => { $('fetch').disabled = true; $('msg').textContent = 'Fetching 15 matches (about 30 seconds)…'; try { const j = await adm({ action: 'highlightly-sync', step: 'fetch', reapply: true, max: 15 }); $('msg').textContent = j.summary || j.error || ''; await load(); $('msg').textContent = j.summary || ''; } catch (e) { $('msg').textContent = e.message; } finally { $('fetch').disabled = false; } };
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-fl]'); if (!b) return;

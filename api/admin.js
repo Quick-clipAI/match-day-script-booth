@@ -15,7 +15,7 @@ import { highlightlyProbe, openLigaProbe, footballDataProbe } from '../lib/probe
 import { fdRefresh, FD_CODES, fdLatest } from '../lib/fd-scorers.js';
 import { fdSquadsFill, SQUAD_LEAGUES } from '../lib/fd-squads.js';
 import { importOpenLiga, OPENLIGA_URL } from '../lib/openliga-import.js';
-import { hlList, hlFetch, HL_LEAGUES } from '../lib/highlightly.js';
+import { hlList, hlFetch, hlRefetchLineups, HL_LEAGUES } from '../lib/highlightly.js';
 import { hlStatus } from '../lib/highlightly-status.js';
 import { fixturesGetter, seasonFixturesGetter, fetchText, teamsGetter, transfersGetter, squadGetter, coachGetter, searchTeamsGetter, statusGetter, quotaOf, injuriesGetter } from '../lib/apisports.js';
 import { clubSuspects, pairKey } from '../lib/club-suspects.js';
@@ -429,6 +429,7 @@ export default async function handler(req, res) {
       case 'highlightly-status': return res.status(200).json(await hlStatus(store, {}));
       case 'highlightly-sync': {            // step 'list': all matches of a league season; step 'fetch': events + line-ups, 2 requests per match
         const key = (process.env.HIGHLIGHTLY_API_KEY || '').trim();
+        if (body.step === 'lineups') return res.status(200).json(await hlRefetchLineups(store, { key, max: Math.min(12, Number(body.max) || 5) }));
         if (body.step === 'list') { const out = []; for (const lg of Object.keys(HL_LEAGUES)) out.push(await hlList(store, { key, league: lg, season: 2026 })); return res.status(200).json({ ok: out.every(x => x.ok), lists: out, summary: out.map(x => x.ok ? `${x.league}: ${x.matches} matches (${x.finished} finished)` : `${x.error}`).join(' | ') }); }
         return res.status(200).json(await hlFetch(store, { key, reapply: body.reapply === true, max: Math.min(25, Number(body.max) || 15), dailyCap: Math.min(48, Number(body.dailyCap) || 48), league: HL_LEAGUES[String(body.league || '').toUpperCase()] ? String(body.league).toUpperCase() : '' }));
       }

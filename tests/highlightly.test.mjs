@@ -70,3 +70,17 @@ console.log('highlightly reapply ok');
   const dd = (await st.getDetail(id)).data; assert.equal(dd.events.filter(e => e.type === 'goal').length, 4); assert.ok(dd.events.some(e => /Etta Eyong/.test(e.player)));
 }
 console.log('highlightly patch ok');
+{ // matches saved with events but empty line-ups: only /lineups is asked again, and saved when it now has 9+ starters per team
+  const { hlRefetchLineups } = await import('../lib/highlightly.js');
+  const st = createMemoryStore(); const id = 'EPL|2026|c|d';
+  await st.upsertMatches([{ id, league: 'EPL', comp_name: 'Premier League', season: 2026, round: '', date: '2026-08-31', home: 'C', away: 'D', status: 'finished', hg: 1, ag: 0 }]);
+  const emptyL = { homeTeam: { initialLineup: [], substitutes: [] }, awayTeam: { initialLineup: [], substitutes: [] } };
+  await st.saveStriker({ tool: 'hl_match', args: {}, game_id: '77', ok: true, data: { ourId: id, league: 'EPL', home: { id: 1, name: 'C' }, away: { id: 2, name: 'D' }, events: [{ team: { id: 1 }, time: '5', type: 'Goal', player: 'P. One' }], lineups: emptyL } });
+  await st.saveManualDetail(id, { v: 1, source: 'highlightly', events: [{ m: 5, type: 'goal', side: 'home' }], lineups: {}, stats: [] });
+  const asked = []; const xi = (b) => [Array.from({ length: 11 }, (_, i) => ({ id: b + i, name: 'N' + b + i, number: i + 1, position: 'Midfielder' }))];
+  globalThis.fetch = async url => { asked.push(url); return { status: 200, json: async () => ({ homeTeam: { formation: '4-4-2', initialLineup: xi(100), substitutes: [] }, awayTeam: { formation: '4-4-2', initialLineup: xi(200), substitutes: [] } }) }; };
+  const r = await hlRefetchLineups(st, { key: 'k' }); assert.equal(r.saved, 1); assert.equal(asked.length, 1); assert.ok(asked[0].includes('/lineups/77'));
+  assert.equal((await st.getDetail(id)).data.lineups.home.xi.length, 11);
+  assert.equal((await hlRefetchLineups(st, { key: 'k' })).checked, 0);
+}
+console.log('highlightly lineup retry ok');
