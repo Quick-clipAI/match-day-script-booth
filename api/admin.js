@@ -430,7 +430,7 @@ export default async function handler(req, res) {
       case 'highlightly-sync': {            // step 'list': all matches of a league season; step 'fetch': events + line-ups, 2 requests per match
         const key = (process.env.HIGHLIGHTLY_API_KEY || '').trim();
         if (body.step === 'list') { const out = []; for (const lg of Object.keys(HL_LEAGUES)) out.push(await hlList(store, { key, league: lg, season: 2026 })); return res.status(200).json({ ok: out.every(x => x.ok), lists: out, summary: out.map(x => x.ok ? `${x.league}: ${x.matches} matches (${x.finished} finished)` : `${x.error}`).join(' | ') }); }
-        return res.status(200).json(await hlFetch(store, { key, max: Math.min(25, Number(body.max) || 15), dailyCap: Math.min(48, Number(body.dailyCap) || 48), league: HL_LEAGUES[String(body.league || '').toUpperCase()] ? String(body.league).toUpperCase() : '' }));
+        return res.status(200).json(await hlFetch(store, { key, reapply: body.reapply === true, max: Math.min(25, Number(body.max) || 15), dailyCap: Math.min(48, Number(body.dailyCap) || 48), league: HL_LEAGUES[String(body.league || '').toUpperCase()] ? String(body.league).toUpperCase() : '' }));
       }
       case 'openliga-import': {             // Bundesliga goals for every played matchday (free, no key)
         const season = Number(body.season) || 2026, raw = [];

@@ -46,3 +46,27 @@ assert.equal(epl.finished, 2); assert.equal(epl.done, 1); assert.equal(epl.kept,
 const done = st.matches.find(x => x.status === 'done'); assert.equal(done.counts.goals, 2); assert.ok(done.events.some(e => e.includes('assist')));
 assert.equal(st.requests.fetchedToday, 2); assert.equal(st.requests.requestsToday, 4); assert.ok(st.lastFetchAt); assert.equal(st.log.length, 2);
 console.log('highlightly status tests: 6 passed');
+// a VAR-cancelled goal is listed twice by Highlightly (a "VAR ... Cancelled" row + a nameless Goal): only real goals count
+{
+  const ev = [{ team: { id: 11 }, time: '29', type: 'Goal', player: 'A. One', playerId: 1 }, { team: { id: 12 }, time: '55', type: 'VAR Penalty Cancelled', player: 'B. Two', playerId: 2 }, { team: { id: 12 }, time: '55', type: 'Goal', player: null }, { team: { id: 12 }, time: '59', type: 'Goal', player: 'B. Two', playerId: 2 }];
+  const dd = convertHl({ home: { id: 11 }, away: { id: 12 }, events: ev, lineups: {} });
+  assert.equal(dd.events.filter(e => e.type === 'goal').length, 2);
+}
+console.log('highlightly cancelled-goal ok');
+{ // matches skipped before the rule fix are saved again from the stored raw answer, with no request
+  const st = createMemoryStore();
+  await st.upsertMatches([{ id: 'EPL|2026|a|b', league: 'EPL', comp_name: 'Premier League', season: 2026, round: '', date: '2026-08-31', home: 'A', away: 'B', status: 'finished', hg: 0, ag: 1 }]);
+  await st.saveStriker({ tool: 'hl_match', args: {}, game_id: '9', ok: true, data: { ourId: 'EPL|2026|a|b', home: { id: 1, name: 'A' }, away: { id: 2, name: 'B' }, league: 'EPL', lineups: {}, events: [{ team: { id: 2 }, time: '55', type: 'VAR Penalty Cancelled', player: 'X' }, { team: { id: 2 }, time: '55', type: 'Goal', player: null }, { team: { id: 2 }, time: '59', type: 'Goal', player: 'X' }] } });
+  const { hlReapply } = await import('../lib/highlightly.js');
+  assert.equal(await hlReapply(st), 1); assert.equal(await hlReapply(st), 0);
+}
+console.log('highlightly reapply ok');
+{ // Levante 3-1 Athletic: Highlightly lists 3 goals, the report names the 4th
+  const st = createMemoryStore(); const id = 'LALIGA|2026|levante|athletic club';
+  await st.upsertMatches([{ id, league: 'LALIGA', comp_name: 'La Liga', season: 2026, round: '', date: '2026-10-21', home: 'Levante', away: 'Athletic Club', status: 'finished', hg: 3, ag: 1 }]);
+  const g = (t, time, type, player) => ({ team: { id: t }, time, type, player });
+  await st.saveStriker({ tool: 'hl_match', args: {}, game_id: '8', ok: true, data: { ourId: id, home: { id: 1, name: 'Levante' }, away: { id: 2, name: 'Athletic Club' }, league: 'LALIGA', lineups: {}, events: [g(1, '20', 'Goal', 'R. Brugué'), g(1, '22', 'Goal', 'R. Brugué'), g(2, '61', 'VAR Penalty', 'M. Sannadi'), g(2, '67', 'Penalty', 'A. Berenguer')] } });
+  const { hlReapply } = await import('../lib/highlightly.js'); assert.equal(await hlReapply(st), 1);
+  const dd = (await st.getDetail(id)).data; assert.equal(dd.events.filter(e => e.type === 'goal').length, 4); assert.ok(dd.events.some(e => /Etta Eyong/.test(e.player)));
+}
+console.log('highlightly patch ok');

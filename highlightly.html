@@ -65,12 +65,12 @@ function render() {
 }
 async function load() { $('msg').textContent = 'Loading…'; try { DATA = await adm({ action: 'highlightly-status' }); $('msg').textContent = ''; render(); } catch (e) { $('msg').textContent = e.message; } }
 $('refresh').onclick = load;
-$('fetch').onclick = async () => { $('fetch').disabled = true; $('msg').textContent = 'Fetching 15 matches (about 30 seconds)…'; try { const j = await adm({ action: 'highlightly-sync', step: 'fetch', max: 15 }); $('msg').textContent = j.summary || j.error || ''; await load(); $('msg').textContent = j.summary || ''; } catch (e) { $('msg').textContent = e.message; } finally { $('fetch').disabled = false; } };
+$('fetch').onclick = async () => { $('fetch').disabled = true; $('msg').textContent = 'Fetching 15 matches (about 30 seconds)…'; try { const j = await adm({ action: 'highlightly-sync', step: 'fetch', reapply: true, max: 15 }); $('msg').textContent = j.summary || j.error || ''; await load(); $('msg').textContent = j.summary || ''; } catch (e) { $('msg').textContent = e.message; } finally { $('fetch').disabled = false; } };
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-fl]'); if (!b) return;
   const lg = b.dataset.fl; document.querySelectorAll('[data-fl],#fetch').forEach(x => x.disabled = true);
   $('msg').textContent = 'Fetching up to 20 ' + lg + ' matches (about 40 seconds)…';
-  try { const j = await adm({ action: 'highlightly-sync', step: 'fetch', max: 20, league: lg }); $('msg').textContent = j.summary || j.error || JSON.stringify(j); await load(); }
+  try { const j = await adm({ action: 'highlightly-sync', step: 'fetch', reapply: true, max: 20, league: lg }); $('msg').textContent = j.summary || j.error || JSON.stringify(j); await load(); }
   catch (er) { $('msg').textContent = String(er.message || er); }
   document.querySelectorAll('[data-fl],#fetch').forEach(x => x.disabled = false);
 });
