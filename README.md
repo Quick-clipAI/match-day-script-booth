@@ -1029,6 +1029,12 @@ Every fill/preview run of the football-data.org player tool now also saves the p
 
 `striker-test.html` has a new button "Test: does it give upcoming matches? (2 credits)" (admin action `striker-bulk`, step `upcoming`, `lib/striker.js`). It asks StrikerAPI's list for status `scheduled`, shows how many matches come back, the dates and a sample, and saves nothing (so it cannot replace the saved season list). If matches come back, a later step can put them into the app as upcoming fixtures. Test: `tests/striker-upcoming.test.mjs`.
 
+## Admin 1.9.3 (server) — export players & coaches
+
+- **Players tab → "Export names" → "Export players & coaches (CSV)".** One file with every stored player and head coach: `name, role, club, league, season`. Role is `Player` or `Coach`. Sorted by league, club, then the coach first, then players A–Z. UTF-8 with a BOM so accented names open correctly in Excel and Google Sheets.
+- New admin action `exportPeople` (in `api/admin.js`, no new function file). Reads the stored squads and coaches only; no API requests, no SQL, no env vars.
+- Not changed: how squads are stored. The file shows what is in the data bank, so a club with no stored squad has no rows.
+
 ## Admin 1.9.2 (server) — coverage watch: API-Football can no longer skip matches unnoticed
 
 - **Why matches were skipped.** The free API-Football plan answers a date only from yesterday to tomorrow. A match whose result or details were not caught inside that window can never be fetched from API-Football again, and nothing warned about it.

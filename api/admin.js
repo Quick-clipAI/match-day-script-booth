@@ -67,6 +67,13 @@ export default async function handler(req, res) {
         let watch = null; try { watch = await coverageWatch(store); } catch (e) { watch = { error: String(e && e.message || e).slice(0, 120) }; }
         return res.status(200).json({ today: now, summary, logs, inboxCount: inbox.length, lastSync: lastSync || null, watch, leagues: LEAGUE_KEYS.map(k => ({ key: k, name: LEAGUES[k].name, short: LEAGUES[k].short, type: LEAGUES[k].type, teams: LEAGUES[k].teams || null, hasOf: !!LEAGUES[k].of, currentSeason: currentSeason(null, now) })) });
       }
+      case 'exportPeople': {                // every player and head coach: name, role, club (+ league, season), for a spreadsheet
+        const [pl, co] = await Promise.all([store.listPlayers(), store.listCoaches().catch(() => [])]);
+        const rows = [...co.map(c => ({ name: c.name, role: 'Coach', club: c.club, league: c.league, season: c.season })),
+          ...pl.map(p => ({ name: p.name, role: 'Player', club: p.club, league: p.league, season: p.season }))]
+          .sort((x, y) => String(x.league).localeCompare(y.league) || String(x.club).localeCompare(y.club) || (x.role === y.role ? 0 : x.role === 'Coach' ? -1 : 1) || String(x.name).localeCompare(y.name));
+        return res.status(200).json({ total: rows.length, players: pl.length, coaches: co.length, rows });
+      }
       case 'players': {
         const f = { league: body.league || undefined, season: body.season !== undefined && body.season !== '' ? Number(body.season) : undefined, club: body.club || undefined };
         const [all, coaches] = await Promise.all([store.listPlayers(f), store.listCoaches(f).catch(() => [])]);
