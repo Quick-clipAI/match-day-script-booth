@@ -12,3 +12,9 @@ assert.match(by('No Age').missing, /birth date and age/);
 assert.equal(by('Old Season'), undefined, 'older seasons are ignored');
 assert.equal(by('Nobody').has_transfer_history, 'no');
 console.log('5 missing-report tests passed');
+// both stores must offer profileIndex (a real-store method was once missing)
+import { readFileSync } from 'node:fs';
+const src = readFileSync(new URL('../lib/bank-store.js', import.meta.url), 'utf8');
+assert.equal((src.match(/async profileIndex\(/g) || []).length, 2, 'memory store and Supabase store each need profileIndex');
+assert.ok(/async profileIndex\(\) \{ return \(await getAll/.test(src), 'the Supabase version reads through getAll');
+console.log('store method present in both stores');
