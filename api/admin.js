@@ -1,6 +1,7 @@
 // POST /api/admin   header: x-admin-key = ADMIN_KEY   body: { action, ... }
 // Everything the admin page does goes through here. Nothing is public: no key, no access.
 import { coverageWatch } from '../lib/coverage-watch.js';
+import { missingReport } from '../lib/missing-report.js';
 import { storeFromEnv } from '../lib/bank-store.js';
 import { checkAdminKey } from '../lib/guard.js';
 import { LEAGUES, LEAGUE_KEYS, norm, makeRow, matchId, isIsoDate, currentSeason, coverageOf, computeTable } from '../lib/bank-core.js';
@@ -66,6 +67,11 @@ export default async function handler(req, res) {
         const lastSync = (await store.recentLogs(60)).find(l => l.kind === 'sync-api');
         let watch = null; try { watch = await coverageWatch(store); } catch (e) { watch = { error: String(e && e.message || e).slice(0, 120) }; }
         return res.status(200).json({ today: now, summary, logs, inboxCount: inbox.length, lastSync: lastSync || null, watch, leagues: LEAGUE_KEYS.map(k => ({ key: k, name: LEAGUES[k].name, short: LEAGUES[k].short, type: LEAGUES[k].type, teams: LEAGUES[k].teams || null, hasOf: !!LEAGUES[k].of, currentSeason: currentSeason(null, now) })) });
+      }
+      case 'exportMissing': {               // players with any missing data, one row each (for a spreadsheet)
+        const [pl, prof] = await Promise.all([store.listPlayers(), store.profileIndex()]);
+        const rows = missingReport(pl, prof);
+        return res.status(200).json({ total: rows.length, players: pl.length, rows });
       }
       case 'exportPeople': {                // every player and head coach: name, role, club (+ league, season), for a spreadsheet
         const [pl, co] = await Promise.all([store.listPlayers(), store.listCoaches().catch(() => [])]);

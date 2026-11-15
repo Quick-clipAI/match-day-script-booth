@@ -1029,6 +1029,12 @@ Every fill/preview run of the football-data.org player tool now also saves the p
 
 `striker-test.html` has a new button "Test: does it give upcoming matches? (2 credits)" (admin action `striker-bulk`, step `upcoming`, `lib/striker.js`). It asks StrikerAPI's list for status `scheduled`, shows how many matches come back, the dates and a sample, and saves nothing (so it cannot replace the saved season list). If matches come back, a later step can put them into the app as upcoming fixtures. Test: `tests/striker-upcoming.test.mjs`.
 
+## Admin 1.9.4 (server) — export players with missing data
+
+- **Players tab → Export names → "Export players with missing data (CSV)".** One row per player (latest season of each league) that lacks anything. Columns: `name, club, league, season, position, shirt, birth_date, age, nationality, has_transfer_history, has_market_value, missing`. The last column lists what is missing: nationality, exact birth date (only an age stored), birth date and age, shirt number, position, and the Transfermarkt data (no profile = no transfer history and no market value; or a profile without transfers or without a value).
+- A player is matched to a Transfermarkt profile the same way the "may have left" flags do it (`profileFinder` in `lib/bank-profiles.js`: same name and birth date; with no birth date only a unique name counts), so players with no birth date can be listed as "no profile" even when one exists under a different spelling.
+- New admin action `exportMissing`, new `lib/missing-report.js`, new store method `profileIndex` (reads only id, name key, birth date, value and transfer list of the profiles, not the season stats). No API requests, no SQL, no env vars. Tests: `tests/missing-report.test.mjs`.
+
 ## Admin 1.9.3 (server) — export players & coaches
 
 - **Players tab → "Export names" → "Export players & coaches (CSV)".** One file with every stored player and head coach: `name, role, club, league, season`. Role is `Player` or `Coach`. Sorted by league, club, then the coach first, then players A–Z. UTF-8 with a BOM so accented names open correctly in Excel and Google Sheets.

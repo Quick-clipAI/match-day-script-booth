@@ -887,19 +887,25 @@ VIEWS.players = async m => {
   <div class="row" style="margin-top:10px"><button class="btn pri" id="cPreview">Preview import</button></div></div><div id="cOut"></div>
   <div class="card flat" style="margin-top:12px"><div class="mut" style="padding:8px 12px;font-size:13px">Stored career profiles (${cr.total})</div>${cr.rows.map(p => `<div class="m"><div class="teams">${esc(p.name)}</div><div class="meta">${esc(p.summary)}${p.dob ? ' · DOB ' + esc(p.dob) : ''}${p.source ? ' · ' + esc(p.source) : ''}</div><div class="row" style="margin-top:6px"><button class="btn sm" data-cdel="${esc(p.id)}" data-cname="${esc(p.name)}">Delete</button></div></div>`).join('') || '<div class="empty">No career profiles yet.</div>'}</div>
   <h3 style="margin-top:28px">Stored squads (${r.total} players, ${r.coachTotal} coaches)</h3>
-  <div class="card"><b>Export names</b><p class="mut" style="margin:6px 0 10px">Everyone stored: name, player or coach, club (with league and season). Opens in Excel or Google Sheets.</p><div class="row"><button class="btn pri" id="pExport">Export players &amp; coaches (CSV)</button></div><div class="mut" id="pExportInfo" style="font-size:13px;margin-top:6px"></div></div>
+  <div class="card"><b>Export names</b><p class="mut" style="margin:6px 0 10px">Everyone stored: name, player or coach, club (with league and season). Opens in Excel or Google Sheets.</p><div class="row"><button class="btn pri" id="pExport">Export players &amp; coaches (CSV)</button><button class="btn" id="pExportMiss">Export players with missing data (CSV)</button></div><div class="mut" id="pExportInfo" style="font-size:13px;margin-top:6px"></div></div>
     <div class="card"><label class="f" for="pQ">Find a player</label><div class="row"><input id="pQ" class="grow" placeholder="name" value="${esc((state.nav && state.nav.q) || '')}"><button class="btn" id="pFind">Search</button></div></div>
   ${r.rows.length ? `<div class="card flat">${r.rows.map(p => `<div class="m"><div class="teams">${esc(p.name)} ${p.shirt != null ? '#' + esc(p.shirt) : ''} ${p.on_loan ? '<span class="chip">on loan' + (p.loan_from ? ' from ' + esc(p.loan_from) : '') + '</span> ' : ''}${p.club_status === 'retired' ? '<span class="chip warn">retired' + (p.club_retired_year ? ' ' + p.club_retired_year : '') + '</span>' : ''}</div><div class="meta">${esc(p.club)} · ${esc(p.league)} · ${p.season}/${String(Number(p.season) + 1).slice(-2)}${p.position ? ' · ' + esc(p.position) : ''}${p.nationality ? ' · ' + esc(p.nationality) : ''}${p.dob ? ' · born ' + esc(p.dob) : (p.age != null ? ' · age ' + p.age + ' (on ' + esc(p.age_as_of || '?') + ')' : ' · no birth info')}${p.national_status ? ' · national: ' + esc(p.national_status.replace(/_/g, ' ')) + (p.national_retired_year ? ' ' + p.national_retired_year : '') : ''}</div></div>`).join('')}</div>` : ''}
   <div class="card flat" style="margin-top:12px">${r.clubs.map(c => `<div class="m"><div class="row"><div class="grow"><div class="teams">${esc(c.club)}</div><div class="meta">${esc(c.league)} · ${c.season}/${String(c.season + 1).slice(-2)} · ${c.players} players${c.retired ? ' · ' + c.retired + ' retired' : ''}${c.noBirth ? ' · ' + c.noBirth + ' without birth info' : ''} · coach: ${c.coach ? esc(c.coach) : '<span style="color:var(--warn)">none</span>'}</div></div><button class="btn sm" data-sq="${esc(c.club)}|${esc(c.league)}|${c.season}">Players</button><button class="btn sm bad" data-sqdel="${esc(c.club)}|${esc(c.league)}|${c.season}">Delete</button></div></div>`).join('') || '<div class="empty">No squads imported yet.</div>'}</div>`;
+  const csvDownload = (cols, rows, file) => {
+    const q = v => { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    const csv = '\uFEFF' + [cols.join(',')].concat(rows.map(r => cols.map(c => q(r[c])).join(','))).join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = file + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  };
   $('#pExport').onclick = async () => {
     const info = $('#pExportInfo'); info.textContent = 'Preparing…';
-    try {
-      const o = await api('exportPeople'); const q = v => { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-      const csv = '\uFEFF' + ['name,role,club,league,season'].concat(o.rows.map(r => [r.name, r.role, r.club, r.league, r.season].map(q).join(','))).join('\r\n');
-      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'creator-booth-players-coaches-' + new Date().toISOString().slice(0, 10) + '.csv';
-      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
-      info.textContent = 'Saved ' + o.total + ' rows (' + o.players + ' players, ' + o.coaches + ' coaches).';
-    } catch (e) { info.textContent = ''; toast(e.message, 'bad'); }
+    try { const o = await api('exportPeople'); csvDownload(['name', 'role', 'club', 'league', 'season'], o.rows, 'creator-booth-players-coaches'); info.textContent = 'Saved ' + o.total + ' rows (' + o.players + ' players, ' + o.coaches + ' coaches).'; }
+    catch (e) { info.textContent = ''; toast(e.message, 'bad'); }
+  };
+  $('#pExportMiss').onclick = async () => {
+    const info = $('#pExportInfo'); info.textContent = 'Preparing… (can take a few seconds)';
+    try { const o = await api('exportMissing'); csvDownload(['name', 'club', 'league', 'season', 'position', 'shirt', 'birth_date', 'age', 'nationality', 'has_transfer_history', 'has_market_value', 'missing'], o.rows, 'creator-booth-players-missing-data'); info.textContent = 'Saved ' + o.total + ' of ' + o.players + ' players that miss something. The last column says what.'; }
+    catch (e) { info.textContent = ''; toast(e.message, 'bad'); }
   };
   $('#pFind').onclick = () => { state.nav = { q: $('#pQ').value.trim() }; render(); };
   $('#pQ').onkeydown = e => { if (e.key === 'Enter') $('#pFind').click(); };
@@ -986,7 +992,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.9.3';
+const ADMIN_VERSION = '1.9.4';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
