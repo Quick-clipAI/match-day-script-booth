@@ -47,3 +47,22 @@ await t('syncDue asks the OLDEST due day first when requests are limited', async
   assert.deepEqual(calls, ['2026-11-13', '2026-11-14']);
 });
 console.log(n + ' coverage-watch tests passed');
+await t('a due match whose date is only a schedule guess is "unconfirmed", not an alarm', async () => {
+  const s = createMemoryStore();
+  const G = m({ date: '2026-11-13', home: 'G', away: 'H', status: 'scheduled', note: 'date provisional (round date)' });
+  const K = m({ date: '2026-11-13', home: 'K', away: 'L', status: 'scheduled', kickoff: '2026-11-13T15:00:00Z' });
+  await s.upsertMatches([G, K]);
+  const r = await coverageWatch(s, { now: NOW });
+  assert.equal(r.items.find(i => i.id === G.id).state, 'unconfirmed');
+  assert.equal(r.items.find(i => i.id === K.id).state, 'closing');
+  assert.equal(r.unconfirmed, 1); assert.equal(r.closing, 1);
+});
+await t('syncDue asks a guessed-date day only every 3 hours, a day with a known kick-off every 25 minutes', async () => {
+  const mk = (extra) => { const s = createMemoryStore(); return s.upsertMatches([m({ date: '2026-11-13', home: 'P', away: 'Q', status: 'scheduled', ...extra })]).then(() => s); };
+  for (const [extra, mins, expectCalls] of [[{ note: 'date provisional (round date)' }, 60, 0], [{ note: 'date provisional (round date)' }, 190, 1], [{ kickoff: '2026-11-13T08:00:00Z' }, 30, 1]]) {
+    const s = await mk(extra); let calls = 0; const getFixtures = async () => { calls++; return { response: [] }; };
+    await syncDue(s, { getFixtures, now: NOW }); calls = 0;
+    await syncDue(s, { getFixtures, now: NOW + mins * 60000 });
+    assert.equal(calls, expectCalls, JSON.stringify(extra) + ' after ' + mins + ' min');
+  }
+});

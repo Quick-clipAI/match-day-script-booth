@@ -4,6 +4,10 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## Admin 1.9.5 — Coverage watch: matches with only a guessed (round) date are shown as 'date not confirmed', not as an alarm; the checker asks such dates every 3 hours instead of every 30 minutes (saves API-Football requests)
+
+- (describe the change here)
+
 ## Vercel settings (Project → Settings → Environment Variables, then redeploy)
 
 - `GEMINI_API_KEY` — your Gemini key (free tier, no card)
