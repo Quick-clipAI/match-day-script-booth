@@ -4,6 +4,14 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## Admin 1.9.6 — Hand-checked coaches can be locked (the automatic checks no longer overwrite them); chat now receives the saved goals, assists, cards and starting players of a match finished in the last 3 days and shows that match's card
+
+- **Why the chat said "Guardiola coaches Man City":** our own coach table said so (written from API-Football on 12 Nov; Guardiola left in May 2026, Enzo Maresca was appointed on 29 June 2026). The chat is told our coach overrides memory, so the wrong row won. The row is corrected and **locked**: new column `bank_coaches.locked`; `upsertCoaches` never changes a locked row, and the coach re-check (`coach-chain`) and squad sync (`sync-squads`) skip it, so API-Football cannot put the old name back.
+- **Match just finished:** for a club whose match finished in the last 3 days the chat data now includes a `LAST MATCH` line from the saved details: goals with minute and assist, cards, formations and starting players (never the line-up coach name). Disallowed goals / VAR / possession are not stored, and the line says so.
+- **Match card:** a match finished in the last 3 days is now the card, unless the question is about fixtures (before, "analyze" showed the next fixture).
+- Tests: `tests/context.test.mjs` (3 new).
+- Not changed: the chat still adds a Google search to nearly every message; players named in a web result (e.g. Lewandowski at Barcelona) are not checked against our squads.
+
 ## Admin 1.9.5 — Coverage watch: matches with only a guessed (round) date are shown as 'date not confirmed', not as an alarm; the checker asks such dates every 3 hours instead of every 30 minutes (saves API-Football requests)
 
 - (describe the change here)

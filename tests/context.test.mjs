@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { createMemoryStore } from '../lib/bank-store.js';
 import { importText } from '../lib/bank-sync.js';
 import { normalizeSquad } from '../lib/bank-squad.js';
-import { planContext } from '../lib/bank-context.js';
+import { planContext, matchFactsLine } from '../lib/bank-context.js';
 const TODAY = '2026-10-16';
 const dir = new URL('./testdata/', import.meta.url);
 const store = createMemoryStore();
@@ -50,4 +50,30 @@ await t('one club: a card for its own match', async () => {
   assert.equal(r.cards.length, 1); assert.ok([r.cards[0].home, r.cards[0].away].includes('Arsenal'));
 });
 await t('no club named: no card', async () => { const r = await planContext('who won the premier league', TODAY, store, {}); assert.deepEqual(r.cards || [], []); });
+await t('matchFactsLine gives goals, assists, cards, starting players and never a coach', () => {
+  const m = { home: 'Man City', away: 'Fulham', hg: 1, ag: 1, date: '2026-11-21' };
+  const d = { source: 'api-football', events: [{ m: 16, x: 0, side: 'away', type: 'goal', player: 'R. Muniz', other: 'O. Bobb', detail: 'Normal Goal' }, { m: 57, x: 0, side: 'home', type: 'goal', player: 'E. Anderson', other: '', detail: 'Normal Goal' }, { m: 7, x: 0, side: 'away', type: 'card', player: 'A. Iwobi', detail: 'Yellow Card' }], lineups: { home: { formation: '4-3-3', coach: 'Pep Guardiola', xi: [{ name: 'Donnarumma' }] }, away: { formation: '4-2-3-1', xi: [{ name: 'Leno' }] } } };
+  const f = matchFactsLine(m, d);
+  assert.match(f, /R\. Muniz \(Fulham, 16', assist O\. Bobb\)/); assert.match(f, /E\. Anderson \(Man City, 57'\)/); assert.match(f, /A\. Iwobi \(Fulham, 7', yellow\)/); assert.match(f, /Man City \(4-3-3\): Donnarumma/);
+  assert.doesNotMatch(f, /Guardiola/); assert.match(f, /NOT in this data/);
+  assert.equal(matchFactsLine(m, null), null); assert.equal(matchFactsLine(m, { unavailable: true }), null);
+});
+await t('a locked coach is not changed by the automatic checks, an explicit locked write is', async () => {
+  const s2 = createMemoryStore();
+  await s2.upsertCoaches([{ id: 'EPL|2026|x', league: 'EPL', season: 2026, club: 'X', name: 'Right Coach', locked: true }]);
+  await s2.upsertCoaches([{ id: 'EPL|2026|x', league: 'EPL', season: 2026, club: 'X', name: 'Stale Coach' }]);
+  assert.equal((await s2.listCoaches({ league: 'EPL' }))[0].name, 'Right Coach');
+  await s2.upsertCoaches([{ id: 'EPL|2026|x', league: 'EPL', season: 2026, club: 'X', name: 'Newer Coach', locked: true }]);
+  assert.equal((await s2.listCoaches({ league: 'EPL' }))[0].name, 'Newer Coach');
+});
+await t('a match finished in the last 3 days: its card is the finished match and its saved goals reach the AI', async () => {
+  const fin = (await store.listMatches({ league: 'EPL', season: 2026 })).filter(m => m.status === 'finished' && (m.home === 'Arsenal' || m.away === 'Arsenal')).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+  await store.addDetailStubs([{ match_id: fin.id, api_fixture_id: 1 }]);
+  await store.saveDetail(fin.id, { events: [{ m: 10, x: 0, side: 'home', type: 'goal', player: 'Test Scorer', other: '', detail: 'Normal Goal' }] });
+  const day = new Date(Date.parse(fin.date) + 864e5).toISOString().slice(0, 10);
+  const r = await planContext('analyze Arsenal match', day, store, {});
+  assert.equal(r.cards[0].id, fin.id); assert.match(r.text, /LAST MATCH \(Arsenal\).*Test Scorer/);
+  const old = await planContext('analyze Arsenal match', new Date(Date.parse(fin.date) + 10 * 864e5).toISOString().slice(0, 10), store, {});
+  assert.doesNotMatch(old.text, /LAST MATCH \(Arsenal\)/);
+});
 console.log(n + ' context tests passed');
