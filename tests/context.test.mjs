@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { createMemoryStore } from '../lib/bank-store.js';
 import { importText } from '../lib/bank-sync.js';
 import { normalizeSquad } from '../lib/bank-squad.js';
-import { planContext, matchFactsLine } from '../lib/bank-context.js';
+import { planContext, matchFactsLine, roundLabel, dateUnknown } from '../lib/bank-context.js';
 const TODAY = '2026-10-16';
 const dir = new URL('./testdata/', import.meta.url);
 const store = createMemoryStore();
@@ -75,5 +75,12 @@ await t('a match finished in the last 3 days: its card is the finished match and
   assert.equal(r.cards[0].id, fin.id); assert.match(r.text, /LAST MATCH \(Arsenal\).*Test Scorer/);
   const old = await planContext('analyze Arsenal match', new Date(Date.parse(fin.date) + 10 * 864e5).toISOString().slice(0, 10), store, {});
   assert.doesNotMatch(old.text, /LAST MATCH \(Arsenal\)/);
+});
+await t('matches without a confirmed date are shown by matchday', () => {
+  assert.equal(roundLabel('Regular Season - 14'), 'Matchday 14'); assert.equal(roundLabel('Matchday 3'), 'Matchday 3'); assert.equal(roundLabel('Quarter-finals'), 'Quarter-finals');
+  assert.equal(dateUnknown({ status: 'postponed' }), true);
+  assert.equal(dateUnknown({ status: 'scheduled', note: 'date provisional (round date)' }), true);
+  assert.equal(dateUnknown({ status: 'scheduled', note: 'date provisional (round date)', kickoff: '2026-11-20T17:00:00Z' }), false);
+  assert.equal(dateUnknown({ status: 'finished', note: 'date provisional' }), false); assert.equal(dateUnknown({ status: 'scheduled' }), false);
 });
 console.log(n + ' context tests passed');
