@@ -4,6 +4,10 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## 1.8.1 — Match events: no 'yellow/red' text under cards; players going off are shown in red
+
+- Match events: the word "yellow"/"red" under a card is removed (the coloured card icon says it); the player going off (▼) is red, so it no longer looks like the grey assist line.
+
 ## 1.8.0 — Match screen: one timeline of goals (assist by), cards and substitutions (in and out) with Half-time and Full time divider lines
 
 - The match screen's "Goals and cards" block is now **Match events**: goals (with "assist by"), cards and substitutions (▲ in, ▼ out, with minute) in one timeline, with a **Half-time · score** line after the first half and a **Full time · score** line at the end. The separate collapsed Substitutions box is gone.
