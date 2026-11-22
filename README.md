@@ -4,6 +4,11 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## 1.8.0 — Match screen: one timeline of goals (assist by), cards and substitutions (in and out) with Half-time and Full time divider lines
+
+- The match screen's "Goals and cards" block is now **Match events**: goals (with "assist by"), cards and substitutions (▲ in, ▼ out, with minute) in one timeline, with a **Half-time · score** line after the first half and a **Full time · score** line at the end. The separate collapsed Substitutions box is gone.
+- Needs the new app file (web updates reach the app through the bundle; the installed app updates via the Update sheet).
+
 ## Admin 1.9.6 — Hand-checked coaches can be locked (the automatic checks no longer overwrite them); chat now receives the saved goals, assists, cards and starting players of a match finished in the last 3 days and shows that match's card
 
 - **Why the chat said "Guardiola coaches Man City":** our own coach table said so (written from API-Football on 12 Nov; Guardiola left in May 2026, Enzo Maresca was appointed on 29 June 2026). The chat is told our coach overrides memory, so the wrong row won. The row is corrected and **locked**: new column `bank_coaches.locked`; `upsertCoaches` never changes a locked row, and the coach re-check (`coach-chain`) and squad sync (`sync-squads`) skip it, so API-Football cannot put the old name back.
@@ -14,7 +19,7 @@ A football-only AI chat app for fans and creators: match and player analysis, re
 
 ## Admin 1.9.5 — Coverage watch: matches with only a guessed (round) date are shown as 'date not confirmed', not as an alarm; the checker asks such dates every 3 hours instead of every 30 minutes (saves API-Football requests)
 
-- (describe the change here)
+- A match whose date is only a schedule guess (no kick-off, note "date provisional") is shown as `date-unconfirmed`, not as closing/missed. `sync-due` asks a date with only such matches every 3 h (RETRY_UNSURE_MIN = 180) instead of every 25 min, saving API-Football requests. Tests: `tests/coverage-watch.test.mjs`.
 
 ## Vercel settings (Project → Settings → Environment Variables, then redeploy)
 
