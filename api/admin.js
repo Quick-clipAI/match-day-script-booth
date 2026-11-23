@@ -265,8 +265,17 @@ export default async function handler(req, res) {
       case 'coachCompare': {                 // our coaches against a list from another source: { list: [{ club, coach, league? }] }
         const list = Array.isArray(body.list) ? body.list : (() => { try { return JSON.parse(body.text); } catch (e) { return null; } })();
         if (!Array.isArray(list)) return fail(res, 400, 'The file must be a JSON list like [{"club":"Arsenal","coach":"Mikel Arteta"}].');
-        const [co, al] = await Promise.all([store.listCoaches(), store.listAliases()]);
-        return res.status(200).json(compareCoachList(co, list, { aliasMap: new Map(al.map(a => [a.alias, a.canonical])) }));
+        const [co, al, lu] = await Promise.all([store.listCoaches(), store.listAliases(), store.lineupCoaches(new Date(Date.parse(now + 'T00:00:00Z') - 60 * 864e5).toISOString().slice(0, 10))]);
+        return res.status(200).json(compareCoachList(co, list, { aliasMap: new Map(al.map(a => [a.alias, a.canonical])), lineups: lu }));
+      }
+      case 'coachResolveMany': {             // many at once: { items: [{ id, name }] } -> each takes that name and is locked
+        const items = (Array.isArray(body.items) ? body.items : []).filter(i => i && i.id && String(i.name || '').trim()).slice(0, 200);
+        if (!items.length) return fail(res, 400, 'Nothing to change.');
+        const byId = new Map((await store.listCoaches()).map(c => [c.id, c]));
+        const rows = items.filter(i => byId.has(i.id)).map(i => ({ ...byId.get(i.id), name: String(i.name).trim(), api_id: 0, as_of: now, updated_at: new Date().toISOString(), locked: true, lineup_ack: String(i.name).trim() }));
+        if (rows.length) await store.upsertCoaches(rows);
+        await store.addLog({ kind: 'coach-check', ok: true, summary: `Coach check: ${rows.length} coach(es) changed from a coach list and locked.` });
+        return res.status(200).json({ ok: true, changed: rows.length, skipped: items.length - rows.length });
       }
       case 'coachResolve': {                 // choice 'use' (take this name, lock it) or 'keep' (our coach is right: remember the line-up name as reviewed)
         const id = String(body.id || ''); const choice = String(body.choice || ''); const name = String(body.name || '').trim();

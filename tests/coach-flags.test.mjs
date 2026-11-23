@@ -33,3 +33,13 @@ await s.saveDetail('EPL|2026|liverpool|manchester united', { events: [], lineups
 const got = await s.lineupCoaches('2026-10-01');
 assert.deepEqual(got.map(x => x.club + ':' + x.coach).sort(), ['Liverpool:Andoni Iraola', 'Manchester United:M. Pochettino']);
 console.log('coach-flags tests passed');
+
+// club names written differently by another source, and clubs that share a word
+{
+  const co = [C({ league: 'LIGUE1', club: 'Paris FC', name: 'R. Girard' }), C({ league: 'LIGUE1', club: 'Paris Saint-Germain', name: 'Luis Enrique' }), C({ league: 'SERIEA', club: 'Internazionale Milano', name: 'C. Chivu' }), C({ league: 'SPL', club: 'Al-Fayha', name: 'Carille Fabio' })];
+  const r = compareCoachList(co, [{ club: 'Paris Saint-Germain', coach: 'Luis Enrique' }, { club: 'Paris FC', coach: 'Liam Rosenior' }, { club: 'Inter', coach: 'Cristian Chivu' }, { club: 'Al-Fayha', coach: 'Fábio Carille' }, { club: 'Paris', coach: 'X' }]);
+  assert.equal(r.same, 3); assert.equal(r.different, 1); assert.equal(r.rows.find(x => x.status === 'different').club, 'Paris FC'); assert.equal(r.rows.find(x => x.status === 'no-club').club, 'Paris');
+  const r2 = compareCoachList(co, [{ club: 'Paris FC', coach: 'Liam Rosenior' }], { lineups: [{ league: 'LIGUE1', club: 'Paris FC', date: '2026-11-07', coach: 'L. Rosenior' }] });
+  assert.equal(r2.agreeWithLineup, 1); assert.equal(r2.rows[0].lineup_agrees, true);
+  console.log('coach-flags extra tests passed');
+}

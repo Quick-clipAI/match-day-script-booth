@@ -348,9 +348,16 @@ async function loadCoachCheck(box) {
     const f = ev.target.files[0]; if (!f) return; const out = box.querySelector('#ccCmp'); out.innerHTML = '<div class="mut">Comparing…</div>';
     try {
       const r = await api('coachCompare', { text: await f.text() });
-      const diff = r.rows.filter(x => x.status === 'different').map(x => pair({ id: x.id, club: x.club, league: x.league, table_coach: x.table_coach, locked: x.locked }, { label: 'List coach', name: x.coach, note: 'from your file', keep: false })).join('');
+      const dif = r.rows.filter(x => x.status === 'different');
+      const note = x => x.lineup_agrees ? 'your file and the latest saved line-up agree' : (x.lineup_coach ? 'the latest line-up says ' + x.lineup_coach : 'no saved line-up to check against');
+      const diff = dif.map(x => pair({ id: x.id, club: x.club, league: x.league, table_coach: x.table_coach, locked: x.locked }, { label: 'List coach', name: x.coach, note: note(x), keep: false })).join('');
       const un = r.rows.filter(x => x.status !== 'different').map(x => `<div class="mut" style="font-size:13px">${esc(x.club)}${x.status === 'no-club' ? ' — club not found in our table' : ' — no coach in the file'}</div>`).join('');
-      out.innerHTML = `<div style="margin-top:8px"><b>${r.same}</b> same · <b>${r.different}</b> different · <b>${r.unmatched}</b> not matched</div>${diff}${un ? `<div style="margin-top:8px">${un}</div>` : ''}`;
+      const sure = dif.filter(x => x.lineup_agrees);
+      out.innerHTML = `<div style="margin-top:8px"><b>${r.same}</b> same · <b>${r.different}</b> different (<b>${r.agreeWithLineup}</b> confirmed by a saved line-up) · <b>${r.unmatched}</b> not matched</div>
+        ${dif.length ? `<div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">${sure.length ? `<button class="btn pri sm" id="ccSure">Use the file for the ${sure.length} confirmed by line-ups</button>` : ''}<button class="btn sm" id="ccAll">Use the file for all ${dif.length}</button></div>` : ''}${diff}${un ? `<div style="margin-top:8px">${un}</div>` : ''}`;
+      const bulk = async (btn, list) => { if (!confirm('Change ' + list.length + ' coach(es) to the names in your file? They are saved and locked.')) return; btn.disabled = true; try { const o = await api('coachResolveMany', { items: list.map(x => ({ id: x.id, name: x.coach })) }); toast(o.changed + ' coach(es) changed', 'ok'); list.forEach(x => { const row = out.querySelector('[data-cc="' + CSS.escape(x.id) + '"]'); if (row) row.remove(); }); } catch (e) { btn.disabled = false; toast(e.message, 'bad'); } };
+      const bs = out.querySelector('#ccSure'); if (bs) bs.onclick = () => bulk(bs, sure);
+      const ba = out.querySelector('#ccAll'); if (ba) ba.onclick = () => bulk(ba, dif);
       wire(out);
     } catch (e) { out.innerHTML = ''; toast(e.message, 'bad'); }
   };
@@ -1021,7 +1028,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.9.7';
+const ADMIN_VERSION = '1.9.8';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
