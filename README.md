@@ -4,6 +4,12 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## Admin 1.9.7 — Coach check: flags clubs whose line-up coach differs from our coach table, with Use / Keep buttons, and a compare-with-a-coach-list-file check (no API requests)
+
+- **Coach check** (Admin → Overview): `lib/coach-flags.js` compares each club's coach in `bank_coaches` with the coach named in the club's last 3 saved line-ups (`store.lineupCoaches`, stored data only, **no API requests**). Differences are listed with **Use ‹name›** (saves it, locks the row, `api_id` 0 so the coach photo sync does not ask again) and **Keep ours** (locks the row and remembers the line-up name in the new column `bank_coaches.lineup_ack`, so it is not flagged again until a different name shows up). Same person written differently ("A. Hütter" / "Adolf Hütter") is not flagged.
+- **Compare with a coach list file**: pick a JSON list `[{"club":…,"coach":…,"league":…}]` collected from another source (Colab script, run by hand now and then); differences get the same Use button, clubs not found are listed.
+- Admin actions: `coachFlags`, `coachCompare`, `coachResolve`. Tests: `tests/coach-flags.test.mjs`.
+
 ## 1.8.3 — Matches without a confirmed date show their matchday ('Matchday 14 · date to be announced') instead of a date
 
 - A match with no confirmed date (status `postponed`, or a schedule-guess date with no kick-off) is shown by its **matchday**, e.g. "Matchday 14 · Date to be announced", on the chat card, the match screen (Round / Date rows) and in the data given to the AI (`dateUnknown`, `roundLabel` in `lib/bank-context.js`). Postponed matches are now listed in a club's chat data ("postponed, no new date announced yet").

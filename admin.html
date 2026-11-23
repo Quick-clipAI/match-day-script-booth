@@ -322,10 +322,39 @@ VIEWS.overview = async m => {
     }).join('') : `<p class="mut" style="margin:8px 0 0;font-size:14px">Nothing stored yet.</p>`;
     return `<div class="lg"><div class="row"><h3 class="grow">${esc(l.name)}</h3>${l.hasOf && !seasons.length ? `<button class="btn sm" data-of="${l.key}">Load</button>` : ''}</div>${body}</div>`;
   }).join('');
-  m.innerHTML = head('Bank at a glance', 'Tap a season to see its matches.') + banner + watch + env + `<div class="card flat">${cards}</div>`;
+  m.innerHTML = head('Bank at a glance', 'Tap a season to see its matches.') + banner + watch + `<div id="coachCheck"></div>` + env + `<div class="card flat">${cards}</div>`;
+  loadCoachCheck(m.querySelector('#coachCheck'));
   m.querySelectorAll('.seas').forEach(e => e.onclick = () => { state.filters = { league: e.dataset.l, season: e.dataset.s, club: '', mode: 'all', from: '', to: '', order: 'asc' }; go('matches'); });
   m.querySelectorAll('[data-of]').forEach(b => b.onclick = () => go('import', { openfootball: b.dataset.of }));
 };
+
+// ---------------------------------------------------------------- coach check
+// A club's coach in a saved line-up differs from the coach in our club table. Reads stored data only (no API requests).
+async function loadCoachCheck(box) {
+  if (!box) return;
+  let o; try { o = await api('coachFlags'); } catch (e) { box.innerHTML = ''; return; }
+  const pair = (f, c) => `<div class="row" style="margin-top:8px" data-cc="${esc(f.id)}"><div class="grow"><b>${esc(f.club)}</b> <span class="mut" style="font-size:12px">${esc(leagueName(f.league))}</span>
+    <div style="font-size:14px">Our table: <b>${esc(f.table_coach)}</b>${f.locked ? ' <span class="chip">locked</span>' : ''}</div>
+    <div style="font-size:14px">${esc(c.label)}: <b>${esc(c.name)}</b></div>
+    <div class="mut" style="font-size:12px">${esc(c.note)}</div></div>
+    <button class="btn pri sm" data-use="${esc(c.name)}">Use ${esc(c.name)}</button>${c.keep ? `<button class="btn sm" data-keep="${esc(c.name)}">Keep ours</button>` : ''}</div>`;
+  const rows = o.flags.map(f => pair(f, { label: 'Line-up coach', name: f.lineup_coach, note: `from the line-up of ${f.lineup_date} (${f.lineups_agree} of the last ${f.lineups_checked} line-ups agree)`, keep: true })).join('');
+  box.innerHTML = `<div class="banner ${o.flags.length ? 'warn' : 'ok'}"><div style="width:100%"><b>Coach check:</b> ${o.flags.length ? o.flags.length + ' club(s) where the line-up coach differs from our table' : 'every line-up coach matches our table'}.<br><span class="mut">Compared with ${o.lineups} saved line-up coaches of the last 60 days. Costs no requests. Pick the right name; it is saved and locked so the automatic checks cannot change it back.</span>${rows}
+    <div class="row" style="margin-top:12px"><label class="btn sm" style="cursor:pointer">Compare with a coach list file<input type="file" id="ccFile" accept=".json,application/json" hidden></label><span class="mut" style="font-size:12px">JSON list: [{"club":"Arsenal","coach":"Mikel Arteta"}, …]</span></div><div id="ccCmp"></div></div></div>`;
+  const act = async (btn, choice, id, name) => { btn.disabled = true; try { const r = await api('coachResolve', { id, choice, name }); toast(r.club + ': ' + r.name, 'ok'); const row = btn.closest('[data-cc]'); if (row) row.remove(); } catch (e) { btn.disabled = false; toast(e.message, 'bad'); } };
+  const wire = scope => { scope.querySelectorAll('[data-use]').forEach(b => b.onclick = () => act(b, 'use', b.closest('[data-cc]').dataset.cc, b.dataset.use)); scope.querySelectorAll('[data-keep]').forEach(b => b.onclick = () => act(b, 'keep', b.closest('[data-cc]').dataset.cc, b.dataset.keep)); };
+  wire(box);
+  box.querySelector('#ccFile').onchange = async ev => {
+    const f = ev.target.files[0]; if (!f) return; const out = box.querySelector('#ccCmp'); out.innerHTML = '<div class="mut">Comparing…</div>';
+    try {
+      const r = await api('coachCompare', { text: await f.text() });
+      const diff = r.rows.filter(x => x.status === 'different').map(x => pair({ id: x.id, club: x.club, league: x.league, table_coach: x.table_coach, locked: x.locked }, { label: 'List coach', name: x.coach, note: 'from your file', keep: false })).join('');
+      const un = r.rows.filter(x => x.status !== 'different').map(x => `<div class="mut" style="font-size:13px">${esc(x.club)}${x.status === 'no-club' ? ' — club not found in our table' : ' — no coach in the file'}</div>`).join('');
+      out.innerHTML = `<div style="margin-top:8px"><b>${r.same}</b> same · <b>${r.different}</b> different · <b>${r.unmatched}</b> not matched</div>${diff}${un ? `<div style="margin-top:8px">${un}</div>` : ''}`;
+      wire(out);
+    } catch (e) { out.innerHTML = ''; toast(e.message, 'bad'); }
+  };
+}
 
 // ---------------------------------------------------------------- gaps
 function scoreRow(r, opts = {}) {
@@ -992,7 +1021,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '1.9.6';
+const ADMIN_VERSION = '1.9.7';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

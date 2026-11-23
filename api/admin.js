@@ -1,6 +1,7 @@
 // POST /api/admin   header: x-admin-key = ADMIN_KEY   body: { action, ... }
 // Everything the admin page does goes through here. Nothing is public: no key, no access.
 import { coverageWatch } from '../lib/coverage-watch.js';
+import { computeCoachFlags, compareCoachList, sameCoach } from '../lib/coach-flags.js';
 import { missingReport } from '../lib/missing-report.js';
 import { storeFromEnv } from '../lib/bank-store.js';
 import { checkAdminKey } from '../lib/guard.js';
@@ -255,6 +256,28 @@ export default async function handler(req, res) {
         if (!key) return res.status(400).json({ error: 'API_SPORTS_KEY is not set' });
         const r = await syncTransfers(store, { getTeams: teamsGetter(key), getTransfers: transfersGetter(key), force: true, maxRun: 3 });
         return res.status(200).json({ ok: true, summary: r.summary, calls: r.calls, fetched: r.fetched || 0, remaining: r.remaining || 0, status: await transferStatus(store) });
+      }
+      case 'coachFlags': {                   // line-up coach differs from our club table (no API requests: stored data only)
+        const [co, lu, al] = await Promise.all([store.listCoaches(), store.lineupCoaches(new Date(Date.parse(now + 'T00:00:00Z') - 60 * 864e5).toISOString().slice(0, 10)), store.listAliases()]);
+        const flags = computeCoachFlags(co, lu, { aliasMap: new Map(al.map(a => [a.alias, a.canonical])) });
+        return res.status(200).json({ flags, coaches: co.length, lineups: lu.length });
+      }
+      case 'coachCompare': {                 // our coaches against a list from another source: { list: [{ club, coach, league? }] }
+        const list = Array.isArray(body.list) ? body.list : (() => { try { return JSON.parse(body.text); } catch (e) { return null; } })();
+        if (!Array.isArray(list)) return fail(res, 400, 'The file must be a JSON list like [{"club":"Arsenal","coach":"Mikel Arteta"}].');
+        const [co, al] = await Promise.all([store.listCoaches(), store.listAliases()]);
+        return res.status(200).json(compareCoachList(co, list, { aliasMap: new Map(al.map(a => [a.alias, a.canonical])) }));
+      }
+      case 'coachResolve': {                 // choice 'use' (take this name, lock it) or 'keep' (our coach is right: remember the line-up name as reviewed)
+        const id = String(body.id || ''); const choice = String(body.choice || ''); const name = String(body.name || '').trim();
+        if (!id || !['use', 'keep'].includes(choice)) return fail(res, 400, 'id and choice (use or keep) are needed.');
+        const row = (await store.listCoaches()).find(c => c.id === id);
+        if (!row) return fail(res, 404, 'That coach row does not exist.');
+        if (!name) return fail(res, 400, 'The line-up or list name is needed.');
+        if (choice === 'use') await store.upsertCoaches([{ ...row, name, api_id: 0, as_of: now, updated_at: new Date().toISOString(), locked: true, lineup_ack: name }]);
+        else await store.upsertCoaches([{ ...row, locked: true, lineup_ack: name, updated_at: new Date().toISOString() }]);
+        await store.addLog({ kind: 'coach-check', ok: true, summary: choice === 'use' ? `Coach check: ${row.club} coach changed from ${row.name} to ${name} (locked).` : `Coach check: ${row.club} stays ${row.name}; line-up name ${name} marked as reviewed.` });
+        return res.status(200).json({ ok: true, club: row.club, name: choice === 'use' ? name : row.name });
       }
       case 'flags': return res.status(200).json({ flags: await store.flagsList(body.status === 'all' ? '' : (body.status || 'open')) });
       case 'resolveFlags': {                 // many answers at once: [{ key, decision: 'left' | 'stay' }]
