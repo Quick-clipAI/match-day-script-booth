@@ -108,3 +108,7 @@ alter table public.bank_log     enable row level security;
 alter table public.bank_inbox   enable row level security;
 revoke all on public.bank_matches, public.bank_aliases, public.bank_facts, public.bank_log, public.bank_inbox, public.bank_summary, public.bank_clubs from anon, authenticated;
 revoke all on sequence public.bank_facts_id_seq, public.bank_log_id_seq, public.bank_inbox_id_seq from anon, authenticated;
+
+-- coach names merged by hand (every spelling -> one canonical name), see Admin 1.9.9
+create table if not exists public.bank_coach_names (alias text primary key, canonical text not null, created_at timestamptz not null default now());
+alter table public.bank_coach_names enable row level security;

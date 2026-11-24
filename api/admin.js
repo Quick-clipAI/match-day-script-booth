@@ -1,7 +1,10 @@
 // POST /api/admin   header: x-admin-key = ADMIN_KEY   body: { action, ... }
 // Everything the admin page does goes through here. Nothing is public: no key, no access.
 import { coverageWatch } from '../lib/coverage-watch.js';
-import { computeCoachFlags, compareCoachList, sameCoach } from '../lib/coach-flags.js';
+import { computeCoachFlags, computeCoachVariants, compareCoachList, sameCoach } from '../lib/coach-flags.js';
+import { healPreview, healApply } from '../lib/heal-names.js';
+import { nameMapOf, fullestName } from '../lib/coach-canon.js';
+import { personNorm } from '../lib/bank-profiles.js';
 import { missingReport } from '../lib/missing-report.js';
 import { storeFromEnv } from '../lib/bank-store.js';
 import { checkAdminKey } from '../lib/guard.js';
@@ -258,15 +261,40 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, summary: r.summary, calls: r.calls, fetched: r.fetched || 0, remaining: r.remaining || 0, status: await transferStatus(store) });
       }
       case 'coachFlags': {                   // line-up coach differs from our club table (no API requests: stored data only)
-        const [co, lu, al] = await Promise.all([store.listCoaches(), store.lineupCoaches(new Date(Date.parse(now + 'T00:00:00Z') - 60 * 864e5).toISOString().slice(0, 10)), store.listAliases()]);
-        const flags = computeCoachFlags(co, lu, { aliasMap: new Map(al.map(a => [a.alias, a.canonical])) });
-        return res.status(200).json({ flags, coaches: co.length, lineups: lu.length });
+        const since = new Date(Date.parse(now + 'T00:00:00Z') - 60 * 864e5).toISOString().slice(0, 10);
+        const [co, lu, al, cn] = await Promise.all([store.listCoaches(), store.lineupCoaches(since), store.listAliases(), store.listCoachNames()]);
+        const opts = { aliasMap: new Map(al.map(a => [a.alias, a.canonical])), nameMap: nameMapOf(cn) };
+        const flags = computeCoachFlags(co, lu, opts);
+        const variants = computeCoachVariants(co, lu, opts);
+        const heal = await healPreview(store).catch(() => ({ splits: [], coachJoins: [], coachRenames: [] }));
+        return res.status(200).json({ flags, variants, heal, coaches: co.length, lineups: lu.length });
+      }
+      case 'healApply': {                    // club names that still have an alias, in every league + duplicate coach rows
+        const r = await healApply(store);
+        return res.status(200).json({ ok: true, ...r });
+      }
+      case 'coachMerge': {                   // { items: [{ id, names: [spellings], canonical }] }: one person, many spellings. Every spelling is remembered, every source is written with the canonical one.
+        const items = (Array.isArray(body.items) ? body.items : []).filter(i => i && i.id && Array.isArray(i.names) && i.names.length > 1).slice(0, 200);
+        if (!items.length) return fail(res, 400, 'Nothing to merge.');
+        const byId = new Map((await store.listCoaches()).map(c => [c.id, c]));
+        const aliasRows = [], rows = [];
+        for (const i of items) {
+          const row = byId.get(i.id); if (!row) continue;
+          const names = [...new Set(i.names.map(n => String(n || '').trim()).filter(Boolean))];
+          const canonical = String(i.canonical || '').trim() || fullestName(names);
+          names.concat(canonical).forEach(n => aliasRows.push({ alias: personNorm(n), canonical }));
+          if (row.name !== canonical) rows.push({ ...row, name: canonical, updated_at: new Date().toISOString() });   // api_id and lock stay as they were: it is the same person
+        }
+        await store.upsertCoachNames([...new Map(aliasRows.map(a => [a.alias, a])).values()]);
+        if (rows.length) await store.upsertCoaches(rows);
+        await store.addLog({ kind: 'coach-check', ok: true, summary: `Coach names merged: ${items.length} coach(es) now use one spelling each.`, detail: { items: items.map(i => ({ id: i.id, names: i.names, canonical: i.canonical })) } });
+        return res.status(200).json({ ok: true, merged: items.length });
       }
       case 'coachCompare': {                 // our coaches against a list from another source: { list: [{ club, coach, league? }] }
         const list = Array.isArray(body.list) ? body.list : (() => { try { return JSON.parse(body.text); } catch (e) { return null; } })();
         if (!Array.isArray(list)) return fail(res, 400, 'The file must be a JSON list like [{"club":"Arsenal","coach":"Mikel Arteta"}].');
-        const [co, al, lu] = await Promise.all([store.listCoaches(), store.listAliases(), store.lineupCoaches(new Date(Date.parse(now + 'T00:00:00Z') - 60 * 864e5).toISOString().slice(0, 10))]);
-        return res.status(200).json(compareCoachList(co, list, { aliasMap: new Map(al.map(a => [a.alias, a.canonical])), lineups: lu }));
+        const [co, al, lu, cn] = await Promise.all([store.listCoaches(), store.listAliases(), store.lineupCoaches(new Date(Date.parse(now + 'T00:00:00Z') - 60 * 864e5).toISOString().slice(0, 10)), store.listCoachNames()]);
+        return res.status(200).json(compareCoachList(co, list, { aliasMap: new Map(al.map(a => [a.alias, a.canonical])), nameMap: nameMapOf(cn), lineups: lu }));
       }
       case 'coachResolveMany': {             // many at once: { items: [{ id, name }] } -> each takes that name and is locked
         const items = (Array.isArray(body.items) ? body.items : []).filter(i => i && i.id && String(i.name || '').trim()).slice(0, 200);
