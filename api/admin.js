@@ -1,7 +1,7 @@
 // POST /api/admin   header: x-admin-key = ADMIN_KEY   body: { action, ... }
 // Everything the admin page does goes through here. Nothing is public: no key, no access.
 import { coverageWatch } from '../lib/coverage-watch.js';
-import { computeCoachFlags, computeCoachVariants, compareCoachList, sameCoach } from '../lib/coach-flags.js';
+import { computeCoachFlags, computeCoachVariants, compareCoachList, sameCoach, variantCoach } from '../lib/coach-flags.js';
 import { healPreview, healApply } from '../lib/heal-names.js';
 import { nameMapOf, fullestName } from '../lib/coach-canon.js';
 import { personNorm } from '../lib/bank-profiles.js';
@@ -13,7 +13,7 @@ import { applyRows, importText, syncOpenfootball, mergeTeams, resolveInbox } fro
 import { runSync, safeEq } from '../lib/sync-run.js';
 import { strikerSaved, strikerBulk } from '../lib/striker.js';
 import { importStriker } from '../lib/striker-import.js';
-import { spellId } from '../lib/coach-history.js';
+import { spellId, noteCoachChange } from '../lib/coach-history.js';
 import { parseCsv, importOpenMatchday } from '../lib/openmatchday-import.js';
 import { backfillIds, backfillByDates } from '../lib/backfill-ids.js';
 import { detailLeagues } from '../lib/match-detail.js';
@@ -301,8 +301,10 @@ export default async function handler(req, res) {
         if (!items.length) return fail(res, 400, 'Nothing to change.');
         const byId = new Map((await store.listCoaches()).map(c => [c.id, c]));
         const rows = items.filter(i => byId.has(i.id)).map(i => ({ ...byId.get(i.id), name: String(i.name).trim(), api_id: 0, as_of: now, updated_at: new Date().toISOString(), locked: true, lineup_ack: String(i.name).trim() }));
+        const nm1 = nameMapOf(await store.listCoachNames());
+        let kept = 0; for (const i of items) { const r = byId.get(i.id); if (r && await closeReplaced(store, r, String(i.name).trim(), now, nm1)) kept++; }
         if (rows.length) await store.upsertCoaches(rows);
-        await store.addLog({ kind: 'coach-check', ok: true, summary: `Coach check: ${rows.length} coach(es) changed from a coach list and locked.` });
+        await store.addLog({ kind: 'coach-check', ok: true, summary: `Coach check: ${rows.length} coach(es) changed from a coach list and locked; ${kept} earlier coach(es) kept in the coach history.` });
         return res.status(200).json({ ok: true, changed: rows.length, skipped: items.length - rows.length });
       }
       case 'coachResolve': {                 // choice 'use' (take this name, lock it) or 'keep' (our coach is right: remember the line-up name as reviewed)
@@ -311,6 +313,7 @@ export default async function handler(req, res) {
         const row = (await store.listCoaches()).find(c => c.id === id);
         if (!row) return fail(res, 404, 'That coach row does not exist.');
         if (!name) return fail(res, 400, 'The line-up or list name is needed.');
+        if (choice === 'use') await closeReplaced(store, row, name, now, nameMapOf(await store.listCoachNames()));
         if (choice === 'use') await store.upsertCoaches([{ ...row, name, api_id: 0, as_of: now, updated_at: new Date().toISOString(), locked: true, lineup_ack: name }]);
         else await store.upsertCoaches([{ ...row, locked: true, lineup_ack: name, updated_at: new Date().toISOString() }]);
         await store.addLog({ kind: 'coach-check', ok: true, summary: choice === 'use' ? `Coach check: ${row.club} coach changed from ${row.name} to ${name} (locked).` : `Coach check: ${row.club} stays ${row.name}; line-up name ${name} marked as reviewed.` });
@@ -611,4 +614,11 @@ export default async function handler(req, res) {
   } catch (e) {
     return fail(res, 500, String(e && e.message || e).slice(0, 400));
   }
+}
+
+// A coach replaced in the Coach check is never erased: the old coach's spell is closed (shown as a previous coach) and the new one opened.
+// The reason (sacked, resigned, ...) is not known to us, so it says "not recorded yet" until the admin sets it.
+async function closeReplaced(store, row, newName, today, nameMap) {
+  if (!row || !row.name || sameCoach(row.name, newName, nameMap) || variantCoach(row.name, newName, nameMap)) return null;
+  return noteCoachChange(store, { league: row.league, club: row.club, oldName: row.name, newName, today, origin: 'Coach check' }).catch(() => null);
 }

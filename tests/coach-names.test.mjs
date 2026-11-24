@@ -25,7 +25,7 @@ assert.equal(flags[0].lineup_coach, 'Eder Sarabia');                      // nev
 
 // 2. spellings of one coach
 assert.equal(variantCoach('M. Mićović', 'Marko Mitrović'), true);
-assert.equal(variantCoach('Diego Simeone', 'Giovanni Simeone'), false);
+assert.equal(variantCoach('Diego Simeone', 'Diego Martinez'), false);   // a shared first name alone is nothing
 assert.equal(variantCoach('Arne Slot', 'Andoni Iraola'), false);
 assert.equal(variantCoach('Hansi Flick', 'H. Flick'), false);             // that is already the same coach
 const nm = nameMapOf([{ alias: 'm micovic', canonical: 'Marko Mitrović' }, { alias: 'marko mitrovic', canonical: 'Marko Mitrović' }]);
@@ -73,5 +73,20 @@ assert.equal(row.id, 'BUNDESLIGA|2026|rb leipzig'); assert.equal(row.club, 'RB L
   const ms = await s.listMatches({ league: 'UCL' });
   assert.equal(ms.length, 2); assert.ok(ms.every(m => !/^Leipzig$/.test(m.home) && !/^Leipzig$/.test(m.away)));      // the duplicate Man City match is gone, nothing is called "Leipzig"
   assert.equal((await healPreview(s)).splits.length, 0);
+}
+// 6. nicknames are variants, not different coaches
+assert.equal(variantCoach('José Bordalás', 'Pepe Bordalás'), true);
+assert.equal(variantCoach('Cristian González', 'Kily González'), true);
+assert.equal(variantCoach('Michael Carrick', 'Michael Owen'), false);
+assert.equal(computeCoachFlags([C({ league: 'LALIGA', club: 'Getafe', name: 'José Bordalás' })], [L('Getafe', '2026-11-22', 'Pepe Bordalás')].map(l => ({ ...l }))).length, 0);
+
+// 7. a replaced coach is kept in the history, not erased
+import { noteCoachChange } from '../lib/coach-history.js';
+{
+  const s = createMemoryStore();
+  await noteCoachChange(s, { league: 'LALIGA', club: 'RCD Espanyol de Barcelona', oldName: 'Manolo González', newName: 'Eder Sarabia', today: '2026-11-24' });
+  const sp = await s.listCoachSpells({ club: 'RCD Espanyol de Barcelona' });
+  assert.equal(sp.find(x => x.name === 'Manolo González').ended_on, '2026-11-24');
+  assert.equal(sp.find(x => x.name === 'Eder Sarabia').ended_on, null);
 }
 console.log('coach-names tests ok');

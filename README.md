@@ -4,6 +4,12 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## Admin 2.0.0 — Replaced coaches are kept in the coach history; nicknames count as spelling variants
+
+- **A coach replaced in the Coach check is no longer erased.** "Use <name>" (one at a time, or from a coach list) now closes the old coach's spell in the coach history (shown as a previous coach, with the date) and opens the new one, the same as the automatic change detection. The reason (sacked, resigned, ...) is not known to us, so it is saved as "reason not recorded yet" until you set it on the coach's history entry; nothing is called "sacked" without a source. A spelling or nickname change is not a replacement and writes no history.
+- **Nicknames are spelling variants.** Same surname with two different first names at the same club (José / Pepe Bordalás, Cristian / Kily González) is now offered under "Same person, different spelling" instead of as a different coach. It is only a suggestion: if a club really changed between two people with the same surname, do not merge them. (The earlier note that Diego and Giovanni Simeone stay separate no longer holds for the same club; a shared first name alone is still nothing.)
+- Test added for both (`tests/coach-names.test.mjs`).
+
 ## Admin 1.9.9 — Coach names and club names: one spelling each (strict club match, merge everywhere, coach spelling merge)
 
 - **Why it happened.** (1) The new Coach check matched a line-up club to our club row with a loose "one name inside the other" rule, so "Barcelona" was read as part of "RCD Espanyol de Barcelona" and Flick was shown for Espanyol. The saved line-ups themselves were correct (Espanyol's say Eder Sarabia). (2) "Merge" renames a club inside ONE league only. Leipzig was merged in the Bundesliga but stayed split in the Champions League (4 matches under "Leipzig", one of them a duplicate), and the coach row was created from that name. The same split existed for Celta and Hoffenheim (Europa League) and St. Truiden (Conference League). (3) Coach names had no merge at all: "M. Mićović", "Marko Mitrović" were three sources, one coach.
