@@ -4,6 +4,10 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## Admin 2.0.2 — Merge everywhere also catches names that differ only by a prefix (Hoffenheim / TSG 1899 Hoffenheim)
+
+- "Merge them everywhere" skipped names that differ only by a prefix or year the matcher ignores: "Hoffenheim" (8 Europa League matches) stayed apart from "TSG 1899 Hoffenheim". It now compares the stored names themselves, so this one shows up in the warning card too. Test added.
+
 ## Admin 2.0.1 — Coach history uses the merged coach name when a coach is replaced
 
 - When a coach is replaced in the Coach check, the old coach is looked up in the coach history under his merged (canonical) name, so "R. Weiler" and "René Weiler" are one history entry, not two.

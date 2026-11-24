@@ -89,4 +89,13 @@ import { noteCoachChange } from '../lib/coach-history.js';
   assert.equal(sp.find(x => x.name === 'Manolo González').ended_on, '2026-11-24');
   assert.equal(sp.find(x => x.name === 'Eder Sarabia').ended_on, null);
 }
+// 8. a spelling that only differs by a prefix the matcher ignores ("Hoffenheim" / "TSG 1899 Hoffenheim") is still two stored names
+{
+  const s = createMemoryStore();
+  await s.upsertAliases([{ alias: 'hoffenheim', canonical: 'TSG 1899 Hoffenheim' }]);
+  await s.upsertMatches([{ id: 'UEL|2026|2026-09-17|ofi crete|hoffenheim', league: 'UEL', comp_name: 'Europa League', season: 2026, round: 'League stage', date: '2026-09-17', home: 'OFI Crete', away: 'Hoffenheim', status: 'finished', hg: 1, ag: 1, source: 'manual' }]);
+  assert.equal((await healPreview(s)).splits.length, 1);
+  await healApply(s);
+  assert.ok((await s.listMatches({ league: 'UEL' })).every(m => m.away !== 'Hoffenheim'));
+}
 console.log('coach-names tests ok');
