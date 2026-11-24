@@ -4,6 +4,12 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## Admin 2.0.1 — Coach history uses the merged coach name when a coach is replaced
+
+- When a coach is replaced in the Coach check, the old coach is looked up in the coach history under his merged (canonical) name, so "R. Weiler" and "René Weiler" are one history entry, not two.
+- Data recorded today (sources in each entry, shown with the club's previous coaches): Espanyol: Manolo González sacked 27 Oct 2026 (Copa del Rey exit to Sestao, 18th in LaLiga), Eder Sarabia from 28 Oct. D.C. United: René Weiler parted ways 14 Nov (no reason given). Inter Miami: Javier Mascherano stepped down 14 Apr 2026 (personal reasons). Abha: Damir Burić parted ways 28 Oct (results). Name merges added: R. Weiler, J. Mascherano, D. Burić, Kily / Cristian González.
+- Not recorded (no source yet): who coached Inter Miami between Mascherano and Kily González (our line-ups list Angel Guillermo Hoyos from 18 Apr to 12 Sep), the date Kily González and Óscar Pareja started, and who Abha's table coach "Abdulrazak Alshabi" is.
+
 ## Admin 2.0.0 — Replaced coaches are kept in the coach history; nicknames count as spelling variants
 
 - **A coach replaced in the Coach check is no longer erased.** "Use <name>" (one at a time, or from a coach list) now closes the old coach's spell in the coach history (shown as a previous coach, with the date) and opens the new one, the same as the automatic change detection. The reason (sacked, resigned, ...) is not known to us, so it is saved as "reason not recorded yet" until you set it on the coach's history entry; nothing is called "sacked" without a source. A spelling or nickname change is not a replacement and writes no history.

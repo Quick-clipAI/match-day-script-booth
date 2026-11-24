@@ -3,7 +3,7 @@
 import { coverageWatch } from '../lib/coverage-watch.js';
 import { computeCoachFlags, computeCoachVariants, compareCoachList, sameCoach, variantCoach } from '../lib/coach-flags.js';
 import { healPreview, healApply } from '../lib/heal-names.js';
-import { nameMapOf, fullestName } from '../lib/coach-canon.js';
+import { nameMapOf, fullestName, canonName } from '../lib/coach-canon.js';
 import { personNorm } from '../lib/bank-profiles.js';
 import { missingReport } from '../lib/missing-report.js';
 import { storeFromEnv } from '../lib/bank-store.js';
@@ -620,5 +620,5 @@ export default async function handler(req, res) {
 // The reason (sacked, resigned, ...) is not known to us, so it says "not recorded yet" until the admin sets it.
 async function closeReplaced(store, row, newName, today, nameMap) {
   if (!row || !row.name || sameCoach(row.name, newName, nameMap) || variantCoach(row.name, newName, nameMap)) return null;
-  return noteCoachChange(store, { league: row.league, club: row.club, oldName: row.name, newName, today, origin: 'Coach check' }).catch(() => null);
+  return noteCoachChange(store, { league: row.league, club: row.club, oldName: canonName(row.name, nameMap), newName: canonName(newName, nameMap), today, origin: 'Coach check' }).catch(() => null);
 }
