@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://creator-boot.vercel.app/sitemap.xml
+Sitemap: https://creator-booth.vercel.app/sitemap.xml

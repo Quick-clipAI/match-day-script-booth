@@ -44,6 +44,18 @@
     {
       "source": "/download",
       "destination": "/api/download"
+    },
+    {
+      "source": "/football",
+      "destination": "/api/bank?mode=page&slug="
+    },
+    {
+      "source": "/football/:slug",
+      "destination": "/api/bank?mode=page&slug=:slug"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/bank?mode=sitemap"
     }
   ]
 }

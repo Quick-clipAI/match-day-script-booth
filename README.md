@@ -4,6 +4,17 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## 1.8.5 — Page address spelled Creator Booth for Google
+
+- **Public football pages for Google** (plain server-rendered HTML from our data bank, no JavaScript needed): `/football` (index), `/football/<league>-table` for the six domestic leagues (table, latest results, next fixtures, with a description that carries the real numbers) and `/football/<club>` for every club in them (position, head coach, latest results, next fixtures, squad). Each page has a canonical address, a title and description, breadcrumb data and links to the others. `sitemap.xml` is now generated from the same data (every league and club page) instead of a fixed file. Served by `/api/bank?mode=page` through `vercel.json` rewrites (still 12 functions) and cached at the edge for 15 minutes. Code: `lib/seo-pages.js`, test `tests/seo-pages.test.mjs`.
+- **Correctly spelled address.** The site was only at `creator-boot.vercel.app` (no "h"), which is why a search for "Creator Booth" did not match it. `creator-booth.vercel.app` is now added to the Vercel project; the page address, sitemap and structured data use it. The old address keeps working (the installed Android apps call it, so it must not change or redirect).
+- What this can and cannot do: the pages make the site eligible to appear for searches like "premier league table 2026/27" or "arsenal head coach". Google decides ranking. Big sites (BBC, Sky, ESPN) hold the top places for the plain "premier league table" search, and the box with the table that Google itself shows comes from Google's own data. A new site normally needs weeks to be crawled.
+- Owner steps in Search Console for the new address are in the app README.
+
+## Admin 2.0.3 — Public football pages for Google (tables, results, clubs), sitemap, correctly spelled address
+
+- The same public pages and the correctly spelled address, shipped with the web release above; the app only changes its page address metadata.
+
 ## 1.8.4 — Search box: clubs, players, coaches and football questions answered from our own data
 
 - **Search box in the app** (magnifier in the top bar, app 1.8.4). Type a club, player or coach (a few letters is enough) or a football question ("Arsenal next match", "Premier League table"). It shows the matches and competition cards, short answer lines (table position, latest results, next fixtures, head coach, form), clubs, players and coaches; tapping one opens the club, player or match screen already in the app. It answers from our own data bank only: no AI, no API-Football request, no web search, so it can never use the daily requests. Anything it cannot find says so and offers "Ask Creator Booth" (sends the same text to the chat).

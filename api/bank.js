@@ -4,6 +4,7 @@
 import { storeFromEnv } from '../lib/bank-store.js';
 import { planContext } from '../lib/bank-context.js';
 import { quickSearch } from '../lib/quick-search.js';
+import { renderPage, renderSitemap } from '../lib/seo-pages.js';
 import { isIsoDate } from '../lib/bank-core.js';
 import { syncDue } from '../lib/sync-due.js';
 import { fixturesGetter } from '../lib/apisports.js';
@@ -23,6 +24,17 @@ export default async function handler(req, res) {
     const q = String((req.query && req.query.q) || '').slice(0, 600);
     const t = String((req.query && req.query.today) || '');
     const today = isIsoDate(t) ? t : new Date().toISOString().slice(0, 10);
+    // public pages for search engines (vercel.json rewrites /football/<slug> and /sitemap.xml here): our own stored data, plain HTML
+    const mode = String((req.query && req.query.mode) || '');
+    if (mode === 'page' || mode === 'sitemap') {
+      const day = new Date().toISOString().slice(0, 10);
+      res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=900, stale-while-revalidate=3600');
+      if (mode === 'sitemap') { res.setHeader('Content-Type', 'application/xml; charset=utf-8'); return res.status(200).send(await renderSitemap(day, store, cache)); }
+      const out = await renderPage(String((req.query && req.query.slug) || ''), day, store, cache);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      if (out.status !== 200) res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60');
+      return res.status(out.status).send(out.html);
+    }
     // the in-app search box: our own stored data only (no AI, no API-Football request, so it can never use up the daily requests)
     if (String((req.query && req.query.mode) || '') === 'quick') {
       const out = await quickSearch(q, today, store, { cache, focus: String((req.query && req.query.lg) || '').toUpperCase().slice(0, 12) });
