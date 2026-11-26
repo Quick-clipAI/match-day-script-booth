@@ -4,6 +4,12 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## 1.8.4 — Search box: clubs, players, coaches and football questions answered from our own data
+
+- **Search box in the app** (magnifier in the top bar, app 1.8.4). Type a club, player or coach (a few letters is enough) or a football question ("Arsenal next match", "Premier League table"). It shows the matches and competition cards, short answer lines (table position, latest results, next fixtures, head coach, form), clubs, players and coaches; tapping one opens the club, player or match screen already in the app. It answers from our own data bank only: no AI, no API-Football request, no web search, so it can never use the daily requests. Anything it cannot find says so and offers "Ask Creator Booth" (sends the same text to the chat).
+- Server: `GET /api/bank?mode=quick&q=...` (same function as before, so no new Vercel function), `lib/quick-search.js`; `planContext` now also returns `quick` (clean lines, none of the instructions meant for the AI). Test: `tests/quick-search.test.mjs`.
+- **Google finds the site**: what was already in place (domain verified file, `robots.txt`, `sitemap.xml`, canonical, description, Open Graph, WebApplication data) is kept; added WebSite data with alternate names (CreatorBooth), a plain-text `<noscript>` description for crawlers, sitemap dates refreshed. Nothing here can promise a ranking: Google decides, and a new `*.vercel.app` address for a two-word name can take weeks. The steps only the owner can do are in the app README.
+
 ## Admin 2.0.2 — Merge everywhere also catches names that differ only by a prefix (Hoffenheim / TSG 1899 Hoffenheim)
 
 - "Merge them everywhere" skipped names that differ only by a prefix or year the matcher ignores: "Hoffenheim" (8 Europa League matches) stayed apart from "TSG 1899 Hoffenheim". It now compares the stored names themselves, so this one shows up in the warning card too. Test added.

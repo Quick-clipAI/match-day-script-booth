@@ -3,6 +3,7 @@
 // Nothing here can write; the database key never leaves the server.
 import { storeFromEnv } from '../lib/bank-store.js';
 import { planContext } from '../lib/bank-context.js';
+import { quickSearch } from '../lib/quick-search.js';
 import { isIsoDate } from '../lib/bank-core.js';
 import { syncDue } from '../lib/sync-due.js';
 import { fixturesGetter } from '../lib/apisports.js';
@@ -22,6 +23,12 @@ export default async function handler(req, res) {
     const q = String((req.query && req.query.q) || '').slice(0, 600);
     const t = String((req.query && req.query.today) || '');
     const today = isIsoDate(t) ? t : new Date().toISOString().slice(0, 10);
+    // the in-app search box: our own stored data only (no AI, no API-Football request, so it can never use up the daily requests)
+    if (String((req.query && req.query.mode) || '') === 'quick') {
+      const out = await quickSearch(q, today, store, { cache, focus: String((req.query && req.query.lg) || '').toUpperCase().slice(0, 12) });
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json(out);
+    }
     // a chat question is also a trigger: if a match should be over and has no result yet, look it up first (throttled, max 4 s)
     if (process.env.API_SPORTS_KEY) { try { await Promise.race([syncDue(store, { getFixtures: fixturesGetter(process.env.API_SPORTS_KEY.trim()) }), new Promise(r => setTimeout(r, 4000))]); } catch (e) { /* the answer must not depend on it */ } }
     const lg = String((req.query && req.query.lg) || '').toUpperCase().slice(0, 12);
