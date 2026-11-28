@@ -4,6 +4,10 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## Admin 2.0.7 — Admin lock waits 3 minutes while a file is being chosen
+
+- **Admin no longer locks while you choose a file.** Leaving the Admin for 10 seconds still locks it, but when you tap a file chooser (import boxes, coach list file, zip) the wait becomes 3 minutes, so you can browse your files slowly. Coming back or choosing a file ends the long wait. Leaving for any other reason is unchanged (10 seconds).
+
 ## Admin 2.0.6 — Import preview: what-could-go-wrong checks
 
 - **Match-details import now checks "what could go wrong" before you save** (`lib/detail-check.js`, test `tests/detail-check.test.mjs`; runs in the Preview of the Import tab, stored data only, no API requests, nothing blocks a save). For every match it flags: players not in our squad list of that club, and names spelled differently from our squad (they would not join the player's page); a club we have no squad for (names cannot be checked, they stay inside the match); the file's coach against our coach table; stored score or date different from the file; not 11 starters, a player or shirt number listed twice, strange minutes; names in the events who are in neither line-up; yellow/red cards in the statistics that differ from the events; events after a player was sent off or substituted. The multi-file box now lists every warning of every match (it showed only the first one).

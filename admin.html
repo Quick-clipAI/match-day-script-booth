@@ -1046,7 +1046,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '2.0.6';
+const ADMIN_VERSION = '2.0.7';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };
@@ -1113,10 +1113,13 @@ bioLabel();
 // inside the app the plugin answers a moment after the page starts: ask it whether the key was saved, then offer the unlock
 (async () => { const n = NB(); if (!n) return; try { bioOn = !!(await n.isEnrolled()).enrolled; bioLabel(); if (bioOn && !KEY) bioUnlock(); } catch (e) { } })();
 // leaving the page for 10 seconds locks the bank (the key is wiped from memory and from this tab)
-let lockTimer = null;
+// While a file is being chosen (the phone's file picker takes the screen) the wait is 3 minutes instead of 10 seconds; coming back, or choosing, ends that.
+let lockTimer = null, pickUntil = 0;
+document.addEventListener('click', e => { const t = e.target; if (t && t.matches && t.matches('input[type=file]')) pickUntil = Date.now() + 180000; }, true);
+document.addEventListener('change', e => { if (e.target && e.target.matches && e.target.matches('input[type=file]')) pickUntil = 0; }, true);
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { if (KEY) lockTimer = setTimeout(() => { if (document.hidden) lock(); }, 10000); }
-  else { clearTimeout(lockTimer); lockTimer = null; if (!KEY && bioOn) $('#bioBtn').classList.remove('hide'); }
+  if (document.hidden) { if (KEY) lockTimer = setTimeout(() => { if (document.hidden) lock(); }, Date.now() < pickUntil ? 180000 : 10000); }
+  else { clearTimeout(lockTimer); lockTimer = null; pickUntil = 0; if (!KEY && bioOn) $('#bioBtn').classList.remove('hide'); }
 });
 window.addEventListener('pagehide', () => { try { sessionStorage.removeItem('cb_admin'); sessionStorage.removeItem('stk_ak'); } catch (e) { } });
 
