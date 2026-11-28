@@ -262,9 +262,9 @@ export default async function handler(req, res) {
       }
       case 'coachFlags': {                   // line-up coach differs from our club table (no API requests: stored data only)
         const since = new Date(Date.parse(now + 'T00:00:00Z') - 60 * 864e5).toISOString().slice(0, 10);
-        const [co, lu, al, cn] = await Promise.all([store.listCoaches(), store.lineupCoaches(since), store.listAliases(), store.listCoachNames()]);
+        const [co, lu, al, cn, sp] = await Promise.all([store.listCoaches(), store.lineupCoaches(since), store.listAliases(), store.listCoachNames(), store.listCoachSpells().catch(() => [])]);
         const opts = { aliasMap: new Map(al.map(a => [a.alias, a.canonical])), nameMap: nameMapOf(cn) };
-        const flags = computeCoachFlags(co, lu, opts);
+        const flags = computeCoachFlags(co, lu, { ...opts, spells: sp });
         const variants = computeCoachVariants(co, lu, opts);
         const heal = await healPreview(store).catch(() => ({ splits: [], coachJoins: [], coachRenames: [] }));
         return res.status(200).json({ flags, variants, heal, coaches: co.length, lineups: lu.length });

@@ -337,7 +337,7 @@ async function loadCoachCheck(box) {
     <div style="font-size:14px">Our table: <b>${esc(f.table_coach)}</b>${f.locked ? ' <span class="chip">locked</span>' : ''}</div>
     <div style="font-size:14px">${esc(c.label)}: <b>${esc(c.name)}</b></div>
     <div class="mut" style="font-size:12px">${esc(c.note)}</div></div>
-    <button class="btn pri sm" data-use="${esc(c.name)}">Use ${esc(c.name)}</button>${c.keep ? `<button class="btn sm" data-keep="${esc(c.name)}">Keep ours</button>` : ''}</div>`;
+    <button class="btn pri sm" data-use="${esc(c.name)}">Use ${esc(c.name)}</button>${c.keep ? `<button class="btn sm" data-keep="${esc(c.name)}">Keep ours</button><button class="btn sm" data-same="${esc(c.name)}" data-ours="${esc(f.table_coach)}">Same person</button>` : ''}</div>`;
   const h = o.heal || {}, nHeal = (h.splits || []).length + (h.coachJoins || []).length + (h.coachRenames || []).length;
   const healHtml = nHeal ? `<div class="banner warn" style="margin-bottom:10px"><div style="width:100%"><b>Same club, two names:</b> ${nHeal} to merge.<br><span class="mut">A club merged in one league can stay split in another. These names already have a merge rule but are still stored the old way.</span>
     ${(h.splits || []).map(x => `<div style="font-size:14px;margin-top:6px"><b>${esc(x.from)}</b> → <b>${esc(x.to)}</b> <span class="mut" style="font-size:12px">${esc(leagueName(x.league))} · ${x.matches} match(es)</span></div>`).join('')}
@@ -352,7 +352,8 @@ async function loadCoachCheck(box) {
   box.innerHTML = healHtml + `<div class="banner ${o.flags.length ? 'warn' : 'ok'}"><div style="width:100%"><b>Coach check:</b> ${o.flags.length ? o.flags.length + ' club(s) where the line-up coach differs from our table' : 'every line-up coach matches our table'}.<br><span class="mut">Compared with ${o.lineups} saved line-up coaches of the last 60 days. Costs no requests. Pick the right name; it is saved and locked so the automatic checks cannot change it back.</span>${rows}${varHtml}
     <div class="row" style="margin-top:12px"><label class="btn sm" style="cursor:pointer">Compare with a coach list file<input type="file" id="ccFile" accept=".json,application/json" hidden></label><span class="mut" style="font-size:12px">JSON list: [{"club":"Arsenal","coach":"Mikel Arteta"}, …]</span></div><div id="ccCmp"></div></div></div>`;
   const act = async (btn, choice, id, name) => { btn.disabled = true; try { const r = await api('coachResolve', { id, choice, name }); toast(r.club + ': ' + r.name, 'ok'); const row = btn.closest('[data-cc]'); if (row) row.remove(); } catch (e) { btn.disabled = false; toast(e.message, 'bad'); } };
-  const wire = scope => { scope.querySelectorAll('[data-use]').forEach(b => b.onclick = () => act(b, 'use', b.closest('[data-cc]').dataset.cc, b.dataset.use)); scope.querySelectorAll('[data-keep]').forEach(b => b.onclick = () => act(b, 'keep', b.closest('[data-cc]').dataset.cc, b.dataset.keep)); };
+  const same = async b => { const row = b.closest('[data-cc]'), a = b.dataset.ours, c = b.dataset.same; if (!confirm('Merge "' + a + '" and "' + c + '" as ONE person? Every source that brings either spelling will then be read as the same coach.')) return; b.disabled = true; try { const r = await api('coachMerge', { items: [{ id: row.dataset.cc, names: [a, c] }] }); toast(r.merged + ' coach merged', 'ok'); row.remove(); } catch (e) { b.disabled = false; toast(e.message, 'bad'); } };
+  const wire = scope => { scope.querySelectorAll('[data-same]').forEach(b => b.onclick = () => same(b)); scope.querySelectorAll('[data-use]').forEach(b => b.onclick = () => act(b, 'use', b.closest('[data-cc]').dataset.cc, b.dataset.use)); scope.querySelectorAll('[data-keep]').forEach(b => b.onclick = () => act(b, 'keep', b.closest('[data-cc]').dataset.cc, b.dataset.keep)); };
   wire(box);
   const merge = async (btn, list, scope) => { btn.disabled = true; try { const r = await api('coachMerge', { items: list }); toast(r.merged + ' coach(es) merged', 'ok'); list.forEach(x => { const row = scope.querySelector('[data-cv="' + CSS.escape(x.id) + '"]'); if (row) row.remove(); }); } catch (e) { btn.disabled = false; toast(e.message, 'bad'); } };
   const wireMerge = scope => { scope.querySelectorAll('[data-merge]').forEach(b => b.onclick = () => { const row = b.closest('[data-cv]'); merge(b, [{ id: row.dataset.cv, names: JSON.parse(row.dataset.names), canonical: b.dataset.merge }], scope); }); };
@@ -1045,7 +1046,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '2.0.4';
+const ADMIN_VERSION = '2.0.5';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

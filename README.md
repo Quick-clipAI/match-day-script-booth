@@ -4,6 +4,12 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## Admin 2.0.5 — Coach check: outgoing coaches are history; Same person button; Champions League results from football-data.org
+
+- **Coach check no longer flags a coach who has left.** If a line-up still names a coach whose recorded spell (history) ended on or up to 3 days before that match, it is history, not a mismatch. This clears D.C. United (R. Weiler, line-up 7 Nov, left 14 Nov) and Abha (D. Burić, line-up 30 Oct, left 28 Oct). A line-up well after the end date still flags.
+- **New "Same person" button** next to "Keep ours" on every Coach check card, for two spellings the app did not recognise as one person. It asks for confirmation, then merges them like "Merge as ..." (every spelling remembered, row renamed). It is NOT for different people: Weiler and Pareja are two coaches, use "Keep ours" there.
+- **Champions League results from football-data.org** (`lib/fd-results.js`, test `tests/fd-results.test.mjs`): when UCL matches of the last 30 days have no score, the 30-minute job asks football-data.org once (at most every 3 hours, key `FOOTBALL_DATA_API_KEY`, no API-Football request) and fills full-time scores and half-time only for matches without a score. Extra-time and penalty matches are left for a person (not guessed). Europa League, Conference League and Saudi are not on that free plan; those gaps still need a hand-typed score on the Gaps tab or another source.
+
 ## Admin 2.0.4 — Phone alert when API-Football refuses our requests
 
 - **Phone alert when API-Football refuses us.** The 30-minute due check now reads our own log (no API request) and, if API-Football says the account is suspended, the key is wrong or the daily limit is reached in the last 3 hours, sends a push to your phone: reason plus the date it started failing (since the last good API-Football sync in the log). At most one alert every 12 hours; each alert is also written to the Log tab (kind `alert`). New file `lib/api-alert.js`, test `tests/api-alert.test.mjs`.
