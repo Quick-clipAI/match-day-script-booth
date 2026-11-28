@@ -4,6 +4,12 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## Admin 2.0.4 — Phone alert when API-Football refuses our requests
+
+- **Phone alert when API-Football refuses us.** The 30-minute due check now reads our own log (no API request) and, if API-Football says the account is suspended, the key is wrong or the daily limit is reached in the last 3 hours, sends a push to your phone: reason plus the date it started failing (since the last good API-Football sync in the log). At most one alert every 12 hours; each alert is also written to the Log tab (kind `alert`). New file `lib/api-alert.js`, test `tests/api-alert.test.mjs`.
+- **Needs one Vercel variable:** `ADMIN_ALERT_USER_ID` = the id of the app account that should get the alert (push also needs the existing `FIREBASE_SERVICE_ACCOUNT`). Without it the alert is only written to the log.
+- Where the key lives: `API_SPORTS_KEY` (API-Football). Right now API-Football itself answers "Your account is suspended", so a new key from the same account will not help until the account is active again.
+
 ## 1.8.5 — Page address spelled Creator Booth for Google
 
 - **Public football pages for Google** (plain server-rendered HTML from our data bank, no JavaScript needed): `/football` (index), `/football/<league>-table` for the six single-table domestic leagues (Premier League, La Liga, Serie A, Bundesliga, Ligue 1, Saudi Pro League; MLS is left out because its official standings are two conference tables) (table, latest results, next fixtures, with a description that carries the real numbers) and `/football/<club>` for every club in them (position, head coach, latest results, next fixtures, squad). Each page has a canonical address, a title and description, breadcrumb data and links to the others. `sitemap.xml` is now generated from the same data (every league and club page) instead of a fixed file. Served by `/api/bank?mode=page` through `vercel.json` rewrites (still 12 functions) and cached at the edge for 15 minutes. Code: `lib/seo-pages.js`, test `tests/seo-pages.test.mjs`.

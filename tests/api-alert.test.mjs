@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import { apiProblem, checkApiAlert } from '../lib/api-alert.js';
+const now = Date.parse('2026-11-28T05:00:00Z');
+const L = (h, kind, ok, summary) => ({ at: new Date(now - h * 3600e3).toISOString(), kind, ok, summary });
+const logs = [L(0.5, 'sync-due', true, 'Due-match check: 2 due — 2026-11-27: Your account is suspended, check on https://dashboard.api-football.com.'), L(3.6, 'sync-api', false, 'API-Football sync failed: 2026-11-27: Your account is suspended, check'), L(27, 'sync-api', true, 'API-Football: 59 matches in our competitions')];
+const p = apiProblem(logs, now);
+assert.ok(p && /suspended/i.test(p.reason)); assert.equal(p.since, logs[1].at);
+assert.equal(apiProblem([L(1, 'sync-due', true, 'Due-match check: 2 due, 1 filled')], now), null);
+assert.equal(apiProblem([L(5, 'sync-due', true, 'Your account is suspended')], now), null, 'old entries are ignored');
+let pushes = 0; const store = { recentLogs: async () => logs, addLog: async () => {} };
+const env = { ADMIN_ALERT_USER_ID: 'u1' };
+const f = async () => ({ ok: true, json: async () => [] });
+const r1 = await checkApiAlert(store, env, { fetchImpl: f, nowMs: now }); assert.equal(r1.alerted, true);
+const r2 = await checkApiAlert(store, env, { fetchImpl: f, nowMs: now + 3600e3 }); assert.equal(r2.alerted, false); assert.ok(r2.quiet);
+console.log('api-alert tests ok');

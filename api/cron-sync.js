@@ -12,6 +12,7 @@ import { syncTransfers } from '../lib/sync-transfers.js';
 import { syncDetails } from '../lib/match-detail.js';
 import { hlFetch } from '../lib/highlightly.js';
 import { fdRefresh } from '../lib/fd-scorers.js';
+import { checkApiAlert } from '../lib/api-alert.js';
 import { backfillIds } from '../lib/backfill-ids.js';
 import { coverageWatch, logWatch } from '../lib/coverage-watch.js';
 
@@ -57,7 +58,9 @@ export default async function handler(req, res) {
       try { const rep = await coverageWatch(store); await logWatch(store, rep); cv = { summary: `${rep.closing} closing, ${rep.missed} past the window, ${rep.open} open` }; } catch (e) { cv = { summary: 'coverage watch failed: ' + String(e && e.message || e).slice(0, 120) }; }
       let fd = { summary: 'off' };
       try { const fk = (process.env.FOOTBALL_DATA_API_KEY || '').trim(); if (fk) fd = await fdRefresh(store, { key: fk, max: 1, pauseMs: 0 }); } catch (e) { fd = { summary: 'football-data failed: ' + String(e && e.message || e).slice(0, 120) }; }
-      return res.status(200).json({ ok: true, scorers: fd.summary, coverage: cv.summary, highlightly: hl.summary, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, kickoffs: k.summary, queued: qd.summary, details: d.summary, squads: q.summary, coaches: co.summary, coachWatch: cw.summary, transfers: t.summary });
+      let al = { alerted: false };      // phone alert when API-Football refuses us (reads the log only)
+      try { al = await checkApiAlert(store, process.env); } catch (e) { /* alerts never break the sync */ }
+      return res.status(200).json({ ok: true, alert: al.alerted ? 'sent' : 'none', scorers: fd.summary, coverage: cv.summary, highlightly: hl.summary, ran: r.ran, filled: r.filled, pending: r.pending, summary: r.summary, kickoffs: k.summary, queued: qd.summary, details: d.summary, squads: q.summary, coaches: co.summary, coachWatch: cw.summary, transfers: t.summary });
     } catch (e) { return res.status(500).json({ error: String(e && e.message || e).slice(0, 200) }); }
   }
   const secret = (process.env.CRON_SECRET || '').trim();
