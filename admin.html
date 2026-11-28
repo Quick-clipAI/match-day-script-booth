@@ -499,7 +499,7 @@ VIEWS.import = async m => {
     const text = $('#dTx').value.trim(); if (!text) return toast('Paste the JSON first.', 'bad');
     const r = await api('importDetails', { text, dryRun: dry, overwrite: $('#dOver').checked });
     $('#dOut').innerHTML = r.results.map(x => `<div style="border-top:1px solid var(--line);padding:8px 0"><b>${x.saved ? '✓ Saved' : x.ok && !x.skip ? 'Ready' : x.skip ? 'Kept as is' : '✗ Problem'}</b> ${esc(x.label)}${x.counts ? ` <span class="mut">· ${x.counts.events} events, ${x.counts.stats} stats, ${x.counts.lineups} line-up(s)${x.counts.score ? ', score' : ''}</span>` : ''}`
-      + x.problems.map(p => `<div style="color:var(--bad,#ff6b6b)">✗ ${esc(p)}</div>`).join('') + x.warnings.map(w => `<div style="color:var(--warn)">⚠ ${esc(w)}</div>`).join('') + '</div>').join('');
+      + x.problems.map(p => `<div style="color:var(--bad,#ff6b6b)">✗ ${esc(p)}</div>`).join('') + x.warnings.map(w => `<div style="color:var(--warn)">⚠ ${esc(w)}</div>`).join('') + (x.notes || []).map(w => `<div class="mut" style="font-size:12px">ℹ ${esc(w)}</div>`).join('') + '</div>').join('');
     const good = r.results.some(x => x.ok && !x.skip), bad = r.results.some(x => x.problems.length);
     $('#dSave').disabled = dry ? !(good && !bad) : true;
     if (!dry) { toast('Saved', 'ok'); await refreshOv(); }
@@ -531,10 +531,10 @@ VIEWS.import = async m => {
         else if (x.skip) { kept++; }
         else if (x.ok) ready++;
         const w = (x.warnings || []).filter(z => !/already has API-Football details/.test(z));
-        if (w.length) lines.push(`<div style="color:var(--warn)">⚠ ${esc(x.label)}: ${esc(w[0])}</div>`);
+        if (w.length) lines.push(`<div style="color:var(--warn);margin-top:8px"><b>${esc(x.label)}</b>${w.map(z => '<div>⚠ ' + esc(z) + '</div>').join('')}</div>`);
       }
     }
-    $('#dFilesInfo').innerHTML = `<b>${all.length} matches in ${files.length} file(s):</b> ready ${ready} · kept as is ${kept} · problems ${bad}` + (kept ? ' <span class="mut">(kept = already has other data; tick “replace API details” to overwrite)</span>' : '') + lines.slice(0, 40).join('');
+    $('#dFilesInfo').innerHTML = `<b>${all.length} matches in ${files.length} file(s):</b> ready ${ready} · kept as is ${kept} · problems ${bad}` + (kept ? ' <span class="mut">(kept = already has other data; tick “replace API details” to overwrite)</span>' : '') + lines.slice(0, 150).join('');
     $('#dFilesSave').disabled = !(ready && !bad);
   }, 'Checking…');
   $('#dFilesSave').onclick = ev => run(ev.target, async () => {
@@ -1046,7 +1046,7 @@ VIEWS.log = async m => {
 if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => { }); } catch (e) { } }
 let installEv = null;
 // Bump this together with package.json on every release (see README → Versioning).
-const ADMIN_VERSION = '2.0.5';
+const ADMIN_VERSION = '2.0.6';
 { const v = document.getElementById('admVer'); if (v) v.textContent = 'v' + ADMIN_VERSION; }
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('#installBtn').classList.remove('hide'); });
 $('#installBtn').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('#installBtn').classList.add('hide'); };

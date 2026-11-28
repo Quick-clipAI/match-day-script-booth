@@ -26,11 +26,12 @@ import { hlStatus } from '../lib/highlightly-status.js';
 import { fixturesGetter, seasonFixturesGetter, fetchText, teamsGetter, transfersGetter, squadGetter, coachGetter, searchTeamsGetter, statusGetter, quotaOf, injuriesGetter } from '../lib/apisports.js';
 import { clubSuspects, pairKey } from '../lib/club-suspects.js';
 import { normalizeDetail, DETAIL_PROMPT } from '../lib/manual-detail.js';
+import { checkDetail } from '../lib/detail-check.js';
 import { linkClubs, readExtraLists } from '../lib/link-clubs.js';
 import { syncSquads, squadStatus, squadPicker, syncSquadClubs } from '../lib/sync-squads.js';
 import { syncTransfers, transferStatus } from '../lib/sync-transfers.js';
 import { normalizeSquad, staleVariants } from '../lib/bank-squad.js';
-import { normalizeProfiles, computeFlags, yearOf } from '../lib/bank-profiles.js';
+import { normalizeProfiles, computeFlags, yearOf, strictSameClub } from '../lib/bank-profiles.js';
 import { normalizeProfile, mergeProfile, findStored, careerId, describe as describeCareer } from '../lib/bank-career.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -164,6 +165,19 @@ export default async function handler(req, res) {
         const aliasMap = new Map((await store.listAliases()).map(a => [a.alias, a.canonical]));
         const same = (a, b) => { const x = norm(a), y = norm(b); return x === y || (aliasMap.get(x) && norm(aliasMap.get(x)) === y) || (aliasMap.get(y) && norm(aliasMap.get(y)) === x); };
         const cache = new Map(), results = [];
+        // for the "what could go wrong" check: our squads, coach table and coach spellings, read once (stored data only, no API requests)
+        let ref = null;
+        const refData = async () => {
+          if (ref) return ref;
+          const [pl, co, cn] = await Promise.all([store.listPlayers().catch(() => []), store.listCoaches().catch(() => []), store.listCoachNames().catch(() => [])]);
+          const top = new Map(); for (const p of pl) if (!top.has(p.league) || p.season > top.get(p.league)) top.set(p.league, p.season);
+          const cur = pl.filter(p => p.season === top.get(p.league)), pool = [...new Set(cur.map(p => p.club))];
+          const ctop = new Map(); for (const c of co) if (!ctop.has(c.league) || c.season > ctop.get(c.league)) ctop.set(c.league, c.season);
+          const coaches = co.filter(c => c.season === ctop.get(c.league));
+          ref = { pool, cur, coaches, nameMap: nameMapOf(cn) }; return ref;
+        };
+        const clubSquad = (rf, club) => { const clubs = rf.pool.filter(c => strictSameClub(c, club, rf.pool, aliasMap)); return clubs.length === 1 ? rf.cur.filter(p => p.club === clubs[0]).map(p => p.name) : null; };
+        const clubCoach = (rf, club) => { const c = rf.coaches.filter(x => strictSameClub(x.club, club, rf.pool, aliasMap)); return c.length === 1 ? c[0].name : null; };
         for (const it of list) {
           const r = { label: `${it && it.home || '?'} v ${it && it.away || '?'}${it && it.date ? ' (' + it.date + ')' : ''}`, ok: false, problems: [], warnings: [] };
           results.push(r);
@@ -176,6 +190,7 @@ export default async function handler(req, res) {
           if (!cands.length) { r.problems.push('that match is not in the data bank (check the league, season and club names)'); continue; }
           const match = it.date ? cands.sort((a, b) => Math.abs(Date.parse(a.date) - Date.parse(it.date)) - Math.abs(Date.parse(b.date) - Date.parse(it.date)))[0] : cands[0];
           const n = normalizeDetail(it, match); r.problems.push(...n.problems); r.warnings.push(...n.warnings);
+          try { const rf = await refData(); const notes = checkDetail(it, match, { squads: { home: clubSquad(rf, match.home), away: clubSquad(rf, match.away) }, coaches: { home: clubCoach(rf, match.home), away: clubCoach(rf, match.away) }, nameMap: rf.nameMap }); r.warnings.push(...notes.filter(x => x.level === 'warn').map(x => x.text)); r.notes = notes.filter(x => x.level === 'info').map(x => x.text); } catch (e) { r.warnings.push('The extra check could not run: ' + String(e && e.message || e).slice(0, 80)); }
           r.matchId = match.id; r.counts = { events: n.data.events.length, stats: n.data.stats.length, lineups: Object.keys(n.data.lineups).length, score: !!n.score };
           const have = await store.getDetail(match.id).catch(() => null);
           if (have && have.data && !have.data.unavailable && have.data.source !== 'manual' && !overwrite) { r.warnings.push('this match already has API-Football details; they are kept. Tick "replace API details" to overwrite.'); r.skip = true; }

@@ -4,6 +4,11 @@
 
 A football-only AI chat app for fans and creators: match and player analysis, research with sources, match-day scripts and club banter, backed by Gemini's live Google Search, our own checked **data bank** (fixtures, results, tables, facts) and real match/coach data (API-Football), not just whatever the model remembers from training. Runs as a website and as an Android app (see the `creator-booth-app` project).
 
+## Admin 2.0.6 — Import preview: what-could-go-wrong checks
+
+- **Match-details import now checks "what could go wrong" before you save** (`lib/detail-check.js`, test `tests/detail-check.test.mjs`; runs in the Preview of the Import tab, stored data only, no API requests, nothing blocks a save). For every match it flags: players not in our squad list of that club, and names spelled differently from our squad (they would not join the player's page); a club we have no squad for (names cannot be checked, they stay inside the match); the file's coach against our coach table; stored score or date different from the file; not 11 starters, a player or shirt number listed twice, strange minutes; names in the events who are in neither line-up; yellow/red cards in the statistics that differ from the events; events after a player was sent off or substituted. The multi-file box now lists every warning of every match (it showed only the first one).
+- File prepared for the 26 Nov gaps: cards shown to coaches/staff were removed (not a player, not collected by our data).
+
 ## Admin 2.0.5 — Coach check: outgoing coaches are history; Same person button; Champions League results from football-data.org
 
 - **Coach check no longer flags a coach who has left.** If a line-up still names a coach whose recorded spell (history) ended on or up to 3 days before that match, it is history, not a mismatch. This clears D.C. United (R. Weiler, line-up 7 Nov, left 14 Nov) and Abha (D. Burić, line-up 30 Oct, left 28 Oct). A line-up well after the end date still flags.
